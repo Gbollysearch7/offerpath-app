@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Analysing your CV</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+@keyframes op-spin{to{transform:rotate(360deg)}}
+.op-spin{animation:op-spin 1.4s linear infinite;transform-origin:center}
+@media (prefers-reduced-motion: reduce){.op-spin{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 900px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="review" hint-size="100%,72px"></dc-import>
+<main aria-live="polite" style="max-width: 640px; margin: 0 auto; padding: 80px 28px; display: flex; flex-direction: column; gap: 24px;">
+<p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; color: #36604E;">ABOUT 12 SECONDS LEFT</p>
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Reading your CV</h1>
+<div role="progressbar" aria-valuenow="58" aria-valuemin="0" aria-valuemax="100" aria-label="Progress" style="height: 4px; border-radius: 99px; background: #DCE3DE;"><div style="width: 58%; height: 4px; border-radius: 99px; background: #000000;"></div></div>
+<ol style="list-style: none; margin: 8px 0 0; padding: 0; background: #FFFFFF; border-radius: 24px; padding: 8px 24px;">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+<li style="display: flex; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid #EEF2EF;">
+<sc-if value="{{s.done}}" hint-placeholder-val="{{ false }}"><svg width="24" height="24" viewBox="0 0 22 22" role="img" aria-label="Done" style="flex: 0 0 auto;"><circle cx="11" cy="11" r="10" fill="#DCE6DF"></circle><path d="M6.8 11.3l2.8 2.8 5.6-5.8" fill="none" stroke="#36604E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+<sc-if value="{{s.active}}" hint-placeholder-val="{{ false }}"><svg class="op-spin" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="In progress" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9.5" fill="none" stroke="#EEF2EF" stroke-width="2.5"></circle><path d="M12 2.5a9.5 9.5 0 0 1 9.5 9.5" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round"></path></svg></sc-if>
+<sc-if value="{{s.todo}}" hint-placeholder-val="{{ true }}"><svg width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Waiting" style="flex: 0 0 auto;"><circle cx="12" cy="12" r="9.5" fill="none" stroke="#DCE3DE" stroke-width="2"></circle></svg></sc-if>
+<div><p style="margin: 0; font-size: 16px; color: {{s.c}};">{{s.t}}</p><p style="margin: 3px 0 0; font-size: 13px; color: #5C6B66;">{{s.d}}</p></div>
+</li>
+</sc-for>
+</ol>
+<p style="margin: 0; padding: 16px 18px; border-radius: 18px; background: #E6EDE8; font-size: 14px; line-height: 1.55; color: #35423D;">While you wait: a recruiter's first read is quick, so clear results beat long descriptions.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = [['done', 'Reading your file', '2 pages, readable text'], ['done', 'Finding your sections', 'Education, experience, skills, contact'], ['active', 'Scoring 16 bullet points', 'Impact, clarity and length'], ['todo', 'Checking finance keywords', 'Sector relevance'], ['todo', 'Ranking your fixes', 'Biggest gains first']];
+    return { steps: s.map(([k, t, d]) => ({ t, d, done: k === 'done', active: k === 'active', todo: k === 'todo', c: k === 'todo' ? '#5C6B66' : '#000000' })) };
+  }
+}
+</script>
+</body>
+</html>

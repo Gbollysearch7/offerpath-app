@@ -1,0 +1,46 @@
+# Supabase CLI configuration for local development and for pushing settings to staging/production.
+# See docs/OPERATIONS.md. Secrets come from environment variables, never from this file.
+project_id = "offerpath"
+
+[api]
+schemas = ["public"]
+max_rows = 1000
+
+[db]
+major_version = 17
+
+[storage]
+file_size_limit = "2MiB"
+
+[auth]
+site_url = "env(NEXT_PUBLIC_SITE_URL)"
+additional_redirect_urls = ["env(NEXT_PUBLIC_SITE_URL)/auth/callback", "http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+enable_refresh_token_rotation = true
+
+[auth.rate_limit]
+email_sent = 30
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+otp_expiry = 3600
+
+[auth.email.template.magic_link]
+subject = "Your Offerpath sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your email for Offerpath"
+content_path = "./supabase/templates/confirmation.html"
+
+# Send auth emails through Resend instead of Supabase's limited built-in sender.
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "no-reply@offerpath.app"
+sender_name = "Offerpath"

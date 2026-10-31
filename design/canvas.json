@@ -1,0 +1,642 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Admin_Dashboard.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "page": "app",
+      "title": "Admin 01 · University dashboard",
+      "w": 1440,
+      "x": 0,
+      "y": 7700
+    },
+    "Admin_Nav.dc.html": {
+      "h": 900,
+      "page": "app",
+      "title": "Component · Admin sidebar",
+      "w": 260,
+      "x": 1880,
+      "y": 9400
+    },
+    "Admin_Students.dc.html": {
+      "expand": "fill",
+      "h": 1200,
+      "is_interactive": true,
+      "page": "app",
+      "title": "Admin 02 · Students and exports",
+      "w": 1440,
+      "x": 1520,
+      "y": 7700
+    },
+    "Analysing.dc.html": {
+      "expand": "fill",
+      "h": 1080,
+      "title": "03 Analysing",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "App_Analysing.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "page": "app",
+      "title": "App 10 · Analysing",
+      "w": 1440,
+      "x": 3040,
+      "y": 3100
+    },
+    "App_Breakdown.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "page": "app",
+      "title": "App 11 · Score breakdown",
+      "w": 1440,
+      "x": 4560,
+      "y": 3100
+    },
+    "App_Check.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "page": "app",
+      "title": "App 04 · Check detail: Quantifying impact",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "App_CoverLetter.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "page": "app",
+      "title": "App 07 · Cover letter review",
+      "w": 1440,
+      "x": 3040,
+      "y": 1620
+    },
+    "App_Dashboard.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "page": "app",
+      "title": "App 01 · My reports",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "App_Examples.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "is_interactive": true,
+      "page": "app",
+      "title": "App 12 · Example CV lines",
+      "w": 1440,
+      "x": 0,
+      "y": 4600
+    },
+    "App_LetterDraft.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "page": "app",
+      "title": "App 16 · Cover letter: generated draft",
+      "w": 1440,
+      "x": 0,
+      "y": 6100
+    },
+    "App_LetterStart.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "is_interactive": true,
+      "page": "app",
+      "title": "App 15 · Cover letter: start",
+      "w": 1440,
+      "x": 4560,
+      "y": 4600
+    },
+    "App_LineByLine.dc.html": {
+      "expand": "fill",
+      "h": 1200,
+      "is_interactive": true,
+      "page": "app",
+      "title": "App 05 · Line by line",
+      "w": 1440,
+      "x": 0,
+      "y": 1620
+    },
+    "App_Onboarding.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "is_interactive": true,
+      "page": "app",
+      "title": "App 09 · Onboarding",
+      "w": 1440,
+      "x": 1520,
+      "y": 3100
+    },
+    "App_Opportunities.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "is_interactive": true,
+      "page": "app",
+      "title": "App 17 · Opportunities tracker",
+      "w": 1440,
+      "x": 1520,
+      "y": 6100
+    },
+    "App_Overview.dc.html": {
+      "expand": "fill",
+      "h": 1400,
+      "page": "app",
+      "title": "App 03 · Results overview",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "App_Privacy.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "page": "app",
+      "title": "App 19 · Privacy and my data",
+      "w": 1440,
+      "x": 4560,
+      "y": 6100
+    },
+    "App_Sidebar.dc.html": {
+      "h": 1180,
+      "page": "app",
+      "title": "Component · Results sidebar",
+      "w": 280,
+      "x": 1520,
+      "y": 9400
+    },
+    "App_SignIn.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "page": "app",
+      "title": "App 08 · Sign in",
+      "w": 1440,
+      "x": 0,
+      "y": 3100
+    },
+    "App_Tailor.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "page": "app",
+      "title": "App 06 · Tailor to a job",
+      "w": 1440,
+      "x": 1520,
+      "y": 1620
+    },
+    "App_TailorStart.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "page": "app",
+      "title": "App 14 · Tailor: add a job ad",
+      "w": 1440,
+      "x": 3040,
+      "y": 4600
+    },
+    "App_Templates.dc.html": {
+      "expand": "fill",
+      "h": 1200,
+      "page": "app",
+      "title": "App 18 · CV templates",
+      "w": 1440,
+      "x": 3040,
+      "y": 6100
+    },
+    "App_Topbar.dc.html": {
+      "h": 72,
+      "page": "app",
+      "title": "Component · Top bar",
+      "w": 1440,
+      "x": 0,
+      "y": 9400
+    },
+    "App_Upload.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "page": "app",
+      "title": "App 02 · Upload CV",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "App_Verbs.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "is_interactive": true,
+      "page": "app",
+      "title": "App 13 · Action verb bank",
+      "w": 1440,
+      "x": 1520,
+      "y": 4600
+    },
+    "Brand_01.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "01 Cover",
+      "w": 1123,
+      "x": 0,
+      "y": 0
+    },
+    "Brand_02.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "02 Essence",
+      "w": 1123,
+      "x": 1203,
+      "y": 0
+    },
+    "Brand_03.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "03 Logo",
+      "w": 1123,
+      "x": 2406,
+      "y": 0
+    },
+    "Brand_04.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "04 Logo usage",
+      "w": 1123,
+      "x": 3609,
+      "y": 0
+    },
+    "Brand_05.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "05 Colour palette",
+      "w": 1123,
+      "x": 0,
+      "y": 914
+    },
+    "Brand_06.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "06 Colour usage",
+      "w": 1123,
+      "x": 1203,
+      "y": 914
+    },
+    "Brand_07.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "07 Typeface",
+      "w": 1123,
+      "x": 2406,
+      "y": 914
+    },
+    "Brand_08.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "08 Type scale",
+      "w": 1123,
+      "x": 3609,
+      "y": 914
+    },
+    "Brand_09.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "09 Shape and icons",
+      "w": 1123,
+      "x": 0,
+      "y": 1828
+    },
+    "Brand_10.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "10 Components",
+      "w": 1123,
+      "x": 1203,
+      "y": 1828
+    },
+    "Brand_11.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "11 Voice and tone",
+      "w": 1123,
+      "x": 2406,
+      "y": 1828
+    },
+    "Brand_12.dc.html": {
+      "h": 794,
+      "page": "brandbook",
+      "title": "12 Back cover",
+      "w": 1123,
+      "x": 3609,
+      "y": 1828
+    },
+    "Calm_Brand.dc.html": {
+      "expand": "fill",
+      "h": 4900,
+      "title": "Style 8: Calm · Brand identity",
+      "w": 1440,
+      "x": 4560,
+      "y": 7760
+    },
+    "Calm_Feedback.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "title": "Style 8: Calm · Feedback",
+      "w": 1440,
+      "x": 3040,
+      "y": 7760
+    },
+    "Calm_Home.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "title": "Style 8: Calm · Home",
+      "w": 1440,
+      "x": 0,
+      "y": 7760
+    },
+    "Calm_Question.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "is_interactive": true,
+      "title": "Style 8: Calm · Question",
+      "w": 1440,
+      "x": 1520,
+      "y": 7760
+    },
+    "CoverLetter.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "title": "06 Cover letter review",
+      "w": 1440,
+      "x": 3040,
+      "y": 1500
+    },
+    "JobMatch.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "is_interactive": true,
+      "title": "05 Job match",
+      "w": 1440,
+      "x": 1520,
+      "y": 1500
+    },
+    "Landing.dc.html": {
+      "expand": "fill",
+      "h": 6200,
+      "page": "landing",
+      "title": "Offerpath landing page",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Landing_v2.dc.html": {
+      "expand": "fill",
+      "h": 6400,
+      "is_interactive": true,
+      "page": "landing",
+      "title": "Offerpath landing page v2 · Geist + motion",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 1080,
+      "title": "01 Home",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Mobile.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "07 Mobile review",
+      "w": 390,
+      "x": 4560,
+      "y": 1500
+    },
+    "Review.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "is_interactive": true,
+      "title": "04 CV review workspace",
+      "w": 1440,
+      "x": 0,
+      "y": 1500
+    },
+    "Upload.dc.html": {
+      "expand": "fill",
+      "h": 1080,
+      "is_interactive": true,
+      "title": "02 New review",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "VarB_Home.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "B1 Coach: Home",
+      "w": 1440,
+      "x": 0,
+      "y": 3200
+    },
+    "VarB_Review.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "B2 Coach: Review",
+      "w": 1440,
+      "x": 1520,
+      "y": 3200
+    },
+    "VarC_Home.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "C1 Pro: Home",
+      "w": 1440,
+      "x": 0,
+      "y": 4720
+    },
+    "VarC_Review.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "C2 Pro: Review",
+      "w": 1440,
+      "x": 1520,
+      "y": 4720
+    },
+    "VarD_Home.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "D1 Editorial: Home",
+      "w": 1440,
+      "x": 0,
+      "y": 6240
+    },
+    "VarD_Review.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "D2 Editorial: Review",
+      "w": 1440,
+      "x": 1520,
+      "y": 6240
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-25T18:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "a1": {
+      "kind": "title1",
+      "maxW": 6000,
+      "page": "app",
+      "text": "Student app",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "a2": {
+      "kind": "title1",
+      "maxW": 2960,
+      "page": "app",
+      "text": "University admin",
+      "w": 240,
+      "x": 0,
+      "y": 7440
+    },
+    "a3": {
+      "kind": "title1",
+      "maxW": 2960,
+      "page": "app",
+      "text": "Shared components",
+      "w": 240,
+      "x": 0,
+      "y": 9140
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "OfferPath: get started",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 4950,
+      "text": "OfferPath: review and improve",
+      "w": 240,
+      "x": 0,
+      "y": 1200
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "Variation B: Coach, one guided step at a time",
+      "w": 240,
+      "x": 0,
+      "y": 2950
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "Variation C: Pro, dark and data dense",
+      "w": 240,
+      "x": 0,
+      "y": 4470
+    },
+    "t5": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "Variation D: Editorial, margin notes",
+      "w": 240,
+      "x": 0,
+      "y": 5990
+    },
+    "t6": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Style 8: Calm, Certified Practitioner exam",
+      "w": 240,
+      "x": 0,
+      "y": 7510
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Upload.dc.html",
+    "Analysing.dc.html",
+    "Review.dc.html",
+    "JobMatch.dc.html",
+    "CoverLetter.dc.html",
+    "Mobile.dc.html",
+    "VarB_Home.dc.html",
+    "VarB_Review.dc.html",
+    "VarC_Home.dc.html",
+    "VarC_Review.dc.html",
+    "VarD_Home.dc.html",
+    "VarD_Review.dc.html",
+    "Calm_Home.dc.html",
+    "Calm_Question.dc.html",
+    "Calm_Feedback.dc.html",
+    "Calm_Brand.dc.html",
+    "Brand_01.dc.html",
+    "Brand_02.dc.html",
+    "Brand_03.dc.html",
+    "Brand_04.dc.html",
+    "Brand_05.dc.html",
+    "Brand_06.dc.html",
+    "Brand_07.dc.html",
+    "Brand_08.dc.html",
+    "Brand_09.dc.html",
+    "Brand_10.dc.html",
+    "Brand_11.dc.html",
+    "Brand_12.dc.html",
+    "Landing.dc.html",
+    "Landing_v2.dc.html",
+    "App_Dashboard.dc.html",
+    "App_Upload.dc.html",
+    "App_Overview.dc.html",
+    "App_Check.dc.html",
+    "App_LineByLine.dc.html",
+    "App_Tailor.dc.html",
+    "App_CoverLetter.dc.html",
+    "App_SignIn.dc.html",
+    "App_Onboarding.dc.html",
+    "App_Analysing.dc.html",
+    "App_Breakdown.dc.html",
+    "App_Examples.dc.html",
+    "App_Verbs.dc.html",
+    "App_TailorStart.dc.html",
+    "App_LetterStart.dc.html",
+    "App_LetterDraft.dc.html",
+    "App_Opportunities.dc.html",
+    "App_Templates.dc.html",
+    "App_Privacy.dc.html",
+    "Admin_Dashboard.dc.html",
+    "Admin_Students.dc.html",
+    "App_Topbar.dc.html",
+    "App_Sidebar.dc.html",
+    "Admin_Nav.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "screens",
+      "name": "Screens"
+    },
+    {
+      "id": "brandbook",
+      "name": "Style 8 brand book (PDF)"
+    },
+    {
+      "id": "landing",
+      "name": "Landing page"
+    },
+    {
+      "id": "app",
+      "name": "Web app (v2 style)"
+    }
+  ],
+  "title": "OfferPath UI Redesign"
+}

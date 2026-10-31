@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CV templates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1200px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="templates" hint-size="100%,72px"></dc-import>
+<div style="max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 8px 4px 4px;">
+<div>
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">CV templates</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #45524D;">Every layout is tested to be readable by applicant tracking systems. Download as Word or PDF.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+<button style="min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 14px;">All</button>
+<button style="min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 14px; color: #000000;">One page</button>
+<button style="min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 14px; color: #000000;">Two pages</button>
+<button style="min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 14px; color: #000000;">Skills first</button>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+<sc-for list="{{tpls}}" as="t" hint-placeholder-count="6">
+<article style="flex: 1 1 320px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+<div aria-hidden="true" style="background: #F2F4F1; border-radius: 16px; padding: 22px 28px; height: 260px; box-sizing: border-box; display: flex; justify-content: center;">
+<div style="width: 180px; background: #FFFFFF; border-radius: 4px; padding: 16px 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; text-align: {{t.align}};">
+<div style="height: 9px; width: 60%; border-radius: 2px; background: #000000; align-self: {{t.self}};"></div>
+<div style="height: 4px; width: 80%; border-radius: 2px; background: #C9D3CD; align-self: {{t.self}};"></div>
+<div style="height: 2px; background: {{t.rule}}; margin: 6px 0 2px;"></div>
+<div style="height: 5px; width: 35%; border-radius: 2px; background: #36604E;"></div>
+<div style="height: 4px; width: 100%; border-radius: 2px; background: #DCE3DE;"></div><div style="height: 4px; width: 92%; border-radius: 2px; background: #DCE3DE;"></div><div style="height: 4px; width: 96%; border-radius: 2px; background: #DCE3DE;"></div>
+<div style="height: 5px; width: 40%; border-radius: 2px; background: #36604E; margin-top: 6px;"></div>
+<div style="height: 4px; width: 100%; border-radius: 2px; background: #DCE3DE;"></div><div style="height: 4px; width: 88%; border-radius: 2px; background: #DCE3DE;"></div><div style="height: 4px; width: 94%; border-radius: 2px; background: #DCE3DE;"></div><div style="height: 4px; width: 70%; border-radius: 2px; background: #DCE3DE;"></div>
+<div style="height: 5px; width: 30%; border-radius: 2px; background: #36604E; margin-top: 6px;"></div>
+<div style="height: 4px; width: 90%; border-radius: 2px; background: #DCE3DE;"></div>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+<h2 style="margin: 0; font-size: 20px; font-weight: 400; letter-spacing: -0.04em;">{{t.name}}</h2>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 999px; background: #DCE6DF; color: #36604E;">ATS-SAFE</span>
+</div>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #45524D;">{{t.best}}</p>
+<div style="display: flex; gap: 8px; margin-top: auto;">
+<button style="flex: 1; min-height: 44px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 14px;">Word</button>
+<button style="flex: 1; min-height: 44px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 14px; color: #000000;">PDF</button>
+</div>
+</article>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = [
+      ['Classic', 'Finance, law and the public sector. One column, simple headings.', 'left', 'flex-start', '#000000'],
+      ['Centred', 'A clean header for any sector. One or two pages.', 'center', 'center', '#000000'],
+      ['Skills first', 'Career changers and students with little work experience.', 'left', 'flex-start', '#8FB3A1'],
+      ['Compact', 'Fits more on one page for spring weeks and internships.', 'left', 'flex-start', '#DCE3DE'],
+      ['Technical', 'Engineering and technology, with a projects section up front.', 'left', 'flex-start', '#36604E'],
+      ['Creative brief', 'Marketing and media, still simple enough for screening software.', 'center', 'center', '#36604E']
+    ];
+    return { tpls: t.map(([name, best, align, self, rule]) => ({ name, best, align, self, rule })) };
+  }
+}
+</script>
+</body>
+</html>

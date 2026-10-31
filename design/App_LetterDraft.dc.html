@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cover letter draft</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1300px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="letters" hint-size="100%,72px"></dc-import>
+<div style="max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 8px 4px 4px;">
+<div>
+<p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; color: #36604E;">DRAFT · AI-ASSISTED</p>
+<h1 style="margin: 6px 0 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Your Northbank cover letter</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #45524D;">Written from Jordan_Reed_CV_v6.pdf and the Analyst Graduate Scheme ad. Edit anything before you send it.</p>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button style="min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 14px; color: #000000;">Download Word</button>
+<button style="min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 14px; color: #000000;">Download PDF</button>
+<button style="min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 14px; font-weight: 500;">Save to reports</button>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+<section aria-label="Draft letter" style="flex: 999 1 600px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 36px 44px; display: flex; flex-direction: column; gap: 6px;">
+<p style="margin: 0 0 18px; font-size: 15px; line-height: 1.7; color: #45524D;">Jordan Reed · jordan.reed@email.com · 07700 900123<br>25 October 2026</p>
+<sc-for list="{{paras}}" as="p" hint-placeholder-count="5">
+<div style="position: relative; padding: 12px 14px; margin: 0 -14px; border-radius: 14px; border: 1px solid transparent;">
+<p style="margin: 0; font-size: 16px; line-height: 1.75; white-space: pre-line;">{{p.text}}</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+<sc-for list="{{p.src}}" as="s" hint-placeholder-count="1"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: #F2F4F1; color: #45524D;">{{s}}</span></sc-for>
+<button style="min-height: 26px; padding: 0 10px; border-radius: 999px; border: 0; background: transparent; font-size: 12px; color: #36604E;">Rewrite paragraph</button>
+</div>
+</div>
+</sc-for>
+</section>
+
+<aside style="flex: 1 1 320px; max-width: 400px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+<section aria-labelledby="q-h" style="background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px;">
+<h2 id="q-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">QUICK CHECK</h2>
+<sc-for list="{{checks}}" as="c" hint-placeholder-count="5">
+<div style="display: flex; gap: 10px; align-items: center; font-size: 14px;"><svg width="18" height="18" viewBox="0 0 22 22" aria-hidden="true" style="flex: 0 0 auto;"><circle cx="11" cy="11" r="10" fill="#DCE6DF"></circle><path d="M6.8 11.3l2.8 2.8 5.6-5.8" fill="none" stroke="#36604E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{c}}</div>
+</sc-for>
+</section>
+<section style="background: #E6EDE8; border-radius: 24px; padding: 20px 22px;">
+<p style="margin: 0; font-size: 16px; font-weight: 500;">Every claim has a source</p>
+<p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #35423D;">The tags under each paragraph show which CV line or part of the job ad it came from. If something isn't true, edit it or delete it.</p>
+</section>
+<a href="App_CoverLetter.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 48px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; color: #000000; text-decoration: none; font-size: 14px;">Run a full review on this draft</a>
+</aside>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      paras: [
+        { text: 'Dear Ms Taylor,', src: ['YOU ADDED'] },
+        { text: 'I am applying for the Analyst Graduate Scheme at Northbank. As a final-year Economics student, I have spent two years building the financial modelling and data skills your programme asks for.', src: ['CV · EDUCATION', 'JOB AD · REQUIREMENTS'] },
+        { text: 'During my summer internship at Harlow Partners, I built a weekly Excel report for a team of six, cutting preparation time by three hours. For my dissertation I built a regression model forecasting house prices across ten UK regions.', src: ['CV · EXPERIENCE 2', 'CV · PROJECTS 1'] },
+        { text: 'As Events Officer for the Economics Society, I organised twelve events and worked with three City firms on a careers panel, which taught me to manage stakeholders with different priorities.', src: ['CV · EXPERIENCE 1', 'JOB AD · STAKEHOLDER MANAGEMENT'] },
+        { text: 'Northbank’s rotation across corporate banking and risk appeals to me because I want to understand how client work and risk decisions connect before I specialise. Thank you for considering my application.', src: ['YOU ADDED', 'JOB AD · PROGRAMME'] },
+        { text: 'Yours sincerely,\nJordan Reed', src: ['UK CONVENTION'] }
+      ],
+      checks: ['6 of 8 key terms from the ad included (SQL and Power BI aren’t on your CV)', '286 words, inside 250 to 400', '"Yours sincerely" matches a named greeting', 'UK spelling throughout', 'No facts added beyond your CV']
+    };
+  }
+}
+</script>
+</body>
+</html>

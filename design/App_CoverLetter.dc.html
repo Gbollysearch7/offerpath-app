@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cover letter review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1300px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="letters" hint-size="100%,72px"></dc-import>
+
+<div style="max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 8px 4px 4px;">
+<div>
+<p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; color: #36604E;">COVER LETTER REVIEW</p>
+<h1 style="margin: 6px 0 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Northbank cover letter</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #45524D;">Checked against Analyst Graduate Scheme, Northbank · UK conventions</p>
+</div>
+<button style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 14px; font-weight: 500;">Re-score letter</button>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+<div style="flex: 1 1 400px; max-width: 480px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+<section aria-labelledby="os-h" style="background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; align-items: center; gap: 20px;">
+<div style="position: relative; width: 88px; height: 88px; flex: 0 0 auto;">
+<svg width="88" height="88" viewBox="0 0 88 88" role="img" aria-label="Letter score 71"><circle cx="44" cy="44" r="37" fill="none" stroke="#EEF2EF" stroke-width="7"></circle><circle cx="44" cy="44" r="37" fill="none" stroke="#8FB3A1" stroke-width="7" stroke-linecap="round" stroke-dasharray="165 232.5" transform="rotate(-90 44 44)"></circle></svg>
+<span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 28px; letter-spacing: -0.04em;">71</span>
+</div>
+<div>
+<h2 id="os-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">OVERALL · GETTING THERE</h2>
+<p style="margin: 8px 0 0; font-size: 15px; line-height: 1.5;">Good structure. Fix the sign-off and work in 3 more keywords from the ad.</p>
+</div>
+</section>
+
+<section aria-labelledby="ck-h" style="background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 10px;">
+<h2 id="ck-h" style="margin: 0 0 6px; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">CORE CHECKS</h2>
+<sc-for list="{{checks}}" as="c" hint-placeholder-count="6">
+<div style="display: flex; gap: 12px; padding: 12px 14px; border-radius: 16px; background: {{c.bg}};">
+<sc-if value="{{c.ok}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 22 22" role="img" aria-label="Passed" style="flex: 0 0 auto; margin-top: 1px;"><circle cx="11" cy="11" r="10" fill="#DCE6DF"></circle><path d="M6.8 11.3l2.8 2.8 5.6-5.8" fill="none" stroke="#36604E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+<sc-if value="{{c.bad}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 22 22" role="img" aria-label="To fix" style="flex: 0 0 auto; margin-top: 1px;"><circle cx="11" cy="11" r="10" fill="#000000"></circle><path d="M11 6.5v5M11 14.5v.3" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"></path></svg></sc-if>
+<div style="min-width: 0;"><p style="margin: 0; font-size: 15px;">{{c.t}}</p><p style="margin: 3px 0 0; font-size: 13px; line-height: 1.45; color: #45524D;">{{c.d}}</p></div>
+</div>
+</sc-for>
+</section>
+
+<section aria-labelledby="rw-h" style="background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px;">
+<h2 id="rw-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">AI REWRITE</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55;">We'll weave in the missing keywords using only facts from your CV, and keep your voice. You review every change.</p>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: #35423D;"><input type="checkbox" checked="" style="width: 18px; height: 18px; margin: 1px 0 0; accent-color: #36604E; flex: 0 0 auto;"><span>Use my CV and this job ad for the rewrite. <a href="App_Dashboard.dc.html">How we use your data</a></span></label>
+<button style="min-height: 48px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 15px; font-weight: 500;">Write an improved version</button>
+<p style="margin: 0; font-size: 12px; color: #5C6B66; text-align: center;">8 of 10 rewrites left today</p>
+</section>
+</div>
+
+<section aria-label="Your letter" style="flex: 999 1 560px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 22px 26px 36px; display: flex; flex-direction: column; gap: 18px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center;">
+<div role="tablist" aria-label="View" style="display: flex; gap: 4px; background: #F2F4F1; padding: 4px; border-radius: 999px;">
+<button role="tab" aria-selected="true" style="min-height: 36px; padding: 0 16px; border-radius: 999px; border: 0; background: #FFFFFF; font-size: 14px; color: #000000;">Cover letter</button>
+<button role="tab" aria-selected="false" style="min-height: 36px; padding: 0 16px; border-radius: 999px; border: 0; background: transparent; font-size: 14px; color: #45524D;">Job ad</button>
+</div>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #5C6B66;">312 WORDS · 4 PARAGRAPHS</span>
+</div>
+<div style="max-width: 680px; font-size: 16px; line-height: 1.75; color: #1F2A27;">
+<p style="margin: 0;">Jordan Reed · jordan.reed@email.com · 07700 900123</p>
+<p style="margin: 16px 0 0;">24 October 2026</p>
+<p style="margin: 16px 0 0;">Dear Hiring Manager,</p>
+<p style="margin: 16px 0 0;">I am applying for the <span style="background: #DCE6DF; border-radius: 4px; padding: 1px 3px;">Analyst</span> Graduate Scheme at Northbank. As a final-year Economics student at a Russell Group university, I have spent the last two years building the analytical and <span style="background: #DCE6DF; border-radius: 4px; padding: 1px 3px;">communication</span> skills your programme asks for.</p>
+<p style="margin: 16px 0 0;">During my summer internship at Harlow Partners, I built a weekly reporting tool in <span style="background: #DCE6DF; border-radius: 4px; padding: 1px 3px;">Excel</span> that cut preparation time for a team of six. As Events Officer for the Economics Society, I organised twelve events, including a careers panel with three City firms, which strengthened my <span style="background: #DCE6DF; border-radius: 4px; padding: 1px 3px;">leadership</span> and <span style="background: #DCE6DF; border-radius: 4px; padding: 1px 3px;">teamwork</span>.</p>
+<p style="margin: 16px 0 0;">I am drawn to Northbank's rotation model because it would let me test my interest in corporate banking and risk before specialising.</p>
+<p style="margin: 16px 0 0;">Thank you for considering my application. I would welcome the chance to discuss it further.</p>
+<p style="margin: 16px 0 0;"><span style="border-bottom: 2px solid #000000; font-weight: 500;">Yours faithfully,</span><br>Jordan Reed</p>
+</div>
+<div style="max-width: 680px; padding: 14px 16px; border-radius: 16px; background: #F2F4F1; font-size: 14px; line-height: 1.55; color: #35423D;">
+<span style="font-weight: 500; color: #000000;">UK convention:</span> use "Yours faithfully" with "Dear Sir or Madam", and "Yours sincerely" when you address a named person or "Dear Hiring Manager".
+</div>
+</section>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = [
+      [false, 'Sign-off matches the greeting', 'Change "Yours faithfully" to "Yours sincerely".'],
+      [false, 'Keywords from the job ad', '5 of 8 key terms used. Missing: financial modelling, SQL, stakeholder management.'],
+      [true, 'Contact details in the header', 'Email and phone number found.'],
+      [true, 'Professional greeting', 'Addressed to the hiring manager.'],
+      [true, 'Length', '312 words, inside the 250 to 400 range.'],
+      [true, 'Says why this employer', 'Mentions the rotation model specifically.']
+    ];
+    return { checks: c.map(([ok, t, d]) => ({ ok, bad: !ok, t, d, bg: ok ? '#FFFFFF' : '#F2F4F1' })) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cover letter: start</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1000px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="letters" hint-size="100%,72px"></dc-import>
+<main style="max-width: 960px; margin: 0 auto; padding: 48px 28px 64px; display: flex; flex-direction: column; gap: 24px;">
+<div>
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Cover letters</h1>
+<p style="margin: 10px 0 0; font-size: 16px; color: #45524D;">Built from your CV and the job ad, following UK conventions. We never add facts you didn't give us.</p>
+</div>
+<div role="radiogroup" aria-label="What do you want to do?" style="display: flex; flex-wrap: wrap; gap: 16px;">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button role="radio" aria-checked="{{m.selStr}}" onClick="{{m.pick}}" style="{{m.style}}">
+<span style="display: block; font-size: 24px; letter-spacing: -0.04em;">{{m.t}}</span>
+<span style="display: block; margin-top: 6px; font-size: 15px; line-height: 1.5; color: #45524D;">{{m.d}}</span>
+</button>
+</sc-for>
+</div>
+
+<section style="background: #FFFFFF; border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500;">Job
+<select style="min-height: 50px; padding: 0 14px; border-radius: 14px; border: 1px solid #DCE3DE; background: #FFFFFF; font: inherit; font-size: 15px; font-weight: 400;"><option>Analyst Graduate Scheme · Northbank</option><option>Paste a new job ad</option></select></label>
+<sc-if value="{{write}}" hint-placeholder-val="{{ true }}">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500;">CV to draw from
+<select style="min-height: 50px; padding: 0 14px; border-radius: 14px; border: 1px solid #DCE3DE; background: #FFFFFF; font: inherit; font-size: 15px; font-weight: 400;"><option>Jordan_Reed_CV_v6.pdf</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500;">Who is it addressed to? <span style="font-weight: 400; color: #5C6B66;">Optional, a name lets us use "Yours sincerely"</span>
+<input type="text" placeholder="For example, Ms Taylor, Graduate Recruitment" style="min-height: 50px; padding: 0 14px; border-radius: 14px; border: 1px solid #DCE3DE; font: inherit; font-size: 15px; font-weight: 400;"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500;">Anything you want us to mention?
+<textarea rows="3" placeholder="For example, why this firm, a conversation at a careers fair" style="padding: 14px; border-radius: 14px; border: 1px solid #DCE3DE; font: inherit; font-size: 15px; font-weight: 400; resize: vertical;"></textarea></label>
+<a href="App_LetterDraft.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 52px; padding: 0 26px; border-radius: 999px; background: #000000; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 500;">Write my draft</a>
+</sc-if>
+<sc-if value="{{review}}" hint-placeholder-val="{{ false }}">
+<div style="border: 1.5px dashed #8FB3A1; border-radius: 20px; background: #F7F9F6; padding: 36px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;">
+<p style="margin: 0; font-size: 20px; letter-spacing: -0.03em;">Drop your cover letter here</p>
+<p style="margin: 0; font-size: 14px; color: #5C6B66;">PDF or Word, up to 2 MB, or paste the text</p>
+<button style="min-height: 46px; padding: 0 22px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 15px;">Choose a file</button>
+</div>
+<a href="App_CoverLetter.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 52px; padding: 0 26px; border-radius: 999px; background: #000000; color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 500;">Review my letter</a>
+</sc-if>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { mode: 0 }; }
+  renderVals() {
+    const st = this.state;
+    const card = (on) => 'flex: 1 1 300px; text-align: left; padding: 24px 26px; border-radius: 24px; background: #FFFFFF; color: #000000; ' + (on ? 'border: 2px solid #000000;' : 'border: 2px solid transparent;');
+    const modes = [['Write one for me', 'We draft a letter from your CV and the job ad. You edit and approve it.'], ['Review my letter', 'Upload a letter you’ve written and get checks and suggestions.']];
+    return {
+      write: st.mode === 0, review: st.mode === 1,
+      modes: modes.map(([t, d], i) => ({ t, d, selStr: String(st.mode === i), style: card(st.mode === i), pick: () => this.setState({ mode: i }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

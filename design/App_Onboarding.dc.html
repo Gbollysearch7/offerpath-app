@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Onboarding</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1000px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<header style="max-width: 900px; margin: 0 auto; padding: 28px; display: flex; align-items: center; gap: 20px;">
+<div style="display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 18px; letter-spacing: -0.02em;"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="#DCE6DF"></circle><path d="M8 17l4-4 3 3 5-6" fill="none" stroke="#36604E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Offerpath</div>
+<p style="margin: 0 0 0 auto; font-family: 'Geist Mono', monospace; font-size: 12px; color: #45524D;">STEP {{n}} OF 3</p>
+</header>
+<div style="max-width: 900px; margin: 0 auto; padding: 0 28px;">
+<div role="progressbar" aria-valuenow="{{n}}" aria-valuemin="1" aria-valuemax="3" aria-label="Setup progress" style="display: flex; gap: 6px;">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="3"><span style="flex: 1; height: 4px; border-radius: 99px; background: {{b}};"></span></sc-for>
+</div>
+</div>
+
+<main style="max-width: 900px; margin: 0 auto; padding: 48px 28px 64px; display: flex; flex-direction: column; gap: 28px;">
+<sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+<div>
+<h1 style="margin: 0; font-size: 48px; font-weight: 400; letter-spacing: -2.16px; line-height: 1.1;">Welcome, Jordan. Where are you right now?</h1>
+<p style="margin: 12px 0 0; font-size: 17px; color: #45524D;">We'll tune your feedback and deadlines to your stage.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px;">
+<sc-for list="{{stages}}" as="o" hint-placeholder-count="4">
+<button onClick="{{o.pick}}" aria-pressed="{{o.selStr}}" style="{{o.style}}"><span style="display: block; font-size: 18px; letter-spacing: -0.02em;">{{o.t}}</span><span style="display: block; margin-top: 4px; font-size: 14px; color: #45524D;">{{o.d}}</span></button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+<div>
+<h1 style="margin: 0; font-size: 48px; font-weight: 400; letter-spacing: -2.16px; line-height: 1.1;">Which sectors are you aiming for?</h1>
+<p style="margin: 12px 0 0; font-size: 17px; color: #45524D;">Pick up to three. Sector relevance is one of your six score areas.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px;">
+<sc-for list="{{sectors}}" as="o" hint-placeholder-count="10">
+<button onClick="{{o.pick}}" aria-pressed="{{o.selStr}}" style="{{o.style}}">{{o.t}}</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+<div>
+<h1 style="margin: 0; font-size: 48px; font-weight: 400; letter-spacing: -2.16px; line-height: 1.1;">A couple of preferences</h1>
+<p style="margin: 12px 0 0; font-size: 17px; color: #45524D;">You can change these any time in settings.</p>
+</div>
+<div style="background: #FFFFFF; border-radius: 24px; padding: 8px 24px;">
+<sc-for list="{{prefs}}" as="p" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 20px; padding: 18px 0; border-bottom: 1px solid #EEF2EF;">
+<div style="flex: 1 1 auto;"><p style="margin: 0; font-size: 17px;">{{p.t}}</p><p style="margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: #45524D;">{{p.d}}</p></div>
+<button role="switch" aria-checked="{{p.onStr}}" aria-label="{{p.t}}" onClick="{{p.toggle}}" style="{{p.track}}"><span style="{{p.knob}}"></span></button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 8px;">
+<button onClick="{{back}}" style="min-height: 50px; padding: 0 20px; border-radius: 999px; border: 0; background: transparent; font-size: 15px; color: #45524D;">Back</button>
+<sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button onClick="{{next}}" style="min-height: 54px; padding: 0 30px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 16px; font-weight: 500;">Continue</button></sc-if>
+<sc-if value="{{last}}" hint-placeholder-val="{{ false }}"><a href="App_Upload.dc.html" style="display: inline-flex; align-items: center; min-height: 54px; padding: 0 30px; border-radius: 999px; background: #000000; color: #FFFFFF; text-decoration: none; font-size: 16px; font-weight: 500;">Upload my CV</a></sc-if>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { step: 0, stage: 0, sectors: { 'Finance and banking': true, 'Consulting': true }, prefs: [false, true, true] }; }
+  renderVals() {
+    const st = this.state;
+    const card = (on) => 'flex: 1 1 260px; text-align: left; padding: 22px 24px; border-radius: 22px; color: #000000; background: #FFFFFF; ' + (on ? 'border: 2px solid #000000;' : 'border: 2px solid transparent;');
+    const pill = (on) => 'min-height: 46px; padding: 0 18px; border-radius: 999px; font-size: 15px; ' + (on ? 'border: 0; background: #000000; color: #FFFFFF;' : 'border: 1px solid #DCE3DE; background: #FFFFFF; color: #000000;');
+    const stages = [['First year', 'Spring weeks and insight days'], ['Penultimate year', 'Summer internships and placements'], ['Final year', 'Graduate schemes and jobs'], ['Recent graduate', 'Graduated in the last two years']];
+    const sectors = ['Finance and banking', 'Consulting', 'Technology', 'Law', 'Engineering', 'Public sector', 'Healthcare', 'Marketing and media', 'Retail and FMCG', 'Charity and NGO'];
+    const prefs = [['I need visa sponsorship', 'We’ll show you opportunities that sponsor Skilled Worker visas. General information only, not legal advice.'], ['Deadline reminders', 'An email a week before each tracked deadline closes.'], ['Share progress with my careers service', 'Only your scores and activity, never your CV, unless you choose to share it.']];
+    return {
+      n: st.step + 1, s1: st.step === 0, s2: st.step === 1, s3: st.step === 2, last: st.step === 2, notLast: st.step < 2,
+      bars: [0, 1, 2].map((i) => i <= st.step ? '#000000' : '#DCE3DE'),
+      stages: stages.map(([t, d], i) => ({ t, d, selStr: String(st.stage === i), style: card(st.stage === i), pick: () => this.setState({ stage: i }) })),
+      sectors: sectors.map((t) => ({ t, selStr: String(!!st.sectors[t]), style: pill(!!st.sectors[t]), pick: () => { const s = Object.assign({}, st.sectors); s[t] = !s[t]; this.setState({ sectors: s }); } })),
+      prefs: prefs.map(([t, d], i) => {
+        const on = st.prefs[i];
+        return { t, d, onStr: String(on),
+          toggle: () => { const p = st.prefs.slice(); p[i] = !p[i]; this.setState({ prefs: p }); },
+          track: 'flex: 0 0 auto; width: 52px; height: 30px; border-radius: 999px; border: 0; padding: 3px; display: flex; ' + (on ? 'background: #36604E; justify-content: flex-end;' : 'background: #DCE3DE; justify-content: flex-start;'),
+          knob: 'width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF;' };
+      }),
+      next: () => this.setState({ step: Math.min(2, st.step + 1) }),
+      back: () => this.setState({ step: Math.max(0, st.step - 1) })
+    };
+  }
+}
+</script>
+</body>
+</html>

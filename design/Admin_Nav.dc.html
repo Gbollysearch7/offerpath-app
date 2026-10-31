@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin sidebar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<nav aria-label="Admin" style="width: 260px; min-height: 900px; box-sizing: border-box; background: #0B0D0C; color: #FFFFFF; padding: 24px 16px; font-family: 'Geist', system-ui, sans-serif; display: flex; flex-direction: column; gap: 4px;">
+<a href="Admin_Dashboard.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #FFFFFF; font-weight: 500; font-size: 18px; letter-spacing: -0.02em; padding: 0 8px;">
+<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="#36604E"></circle><path d="M8 17l4-4 3 3 5-6" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>Offerpath</a>
+<div style="margin: 18px 8px 18px; padding: 12px 14px; border-radius: 14px; background: #1A1F1D;">
+<p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 10px; color: #8FB3A1;">CAREERS ADMIN</p>
+<p style="margin: 4px 0 0; font-size: 14px;">University of Northfield</p>
+</div>
+<sc-for list="{{items}}" as="i" hint-placeholder-count="7">
+<a href="{{i.href}}" aria-current="{{i.cur}}" style="{{i.style}}">{{i.label}}</a>
+</sc-for>
+<div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 8px 0; border-top: 1px solid #2A2F2D;">
+<span style="width: 34px; height: 34px; border-radius: 50%; background: #2A2F2D; display: flex; align-items: center; justify-content: center; font-size: 13px;">SP</span>
+<span style="font-size: 13px; line-height: 1.35;">Sam Price<br><span style="color: #B8C2BE;">Head of Careers</span></span>
+</div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["dashboard","students","cohorts","reports","settings"],"default":"dashboard"},"$preview":{"width":260,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.active ?? 'dashboard';
+    const list = [['dashboard', 'Dashboard', 'Admin_Dashboard.dc.html'], ['students', 'Students', 'Admin_Students.dc.html'], ['cohorts', 'Faculties and courses', 'Admin_Dashboard.dc.html'], ['reports', 'Reports and exports', 'Admin_Students.dc.html'], ['opps', 'Opportunities', 'Admin_Dashboard.dc.html'], ['settings', 'Settings and SSO', 'Admin_Dashboard.dc.html'], ['help', 'Help', 'Admin_Dashboard.dc.html']];
+    return {
+      items: list.map(([id, label, href]) => ({ label, href, cur: id === a ? 'page' : 'false',
+        style: 'display: flex; align-items: center; min-height: 42px; padding: 0 12px; border-radius: 12px; text-decoration: none; font-size: 14px; ' + (id === a ? 'background: #FFFFFF; color: #000000; font-weight: 500;' : 'color: #D4DBD8;') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

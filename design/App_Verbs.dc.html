@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Action verb bank</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1300px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="review" hint-size="100%,72px"></dc-import>
+<div style="max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+<div style="flex: 1 1 260px; max-width: 280px;"><dc-import name="App_Sidebar" active="verbsbank" hint-size="280px,1180px"></dc-import></div>
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 8px 4px 4px;">
+<div>
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Action verb bank</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #45524D;">Start every bullet with a verb that shows what you did. Choose by the skill you want to show.</p>
+</div>
+<label style="display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px; border-radius: 999px; background: #FFFFFF; min-width: 240px;">
+<svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="#5C6B66" stroke-width="1.6"></circle><path d="M11 11l3 3" stroke="#5C6B66" stroke-width="1.6" stroke-linecap="round"></path></svg>
+<span style="position: absolute; left: -9999px;">Search verbs</span>
+<input type="search" placeholder="Search verbs" style="flex: 1; border: 0; outline: none; background: transparent; font: inherit; font-size: 14px;">
+</label>
+</div>
+<div style="display: flex; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 20px; background: #FFFFFF;">
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 999px; background: #000000; color: #FFFFFF; flex: 0 0 auto;">YOUR CV</span>
+<p style="margin: 0; font-size: 14px; line-height: 1.5;">Swap your weak verbs: <span style="text-decoration: line-through; color: #5C6B66;">Helped</span> → Organised, <span style="text-decoration: line-through; color: #5C6B66;">Supported</span> → Built, <span style="text-decoration: line-through; color: #5C6B66;">Assisted</span> → Coordinated.</p>
+</div>
+<div role="tablist" aria-label="Skill" style="display: flex; flex-wrap: wrap; gap: 8px;">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="7">
+<button role="tab" aria-selected="{{c.selStr}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.t}}</button>
+</sc-for>
+</div>
+<section aria-label="Verbs" style="background: #FFFFFF; border-radius: 24px; padding: 26px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+<sc-for list="{{verbs}}" as="v" hint-placeholder-count="20">
+<button style="min-height: 48px; border-radius: 14px; border: 0; background: #F2F4F1; font-size: 15px; color: #000000;">{{v}}</button>
+</sc-for>
+</section>
+<p style="margin: 0; font-size: 13px; color: #5C6B66; padding: 0 4px;">Click a verb to copy it.</p>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { cat: 0 }; }
+  renderVals() {
+    const data = [
+      ['Achievement', ['Achieved', 'Delivered', 'Exceeded', 'Improved', 'Increased', 'Launched', 'Reduced', 'Saved', 'Secured', 'Won', 'Transformed', 'Doubled', 'Accelerated', 'Completed', 'Expanded', 'Grew', 'Outperformed', 'Raised', 'Strengthened', 'Pioneered']],
+      ['Leadership', ['Led', 'Captained', 'Chaired', 'Coordinated', 'Directed', 'Guided', 'Headed', 'Managed', 'Mentored', 'Mobilised', 'Oversaw', 'Recruited', 'Supervised', 'Trained', 'Delegated', 'Motivated', 'Represented', 'Spearheaded', 'Steered', 'Championed']],
+      ['Analysis', ['Analysed', 'Assessed', 'Calculated', 'Compared', 'Evaluated', 'Forecast', 'Identified', 'Investigated', 'Measured', 'Modelled', 'Quantified', 'Researched', 'Tested', 'Tracked', 'Audited', 'Diagnosed', 'Examined', 'Mapped', 'Reviewed', 'Surveyed']],
+      ['Communication', ['Presented', 'Wrote', 'Drafted', 'Edited', 'Explained', 'Negotiated', 'Persuaded', 'Pitched', 'Published', 'Promoted', 'Briefed', 'Advised', 'Collaborated', 'Convinced', 'Facilitated', 'Interviewed', 'Liaised', 'Moderated', 'Reported', 'Translated']],
+      ['Organisation', ['Organised', 'Arranged', 'Planned', 'Prioritised', 'Scheduled', 'Streamlined', 'Standardised', 'Catalogued', 'Coordinated', 'Implemented', 'Maintained', 'Prepared', 'Processed', 'Reconciled', 'Recorded', 'Restructured', 'Simplified', 'Sorted', 'Updated', 'Systematised']],
+      ['Creativity', ['Created', 'Designed', 'Built', 'Developed', 'Devised', 'Founded', 'Illustrated', 'Introduced', 'Invented', 'Originated', 'Produced', 'Redesigned', 'Shaped', 'Conceived', 'Composed', 'Crafted', 'Curated', 'Formulated', 'Prototyped', 'Revamped']],
+      ['Customer focus', ['Served', 'Resolved', 'Assisted', 'Advised', 'Answered', 'Welcomed', 'Supported', 'Retained', 'Satisfied', 'Handled', 'Responded', 'Guided', 'Informed', 'Recommended', 'Reassured', 'Upsold', 'Engaged', 'Listened', 'Clarified', 'Followed up']]
+    ];
+    const st = this.state;
+    const pill = (on) => 'min-height: 42px; padding: 0 18px; border-radius: 999px; font-size: 14px; ' + (on ? 'border: 0; background: #000000; color: #FFFFFF;' : 'border: 1px solid #DCE3DE; background: #FFFFFF; color: #000000;');
+    return {
+      cats: data.map(([t], i) => ({ t, selStr: String(st.cat === i), style: pill(st.cat === i), pick: () => this.setState({ cat: i }) })),
+      verbs: data[st.cat][1]
+    };
+  }
+}
+</script>
+</body>
+</html>

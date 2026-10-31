@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx next lint
+      - name: Unit tests (scoring engine, security, CSV, email, templates, practice)
+        run: npm run test:engine
+      - name: Database tests (migrations, RLS, RPCs on PGlite)
+        run: npm run test:db
+      - name: Build
+        run: npm run build
+        env:
+          DEMO_MODE: "true"
+          DEMO_SECRET: ci-only-demo-secret-not-used-in-production
+      - name: End-to-end smoke and accessibility test
+        run: |
+          npx next start -p 3100 > server.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3100/api/health > /dev/null && break; sleep 1; done
+          E2E_CHROME_PATH="$(which google-chrome || which chromium)" npm run test:e2e
+        env:
+          DEMO_MODE: "true"
+          DEMO_SECRET: ci-only-demo-secret-not-used-in-production
+          NEXT_PUBLIC_SITE_URL: http://localhost:3100
+      - name: Server log on failure
+        if: failure()
+        run: cat server.log || true

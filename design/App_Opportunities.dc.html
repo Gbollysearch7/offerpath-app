@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Opportunities tracker</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1300px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="opportunities" hint-size="100%,72px"></dc-import>
+<div style="max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 8px 4px 4px;">
+<div>
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Opportunities</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #45524D;">UK graduate schemes, spring weeks, placements and internships, with deadlines and reminders.</p>
+</div>
+<div role="tablist" aria-label="View" style="display: flex; gap: 4px; background: #FFFFFF; padding: 4px; border-radius: 999px;">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><button role="tab" aria-selected="{{t.selStr}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+</div>
+</div>
+
+<sc-if value="{{browse}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+<aside aria-label="Filters" style="flex: 1 1 260px; max-width: 280px; background: #FFFFFF; border-radius: 24px; padding: 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px;">
+<div>
+<p style="margin: 0 0 10px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #5C6B66;">TYPE</p>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+<sc-for list="{{types}}" as="t" hint-placeholder-count="4"><button onClick="{{t.pick}}" aria-pressed="{{t.selStr}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+</div>
+</div>
+<div>
+<p style="margin: 0 0 10px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #5C6B66;">SECTOR</p>
+<label><span style="position: absolute; left: -9999px;">Sector</span><select style="width: 100%; min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #DCE3DE; background: #FFFFFF; font: inherit; font-size: 14px;"><option>Finance and banking</option><option>All sectors</option><option>Consulting</option><option>Technology</option></select></label>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; border-top: 1px solid #EEF2EF; padding-top: 16px;">
+<div style="flex: 1 1 auto;"><p style="margin: 0; font-size: 15px;">Visa sponsorship</p><p style="margin: 2px 0 0; font-size: 12px; color: #5C6B66;">Only show roles that sponsor</p></div>
+<button role="switch" aria-checked="{{visaStr}}" aria-label="Visa sponsorship only" onClick="{{toggleVisa}}" style="{{visaTrack}}"><span style="width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF;"></span></button>
+</div>
+<div style="display: flex; align-items: center; gap: 12px;">
+<div style="flex: 1 1 auto;"><p style="margin: 0; font-size: 15px;">Closing in 30 days</p></div>
+<button role="switch" aria-checked="true" aria-label="Closing in 30 days" style="width: 52px; height: 30px; border-radius: 999px; border: 0; padding: 3px; display: flex; justify-content: flex-end; background: #36604E;"><span style="width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF;"></span></button>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 1.5; color: #5C6B66;">Sponsorship information is general guidance, not legal advice. Always check with the employer.</p>
+</aside>
+
+<section aria-label="Results" style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+<p style="margin: 0 4px; font-size: 14px; color: #45524D;">{{count}} opportunities · sorted by deadline</p>
+<sc-for list="{{list}}" as="o" hint-placeholder-count="6">
+<article style="background: #FFFFFF; border-radius: 22px; padding: 20px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px;">
+<span style="width: 48px; height: 48px; border-radius: 14px; background: #F2F4F1; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 500; flex: 0 0 auto;">{{o.init}}</span>
+<div style="flex: 1 1 280px; min-width: 0;">
+<p style="margin: 0; font-size: 18px; letter-spacing: -0.03em;">{{o.role}}</p>
+<p style="margin: 3px 0 0; font-size: 14px; color: #45524D;">{{o.org}} · {{o.loc}}</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 999px; background: #F2F4F1; color: #45524D;">{{o.type}}</span>
+<sc-if value="{{o.visa}}" hint-placeholder-val="{{ false }}"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 999px; background: #DCE6DF; color: #36604E;">SPONSORS VISAS</span></sc-if>
+</div>
+</div>
+<div style="text-align: right;"><p style="margin: 0; font-size: 12px; color: #5C6B66;">Closes</p><p style="margin: 2px 0 0; font-size: 16px; color: {{o.dc}};">{{o.due}}</p></div>
+<button onClick="{{o.toggle}}" aria-pressed="{{o.trStr}}" style="{{o.btn}}">{{o.btnLabel}}</button>
+</article>
+</sc-for>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{mine}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px;">
+<sc-for list="{{cols}}" as="c" hint-placeholder-count="5">
+<section style="flex: 0 0 260px; background: #FFFFFF; border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 420px;">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px;"><h2 style="margin: 0; font-size: 16px; font-weight: 500;">{{c.t}}</h2><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #5C6B66;">{{c.n}}</span></div>
+<sc-for list="{{c.cards}}" as="k" hint-placeholder-count="2">
+<div style="background: #F2F4F1; border-radius: 16px; padding: 14px;">
+<p style="margin: 0; font-size: 15px;">{{k.r}}</p>
+<p style="margin: 3px 0 0; font-size: 13px; color: #45524D;">{{k.o}}</p>
+<p style="margin: 10px 0 0; font-family: 'Geist Mono', monospace; font-size: 11px; color: {{k.c}};">{{k.d}}</p>
+</div>
+</sc-for>
+</section>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 0, type: 'All', visa: false, tracked: { 0: true } }; }
+  renderVals() {
+    const st = this.state;
+    const pill = (on) => 'min-height: 38px; padding: 0 14px; border-radius: 999px; font-size: 13px; ' + (on ? 'border: 0; background: #000000; color: #FFFFFF;' : 'border: 1px solid #DCE3DE; background: #FFFFFF; color: #000000;');
+    const tab = (on) => 'min-height: 40px; padding: 0 18px; border-radius: 999px; border: 0; font-size: 14px; ' + (on ? 'background: #000000; color: #FFFFFF;' : 'background: transparent; color: #45524D;');
+    const all = [
+      ['Analyst Graduate Scheme', 'Northbank', 'London', 'Graduate scheme', true, '14 Nov', 20],
+      ['Risk Summer Internship', 'Calder Capital', 'Edinburgh', 'Internship', true, '18 Nov', 24],
+      ['Industrial Placement, Finance', 'Brightwater Energy', 'Manchester', 'Placement', false, '21 Nov', 27],
+      ['Consulting Summer Internship', 'Ashby & Co', 'London', 'Internship', true, '22 Nov', 28],
+      ['Spring Week, Markets', 'Harlow Partners', 'London', 'Spring week', false, '3 Dec', 39],
+      ['Graduate Accountant', 'Mercer Lane', 'Birmingham', 'Graduate scheme', true, '9 Dec', 45]
+    ];
+    const types = ['All', 'Graduate scheme', 'Internship', 'Placement', 'Spring week'];
+    const filtered = all.map((a, i) => [a, i]).filter(([a]) => (st.type === 'All' || a[3] === st.type) && (!st.visa || a[4]));
+    const cols = [
+      ['Saved', [['Spring Week, Markets', 'Harlow Partners', 'CLOSES 3 DEC', '#45524D']]],
+      ['Applied', [['Analyst Graduate Scheme', 'Northbank', 'APPLIED 24 OCT', '#45524D'], ['Graduate Accountant', 'Mercer Lane', 'APPLIED 20 OCT', '#45524D']]],
+      ['Online tests', [['Risk Summer Internship', 'Calder Capital', 'TEST DUE IN 3 DAYS', '#000000']]],
+      ['Interview', [['Consulting Summer Internship', 'Ashby & Co', 'INTERVIEW 6 NOV', '#36604E']]],
+      ['Offer', []]
+    ];
+    return {
+      browse: st.tab === 0, mine: st.tab === 1,
+      tabs: ['Browse', 'My applications'].map((label, i) => ({ label, selStr: String(st.tab === i), style: tab(st.tab === i), pick: () => this.setState({ tab: i }) })),
+      types: types.map((label) => ({ label, selStr: String(st.type === label), style: pill(st.type === label), pick: () => this.setState({ type: label }) })),
+      visaStr: String(st.visa),
+      toggleVisa: () => this.setState({ visa: !st.visa }),
+      visaTrack: 'width: 52px; height: 30px; border-radius: 999px; border: 0; padding: 3px; display: flex; ' + (st.visa ? 'background: #36604E; justify-content: flex-end;' : 'background: #DCE3DE; justify-content: flex-start;'),
+      count: filtered.length,
+      list: filtered.map(([a, i]) => {
+        const tr = !!st.tracked[i];
+        return {
+          role: a[0], org: a[1], loc: a[2], type: a[3].toUpperCase(), visa: a[4], due: a[5], init: a[1].charAt(0),
+          dc: a[6] <= 21 ? '#000000' : '#45524D',
+          trStr: String(tr), btnLabel: tr ? 'Tracking' : 'Track',
+          btn: 'min-height: 42px; padding: 0 18px; border-radius: 999px; font-size: 14px; ' + (tr ? 'border: 1px solid #36604E; background: #EDF4EF; color: #36604E;' : 'border: 0; background: #000000; color: #FFFFFF;'),
+          toggle: () => { const t = Object.assign({}, st.tracked); t[i] = !t[i]; this.setState({ tracked: t }); }
+        };
+      }),
+      cols: cols.map(([t, cards]) => ({ t, n: cards.length, cards: cards.map(([r, o, d, c]) => ({ r, o, d, c })) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

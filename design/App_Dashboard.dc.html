@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My reports</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1100px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="dashboard" hint-size="100%,72px"></dc-import>
+
+<div style="max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+<nav aria-label="Tools" style="flex: 1 1 260px; max-width: 280px; background: #FFFFFF; border-radius: 24px; padding: 18px 14px 22px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px;">
+<p style="margin: 4px 10px 10px; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.04em; color: #5C6B66;">TOOLS</p>
+<sc-for list="{{tools}}" as="t" hint-placeholder-count="5">
+<a href="{{t.href}}" style="display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 10px; border-radius: 12px; text-decoration: none; color: #1F2A27; font-size: 14px;">
+<span style="width: 28px; height: 28px; border-radius: 9px; background: #F2F4F1; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="{{t.icon}}" fill="none" stroke="#36604E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+<span style="flex: 1 1 auto;">{{t.label}}</span>
+<sc-if value="{{t.done}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 22 22" role="img" aria-label="Used"><path d="M5 11.3l3.6 3.6 8-8.2" fill="none" stroke="#36604E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+</a>
+</sc-for>
+<div style="height: 1px; background: #EEF2EF; margin: 10px;"></div>
+<p style="margin: 4px 10px 8px; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.04em; color: #5C6B66;">COMING LATER</p>
+<sc-for list="{{later}}" as="l" hint-placeholder-count="3">
+<span style="display: flex; align-items: center; min-height: 36px; padding: 0 10px; font-size: 14px; color: #5C6B66;">{{l}}</span>
+</sc-for>
+<div style="height: 1px; background: #EEF2EF; margin: 10px;"></div>
+<p style="margin: 4px 10px 8px; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.04em; color: #5C6B66;">ACCOUNT</p>
+<a href="App_Dashboard.dc.html" style="display: flex; align-items: center; min-height: 38px; padding: 0 10px; border-radius: 12px; text-decoration: none; color: #1F2A27; font-size: 14px; background: #000000; color: #FFFFFF;">My reports</a>
+<a href="App_Privacy.dc.html" style="display: flex; align-items: center; min-height: 38px; padding: 0 10px; text-decoration: none; color: #1F2A27; font-size: 14px;">Privacy and my data</a>
+<a href="App_Dashboard.dc.html" style="display: flex; align-items: center; min-height: 38px; padding: 0 10px; text-decoration: none; color: #1F2A27; font-size: 14px;">Help</a>
+</nav>
+
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 8px 4px 4px;">
+<div>
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">My reports</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #45524D;">Every review you've run, newest first.</p>
+</div>
+<button style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 14px; font-weight: 500;">Share with my adviser</button>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px;">
+<div style="flex: 1 1 220px; background: #FFFFFF; border-radius: 22px; padding: 18px 20px;"><p style="margin: 0; font-size: 13px; color: #5C6B66;">Latest CV score</p><p style="margin: 6px 0 0; font-size: 34px; letter-spacing: -0.05em;">68 <span style="font-size: 14px; letter-spacing: 0; color: #36604E;">Getting there · +7</span></p></div>
+<div style="flex: 1 1 220px; background: #FFFFFF; border-radius: 22px; padding: 18px 20px;"><p style="margin: 0; font-size: 13px; color: #5C6B66;">Applications tracked</p><p style="margin: 6px 0 0; font-size: 34px; letter-spacing: -0.05em;">9</p></div>
+<div style="flex: 1 1 220px; background: #FFFFFF; border-radius: 22px; padding: 18px 20px;"><p style="margin: 0; font-size: 13px; color: #5C6B66;">Deadlines this week</p><p style="margin: 6px 0 0; font-size: 34px; letter-spacing: -0.05em;">2 <span style="font-size: 14px; letter-spacing: 0; color: #45524D;">next on Thu</span></p></div>
+</div>
+
+<section aria-labelledby="rep-h" style="background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px;">
+<h2 id="rep-h" style="position: absolute; left: -9999px;">Reports</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+<button style="{{f.style}}">{{f.label}}</button>
+</sc-for>
+<label style="margin-left: auto; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; background: #F2F4F1; min-width: 220px;">
+<svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="#5C6B66" stroke-width="1.6"></circle><path d="M11 11l3 3" stroke="#5C6B66" stroke-width="1.6" stroke-linecap="round"></path></svg>
+<span style="position: absolute; left: -9999px;">Search reports</span>
+<input type="search" placeholder="Search files and scores" style="flex: 1; border: 0; outline: none; background: transparent; font: inherit; font-size: 14px;">
+</label>
+</div>
+<div style="overflow-x: auto;">
+<table style="width: 100%; min-width: 680px; border-collapse: collapse; font-size: 14px;">
+<thead><tr style="text-align: left;">
+<th style="padding: 10px 8px; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 400; color: #5C6B66; border-bottom: 1px solid #EEF2EF;">FILE</th>
+<th style="padding: 10px 8px; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 400; color: #5C6B66; border-bottom: 1px solid #EEF2EF;">TYPE</th>
+<th style="padding: 10px 8px; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 400; color: #5C6B66; border-bottom: 1px solid #EEF2EF;">DATE</th>
+<th style="padding: 10px 8px; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 400; color: #5C6B66; border-bottom: 1px solid #EEF2EF; text-align: right;">SCORE</th>
+<th style="padding: 10px 8px; border-bottom: 1px solid #EEF2EF;"><span style="position: absolute; left: -9999px;">Open</span></th>
+</tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+<tr>
+<td style="padding: 14px 8px; border-bottom: 1px solid #EEF2EF;">{{r.file}}</td>
+<td style="padding: 14px 8px; border-bottom: 1px solid #EEF2EF;"><span style="font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #F2F4F1; color: #1F2A27;">{{r.type}}</span></td>
+<td style="padding: 14px 8px; border-bottom: 1px solid #EEF2EF; color: #45524D;">{{r.date}}</td>
+<td style="padding: 14px 8px; border-bottom: 1px solid #EEF2EF; text-align: right;"><span style="font-family: 'Geist Mono', monospace;">{{r.score}}</span> <span style="font-size: 12px; color: #5C6B66; margin-left: 6px;">{{r.band}}</span></td>
+<td style="padding: 14px 8px; border-bottom: 1px solid #EEF2EF; text-align: right;"><a href="{{r.href}}" style="display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid #DCE3DE; color: #000000; text-decoration: none; font-size: 13px;">Open</a></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #5C6B66;"><span>Showing 7 of 14 reports</span><span style="display: flex; gap: 6px;"><button style="min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 13px;">Previous</button><button style="min-height: 34px; padding: 0 12px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 13px;">Next</button></span></div>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const band = (s) => s >= 90 ? 'Interview-ready' : s >= 75 ? 'Strong' : s >= 50 ? 'Getting there' : 'Needs work';
+    const rows = [
+      ['Jordan_Reed_CV_v6.pdf', 'CV review', '25 Oct 2026', 68, 'App_Overview.dc.html'],
+      ['Analyst Graduate Scheme · Northbank', 'Tailor to a job', '24 Oct 2026', 54, 'App_Tailor.dc.html'],
+      ['Northbank cover letter', 'Cover letter', '24 Oct 2026', 71, 'App_CoverLetter.dc.html'],
+      ['Jordan_Reed_CV_v5.pdf', 'CV review', '15 Oct 2026', 61, 'App_Overview.dc.html'],
+      ['Spring Week · Harlow Partners', 'Tailor to a job', '12 Oct 2026', 47, 'App_Tailor.dc.html'],
+      ['Jordan_Reed_CV_v4.pdf', 'CV review', '9 Oct 2026', 55, 'App_Overview.dc.html'],
+      ['Jordan_Reed_CV_v3.pdf', 'CV review', '2 Oct 2026', 49, 'App_Overview.dc.html']
+    ];
+    const fs = (on) => 'min-height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; ' + (on ? 'border: 0; background: #000000; color: #FFFFFF;' : 'border: 1px solid #DCE3DE; background: #FFFFFF; color: #000000;');
+    return {
+      tools: [
+        { label: 'CV review', href: 'App_Upload.dc.html', icon: 'M7 3.5h7l4 4v13H7zM10 12h5M10 16h3.5', done: true },
+        { label: 'Tailor to a job', href: 'App_Tailor.dc.html', icon: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z', done: true },
+        { label: 'Cover letters', href: 'App_CoverLetter.dc.html', icon: 'M3.5 6.5h17v11h-17zM3.5 7l8.5 6 8.5-6', done: true },
+        { label: 'Opportunities', href: 'App_Opportunities.dc.html', icon: 'M4.5 6h15v14h-15zM4.5 10h15M8.5 3.5V7M15.5 3.5V7', done: false },
+        { label: 'CV templates', href: 'App_Templates.dc.html', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z', done: false }
+      ],
+      later: ['Interview practice', 'Aptitude tests', 'Role roadmaps'],
+      filters: [['All', true], ['CV review', false], ['Tailor to a job', false], ['Cover letter', false]].map(([label, on]) => ({ label, style: fs(on) })),
+      rows: rows.map(([file, type, date, score, href]) => ({ file, type, date, score, band: band(score), href }))
+    };
+  }
+}
+</script>
+</body>
+</html>

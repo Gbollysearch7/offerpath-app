@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Example CV lines</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1300px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="review" hint-size="100%,72px"></dc-import>
+<div style="max-width: 1440px; margin: 0 auto; padding: 24px 28px 56px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+<div style="flex: 1 1 260px; max-width: 280px;"><dc-import name="App_Sidebar" active="samples" hint-size="280px,1180px"></dc-import></div>
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+<div style="padding: 8px 4px 4px;">
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Example CV lines</h1>
+<p style="margin: 8px 0 0; font-size: 15px; color: #45524D;">Strong bullet points from typical student experiences. Use them for ideas, then write your own with your real numbers.</p>
+</div>
+<div role="tablist" aria-label="Experience type" style="display: flex; flex-wrap: wrap; gap: 8px;">
+<sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+<button role="tab" aria-selected="{{c.selStr}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.t}}</button>
+</sc-for>
+</div>
+<section aria-label="Examples" style="background: #FFFFFF; border-radius: 24px; padding: 8px 26px;">
+<sc-for list="{{items}}" as="e" hint-placeholder-count="5">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 20px 0; border-bottom: 1px solid #EEF2EF;">
+<div style="flex: 1 1 420px; min-width: 0;">
+<p style="margin: 0; font-size: 17px; line-height: 1.55; letter-spacing: -0.01em;">{{e.line}}</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;">
+<sc-for list="{{e.tags}}" as="t" hint-placeholder-count="2"><span style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 999px; background: #F2F4F1; color: #45524D;">{{t}}</span></sc-for>
+</div>
+</div>
+<button style="min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font-size: 14px; color: #000000;">Use as a starting point</button>
+</div>
+</sc-for>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { cat: 0 }; }
+  renderVals() {
+    const data = [
+      ['Societies', [['Grew Finance Society membership from 120 to 310 in one year by launching a mentoring scheme with alumni.', ['LEADERSHIP', 'IMPACT']], ['Organised 12 events for 400+ students, including a careers panel with 3 City firms.', ['ORGANISATION']], ['Managed a £6,000 annual budget and secured £2,500 in new sponsorship.', ['COMMERCIAL']]]],
+      ['Part-time work', [['Served 150+ customers a shift during peak hours while maintaining a 4.8/5 review score.', ['CUSTOMER FOCUS']], ['Trained 5 new team members on tills and stock systems, cutting onboarding time by a week.', ['TEAMWORK']], ['Reconciled daily takings of up to £3,000 with no discrepancies across 18 months.', ['ACCURACY']]]],
+      ['Internships', [['Built a weekly Excel report for a team of 6, cutting preparation time by 3 hours.', ['ANALYTICAL', 'IMPACT']], ['Researched 40 potential acquisition targets and presented a shortlist of 5 to a director.', ['RESEARCH']], ['Drafted 3 client briefing notes that were sent with minimal edits.', ['WRITING']]]],
+      ['Projects', [['Built a regression model forecasting house prices across 10 UK regions with 8% average error.', ['ANALYTICAL']], ['Led a team of 4 to recommend savings worth £18k a year to a local charity.', ['LEADERSHIP']]]],
+      ['Volunteering', [['Tutored 8 Year 10 pupils in maths weekly; 6 improved by at least one grade.', ['COMMUNICATION', 'IMPACT']], ['Raised £2,400 for a student-led charity week, beating the target by 20%.', ['INITIATIVE']]]],
+      ['Sport', [['Captained the women’s hockey 2nd XI to promotion, organising training for 20 players.', ['LEADERSHIP']], ['Balanced 10 hours of training a week with a predicted 2:1.', ['TIME MANAGEMENT']]]]
+    ];
+    const st = this.state;
+    const pill = (on) => 'min-height: 42px; padding: 0 18px; border-radius: 999px; font-size: 14px; ' + (on ? 'border: 0; background: #000000; color: #FFFFFF;' : 'border: 1px solid #DCE3DE; background: #FFFFFF; color: #000000;');
+    return {
+      cats: data.map(([t], i) => ({ t, selStr: String(st.cat === i), style: pill(st.cat === i), pick: () => this.setState({ cat: i }) })),
+      items: data[st.cat][1].map(([line, tags]) => ({ line, tags }))
+    };
+  }
+}
+</script>
+</body>
+</html>

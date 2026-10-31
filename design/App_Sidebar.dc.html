@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Results sidebar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<nav aria-label="Results and feedback" style="width: 280px; box-sizing: border-box; background: #FFFFFF; border-radius: 24px; padding: 18px 14px 22px; font-family: 'Geist', system-ui, sans-serif; color: #000000; display: flex; flex-direction: column; gap: 2px;">
+<p style="margin: 4px 10px 10px; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.04em; color: #5C6B66;">RESULTS AND FEEDBACK</p>
+<sc-for list="{{top}}" as="t" hint-placeholder-count="5">
+<sc-if value="{{t.isRule}}" hint-placeholder-val="{{ false }}"><div style="height: 1px; background: #EEF2EF; margin: 8px 10px;"></div></sc-if>
+<sc-if value="{{t.isLink}}" hint-placeholder-val="{{ true }}"><a href="{{t.href}}" aria-current="{{t.cur}}" style="{{t.style}}">{{t.label}}</a></sc-if>
+</sc-for>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="6">
+<p style="margin: 16px 10px 6px; font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.04em; color: #5C6B66;">{{g.name}} · <span style="color: #000000;">{{g.score}}</span></p>
+<sc-for list="{{g.items}}" as="i" hint-placeholder-count="3">
+<a href="{{i.href}}" aria-current="{{i.cur}}" style="{{i.style}}"><span style="flex: 1 1 auto;">{{i.label}}</span><span style="{{i.badge}}">{{i.score}}</span></a>
+</sc-for>
+</sc-for>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"text","default":"overview"},"$preview":{"width":280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const a = this.props.active ?? 'overview';
+    const linkStyle = (on) => 'display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; border-radius: 12px; text-decoration: none; font-size: 14px; ' + (on ? 'background: #000000; color: #FFFFFF; font-weight: 500;' : 'color: #1F2A27;');
+    const L = (id, label, href) => ({ isLink: true, label, href, cur: id === a ? 'page' : 'false', style: linkStyle(id === a) });
+    const top = [
+      L('overview', 'Overview', 'App_Overview.dc.html'),
+      L('breakdown', 'Score breakdown', 'App_Overview.dc.html'),
+      { isRule: true },
+      L('lines', 'Line by line', 'App_LineByLine.dc.html'),
+      L('samples', 'Example CV lines', 'App_LineByLine.dc.html'),
+      L('verbsbank', 'Action verb bank', 'App_LineByLine.dc.html')
+    ];
+    const badge = (s, on) => {
+      let c = s >= 8 ? 'background: #DCE6DF; color: #36604E;' : s >= 5 ? 'background: #F2F4F1; color: #1F2A27;' : 'background: #000000; color: #FFFFFF;';
+      if (on) c = 'background: #FFFFFF; color: #000000;';
+      return 'min-width: 26px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-family: Geist Mono, monospace; font-size: 12px; ' + c;
+    };
+    const G = [
+      ['IMPACT', 58, [['quant', 'Quantifying impact', 2], ['verbs', 'Action verbs', 4], ['accomp', 'Accomplishments', 10], ['repeat', 'Repetition', 10]]],
+      ['CLARITY', 72, [['filler', 'Filler words', 9], ['buzz', 'Buzzwords and clichés', 5], ['passive', 'Passive voice', 10]]],
+      ['STRUCTURE AND ATS', 80, [['sections', 'Sections', 5], ['ats', 'ATS readability', 9], ['contact', 'Contact details', 10]]],
+      ['SECTOR RELEVANCE', 61, [['sector', 'Sector keywords', 6]]],
+      ['SPELLING AND GRAMMAR', 92, [['spell', 'Spelling', 8], ['grammar', 'Grammar', 10]]],
+      ['LENGTH AND FORMATTING', 74, [['length', 'Length', 10], ['bulletlen', 'Bullet length', 8], ['bullets', 'Bullet count', 10]]]
+    ];
+    return {
+      top,
+      groups: G.map(([name, score, items]) => ({
+        name, score,
+        items: items.map(([id, label, s]) => ({
+          label, score: s, cur: id === a ? 'page' : 'false',
+          href: 'App_Check.dc.html',
+          style: linkStyle(id === a), badge: badge(s, id === a)
+        }))
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

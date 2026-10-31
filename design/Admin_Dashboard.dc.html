@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>University dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1300px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif; display: flex; flex-wrap: wrap;">
+<div style="flex: 0 0 260px;"><dc-import name="Admin_Nav" active="dashboard" hint-size="260px,900px"></dc-import></div>
+<main style="flex: 999 1 640px; min-width: 0; padding: 28px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1180px;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px;">
+<div>
+<p style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; color: #36604E;">SAMPLE DATA · FICTIONAL UNIVERSITY</p>
+<h1 style="margin: 6px 0 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Dashboard</h1>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<label><span style="position: absolute; left: -9999px;">Period</span><select style="min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid #DCE3DE; background: #FFFFFF; font: inherit; font-size: 14px;"><option>Autumn term 2026</option><option>Academic year 2025–26</option></select></label>
+<a href="Admin_Students.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 999px; background: #000000; color: #FFFFFF; text-decoration: none; font-size: 14px; font-weight: 500;">Export CSV</a>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 14px;">
+<sc-for list="{{kpis}}" as="k" hint-placeholder-count="6">
+<div style="flex: 1 1 160px; background: #FFFFFF; border-radius: 20px; padding: 16px 18px;">
+<p style="margin: 0; font-size: 13px; color: #5C6B66;">{{k.l}}</p>
+<p style="margin: 6px 0 0; font-size: 32px; letter-spacing: -0.05em;">{{k.v}}</p>
+<p style="margin: 2px 0 0; font-size: 12px; color: {{k.dc}};">{{k.d}}</p>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch;">
+<section aria-labelledby="tr-h" style="flex: 999 1 460px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 22px 24px;">
+<h2 id="tr-h" style="margin: 0 0 10px; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">AVERAGE READINESS SCORE BY WEEK</h2>
+<svg viewBox="0 0 560 220" width="100%" height="220" role="img" aria-label="Average score rose from 57 in week 1 to 71 in week 8">
+<line x1="36" y1="20" x2="550" y2="20" stroke="#EEF2EF"></line><line x1="36" y1="80" x2="550" y2="80" stroke="#EEF2EF"></line><line x1="36" y1="140" x2="550" y2="140" stroke="#EEF2EF"></line><line x1="36" y1="190" x2="550" y2="190" stroke="#DCE3DE"></line>
+<text x="28" y="24" font-size="11" fill="#5C6B66" text-anchor="end" font-family="Geist Mono">80</text><text x="28" y="84" font-size="11" fill="#5C6B66" text-anchor="end" font-family="Geist Mono">70</text><text x="28" y="144" font-size="11" fill="#5C6B66" text-anchor="end" font-family="Geist Mono">60</text>
+<path d="M60 158 L127 150 L194 140 L261 128 L328 116 L395 104 L462 92 L529 74 L529 190 L60 190 Z" fill="#DCE6DF" opacity="0.6"></path>
+<polyline points="60,158 127,150 194,140 261,128 328,116 395,104 462,92 529,74" fill="none" stroke="#36604E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+<circle cx="529" cy="74" r="5" fill="#36604E"></circle><text x="529" y="60" font-size="12" text-anchor="middle" font-family="Geist Mono">71</text>
+<text x="60" y="210" font-size="11" fill="#5C6B66" text-anchor="middle">Wk 1</text><text x="261" y="210" font-size="11" fill="#5C6B66" text-anchor="middle">Wk 4</text><text x="529" y="210" font-size="11" fill="#5C6B66" text-anchor="middle">Wk 8</text>
+</svg>
+</section>
+<section aria-labelledby="bd-h" style="flex: 1 1 320px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px;">
+<h2 id="bd-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">STUDENTS BY SCORE BAND</h2>
+<div role="img" aria-label="Needs work 14 percent, getting there 41 percent, strong 33 percent, interview-ready 12 percent" style="display: flex; height: 18px; border-radius: 99px; overflow: hidden;">
+<span style="flex: 14; background: #E6EDE8;"></span><span style="flex: 41; background: #DCE6DF;"></span><span style="flex: 33; background: #8FB3A1;"></span><span style="flex: 12; background: #36604E;"></span>
+</div>
+<sc-for list="{{bands}}" as="b" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 10px; font-size: 14px;"><span style="width: 12px; height: 12px; border-radius: 4px; background: {{b.c}}; border: 1px solid #DCE3DE;"></span><span style="flex: 1;">{{b.n}}</span><span style="font-family: 'Geist Mono', monospace; font-size: 13px;">{{b.p}}</span></div>
+</sc-for>
+</section>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch;">
+<section aria-labelledby="fac-h" style="flex: 1 1 360px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 12px;">
+<h2 id="fac-h" style="margin: 0 0 4px; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">BY FACULTY · AVG SCORE AND IMPROVEMENT</h2>
+<sc-for list="{{fac}}" as="f" hint-placeholder-count="5">
+<div style="display: grid; grid-template-columns: 120px minmax(0, 1fr) 30px 40px; gap: 10px; align-items: center; font-size: 14px;">
+<span style="color: #45524D;">{{f.n}}</span>
+<span style="height: 10px; border-radius: 99px; background: #EEF2EF;"><span style="display: block; width: {{f.w}}; height: 10px; border-radius: 99px; background: #36604E;"></span></span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 13px; text-align: right;">{{f.v}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #36604E; text-align: right;">{{f.i}}</span>
+</div>
+</sc-for>
+</section>
+<section aria-labelledby="hi-h" style="flex: 1 1 320px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px;">
+<h2 id="hi-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">HOME VS INTERNATIONAL</h2>
+<sc-for list="{{hi}}" as="h" hint-placeholder-count="3">
+<div>
+<p style="margin: 0 0 6px; font-size: 14px;">{{h.m}}</p>
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 40px; gap: 8px; align-items: center; font-size: 13px; color: #45524D; margin-bottom: 4px;"><span>Home</span><span style="height: 8px; border-radius: 99px; background: #EEF2EF;"><span style="display: block; width: {{h.aw}}; height: 8px; border-radius: 99px; background: #000000;"></span></span><span style="font-family: 'Geist Mono', monospace; text-align: right;">{{h.a}}</span></div>
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 40px; gap: 8px; align-items: center; font-size: 13px; color: #45524D;"><span>International</span><span style="height: 8px; border-radius: 99px; background: #EEF2EF;"><span style="display: block; width: {{h.bw}}; height: 8px; border-radius: 99px; background: #8FB3A1;"></span></span><span style="font-family: 'Geist Mono', monospace; text-align: right;">{{h.b}}</span></div>
+</div>
+</sc-for>
+</section>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch;">
+<section aria-labelledby="nh-h" style="flex: 999 1 460px; min-width: 0; background: #FFFFFF; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; justify-content: space-between; align-items: center;"><h2 id="nh-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">MAY NEED A HAND · 86 STUDENTS</h2><a href="Admin_Students.dc.html" style="font-size: 14px;">See all</a></div>
+<sc-for list="{{needs}}" as="n" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #EEF2EF; font-size: 14px;">
+<span style="font-family: 'Geist Mono', monospace; font-size: 13px; width: 32px; text-align: right;">{{n.c}}</span>
+<span style="flex: 1;">{{n.why}}</span>
+<span style="color: #5C6B66; font-size: 13px;">{{n.hint}}</span>
+</div>
+</sc-for>
+</section>
+<section style="flex: 1 1 300px; min-width: 0; background: #E6EDE8; border-radius: 24px; padding: 22px 24px; display: flex; flex-direction: column; gap: 10px;">
+<p style="margin: 0; font-size: 18px; letter-spacing: -0.03em;">Graduate Outcomes and TEF</p>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #35423D;">Download engagement and progress data formatted to support your Graduate Outcomes and TEF evidence.</p>
+<a href="Admin_Students.dc.html" style="margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; border-radius: 999px; background: #FFFFFF; color: #000000; text-decoration: none; font-size: 14px;">Build report</a>
+</section>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5C6B66;">Groups with fewer than five students are hidden to protect privacy. Scores are AI-assisted guidance and can be overridden by advisers.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      kpis: [
+        { l: 'Active students', v: '1,240', d: '+180 this month', dc: '#36604E' },
+        { l: 'Average score', v: '71', d: 'Up from 57', dc: '#36604E' },
+        { l: 'Average improvement', v: '+14', d: 'Per student', dc: '#45524D' },
+        { l: 'CVs reviewed', v: '3,580', d: '2.9 per student', dc: '#45524D' },
+        { l: 'Applications tracked', v: '2,115', d: 'This term', dc: '#45524D' },
+        { l: 'May need a hand', v: '86', d: 'See list', dc: '#000000' }
+      ],
+      bands: [{ n: 'Needs work', p: '14%', c: '#E6EDE8' }, { n: 'Getting there', p: '41%', c: '#DCE6DF' }, { n: 'Strong', p: '33%', c: '#8FB3A1' }, { n: 'Interview-ready', p: '12%', c: '#36604E' }],
+      fac: [['Business', 74, '+15'], ['Engineering', 70, '+12'], ['Sciences', 72, '+13'], ['Social sciences', 69, '+16'], ['Arts and humanities', 66, '+11']].map(([n, v, i]) => ({ n, v, i, w: v + '%' })),
+      hi: [['Average score', 72, 68], ['CVs reviewed per student', 2.7, 3.4], ['Applications tracked per student', 1.6, 1.9]].map(([m, a, b]) => {
+        const mx = Math.max(a, b) * 1.15;
+        return { m, a, b, aw: Math.round(a / mx * 100) + '%', bw: Math.round(b / mx * 100) + '%' };
+      }),
+      needs: [{ c: '34', why: 'Signed up but no CV uploaded', hint: 'Over 3 weeks' }, { c: '22', why: 'Score not improving after 3 uploads', hint: 'Mostly Impact' }, { c: '18', why: 'Tracked deadline in 7 days, score under 50', hint: 'Urgent' }, { c: '12', why: 'Inactive for 30 days', hint: 'Final years' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

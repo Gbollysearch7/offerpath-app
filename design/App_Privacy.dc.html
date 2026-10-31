@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Privacy and my data</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F4F1}
+a{color:#36604E}a:hover{color:#264A3B}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 1100px; background: #F2F4F1; color: #000000; font-family: 'Geist', system-ui, sans-serif;">
+<dc-import name="App_Topbar" active="dashboard" hint-size="100%,72px"></dc-import>
+<main style="max-width: 960px; margin: 0 auto; padding: 40px 28px 64px; display: flex; flex-direction: column; gap: 20px;">
+<div>
+<h1 style="margin: 0; font-size: 44px; font-weight: 400; letter-spacing: -1.98px; line-height: 1.1;">Privacy and my data</h1>
+<p style="margin: 10px 0 0; font-size: 16px; color: #45524D;">You're in control. Here's what we hold, who can see it, and how to take it with you.</p>
+</div>
+
+<section aria-labelledby="w-h" style="background: #FFFFFF; border-radius: 24px; padding: 24px 26px; display: flex; flex-direction: column; gap: 10px;">
+<h2 id="w-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">WHO LOOKS AFTER YOUR DATA</h2>
+<p style="margin: 0; font-size: 16px; line-height: 1.6;">The <span style="font-weight: 500;">University of Northfield</span> controls your data. Offerpath processes it on their behalf, under UK GDPR, and stores it in the UK or EU.</p>
+<a href="App_Privacy.dc.html" style="font-size: 14px;">Read the full privacy notice</a>
+</section>
+
+<section aria-labelledby="h-h" style="background: #FFFFFF; border-radius: 24px; padding: 24px 26px; display: flex; flex-direction: column; gap: 14px;">
+<h2 id="h-h" style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">WHAT WE HOLD</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 12px;">
+<sc-for list="{{held}}" as="h" hint-placeholder-count="4">
+<div style="flex: 1 1 160px; background: #F2F4F1; border-radius: 16px; padding: 14px 16px;"><p style="margin: 0; font-size: 28px; letter-spacing: -0.05em;">{{h.n}}</p><p style="margin: 2px 0 0; font-size: 13px; color: #45524D;">{{h.t}}</p></div>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="s-h" style="background: #FFFFFF; border-radius: 24px; padding: 12px 26px;">
+<h2 id="s-h" style="margin: 12px 0 4px; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 0.04em; color: #5C6B66;">SHARING</h2>
+<sc-for list="{{shares}}" as="s" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 20px; padding: 18px 0; border-bottom: 1px solid #EEF2EF;">
+<div style="flex: 1 1 auto;"><p style="margin: 0; font-size: 16px;">{{s.t}} <sc-if value="{{s.soon}}" hint-placeholder-val="{{ false }}"><span style="margin-left: 6px; font-family: 'Geist Mono', monospace; font-size: 10px; padding: 3px 8px; border-radius: 999px; background: #F2F4F1; color: #45524D; vertical-align: 2px;">COMING SOON</span></sc-if></p><p style="margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: #45524D;">{{s.d}}</p></div>
+<button role="switch" aria-checked="{{s.onStr}}" disabled="{{s.soon}}" aria-label="{{s.t}}" style="{{s.track}}"><span style="width: 24px; height: 24px; border-radius: 50%; background: #FFFFFF;"></span></button>
+</div>
+</sc-for>
+<p style="margin: 14px 0 12px; font-size: 13px; color: #5C6B66;">Your careers service only ever sees groups of five or more students in its reports.</p>
+</section>
+
+<section aria-labelledby="a-h" style="background: #E6EDE8; border-radius: 24px; padding: 22px 26px;">
+<h2 id="a-h" style="margin: 0; font-size: 17px; font-weight: 500;">About AI scores</h2>
+<p style="margin: 6px 0 0; font-size: 15px; line-height: 1.6; color: #35423D;">Your Readiness Score is AI-assisted guidance, not a verdict. Your careers adviser can review and override it, and we never make up facts in suggested rewrites.</p>
+</section>
+
+<section aria-labelledby="d-h" style="background: #FFFFFF; border-radius: 24px; padding: 24px 26px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+<div style="flex: 1 1 360px;">
+<h2 id="d-h" style="margin: 0; font-size: 20px; font-weight: 400; letter-spacing: -0.03em;">Take your data or delete it</h2>
+<p style="margin: 6px 0 0; font-size: 14px; line-height: 1.55; color: #45524D;">Download everything as a ZIP of your CVs, reports and letters. Deleting your account removes it all within [X] days and can't be undone.</p>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button style="min-height: 46px; padding: 0 20px; border-radius: 999px; border: 0; background: #000000; color: #FFFFFF; font-size: 14px; font-weight: 500;">Download my data</button>
+<button style="min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1px solid #000000; background: #FFFFFF; font-size: 14px; color: #000000;">Delete my account</button>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const track = (on, soon) => 'flex: 0 0 auto; width: 52px; height: 30px; border: 0; border-radius: 999px; padding: 3px; box-sizing: border-box; display: flex; ' + (on ? 'background: #36604E; justify-content: flex-end;' : 'background: #DCE3DE; justify-content: flex-start;') + (soon ? ' opacity: 0.5;' : '');
+    const s = [
+      ['Share progress with my careers service', 'Your scores and activity count towards anonymous university reports.', true, false],
+      ['Deadline reminders by email', 'One email a week before each tracked deadline.', true, false],
+      ['Let my adviser view my CV', 'Advisers can open your CV only if you switch this on. Launching after a legal review.', false, true]
+    ];
+    return {
+      held: [{ n: '6', t: 'CVs uploaded' }, { n: '14', t: 'Reports saved' }, { n: '2', t: 'Cover letters' }, { n: '9', t: 'Tracked applications' }],
+      shares: s.map(([t, d, on, soon]) => ({ t, d, onStr: String(on), soon, soonStr: String(soon), track: track(on, soon) }))
+    };
+  }
+}
+</script>
+</body>
+</html>
