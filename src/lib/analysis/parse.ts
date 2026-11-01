@@ -21,7 +21,8 @@ export interface ParsedCv {
   linkedin: string | null;
 }
 
-export const BULLET_RE = /^\s*([•●▪‣◦∙·*–—-]|\d+[.)])\s+/;
+// Includes the arrows and ticks some templates use (ours use ›) and the private-use code points Word bullets turn into.
+export const BULLET_RE = /^\s*([•●▪‣◦∙·*–—›»▸►▶➢➤→✓✔■□◆◇♦○❖-]|\d+[.)])\s+/;
 // Bounded quantifiers only: these run over the whole CV, so they must stay linear on hostile input.
 const EMAIL_RE = /[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,24}/i;
 const PHONE_RE = /(\+44\s?7\d{3}|\(?07\d{3}\)?)\s?\d{3}\s?\d{3}|(\+?\d[\d\s().-]{8,20}\d)/;

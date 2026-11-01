@@ -14,7 +14,7 @@ export function normaliseText(raw: string): string {
     .replace(/[‘’‚‛′]/g, "'")
     .replace(/[“”„‟″]/g, '"')
     .replace(/[‐‑‒–—―−]/g, "-")
-    .replace(/^[ \t]*[•●▪‣◦∙·*–—-][ \t]+/gm, "• ")
+    .replace(/^[ \t]*[•●▪‣◦∙·*–—›»▸►▶➢➤→✓✔■□◆◇♦○❖-][ \t]+/gm, "• ")
     .replace(/[ \t]+/g, " ")
     .split("\n")
     .map((l) => l.trim())

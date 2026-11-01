@@ -331,7 +331,7 @@ export function analyseCv(rawText: string, sector: string, input: ScoringInput =
     affected: [],
     extras: missing,
   });
-  const odd = (cv.text.match(/[^\x00-\x7F£€–—’‘“”•●▪·é]/g) ?? []).length;
+  const odd = (cv.text.match(/[^\x00-\x7F£€–—’‘“”•●▪·›é]/g) ?? []).length;
   const atsScore = cv.words < 150 ? 3 : clamp(10 - Math.floor(odd / 15) - (cv.sections.length < 3 ? 2 : 0));
   add("ats", {
     score: atsScore,

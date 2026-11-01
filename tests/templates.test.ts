@@ -6,6 +6,7 @@ import { CV_EXAMPLES } from "@/lib/cv-examples";
 import { CV_THEMES, MAX_TRACKING, withRoles } from "@/lib/cv-themes";
 import { templateBlocks, toDocx, toPdf, type DocBlock } from "@/lib/documents";
 import { extractText } from "@/lib/analysis/extract";
+import { parseCv } from "@/lib/analysis/parse";
 
 const asText = (slug: string) =>
   CV_EXAMPLES[slug]
@@ -98,4 +99,14 @@ test("the contact line breaks between items, evened out over two lines", async (
   assert.equal(lines.length, 2, JSON.stringify(lines));
   for (const l of lines) assert.doesNotMatch(l, /^·|·$/, `"${l}" starts or ends on a separator`);
   assert.ok(lines.every((l) => l.split(" · ").length >= 2), `no item sits alone: ${JSON.stringify(lines)}`);
+});
+
+test("every template's PDF and Word download reads back with all its bullets", async () => {
+  for (const t of CV_THEMES) {
+    const blocks = templateBlocks(t);
+    const want = blocks.filter((b) => b.kind === "bullet").length;
+    const pdf = parseCv(await extractText(await toPdf(blocks, t), "cv.pdf")).bullets.length;
+    const word = parseCv(await extractText(await toDocx(blocks, t), "cv.docx")).bullets.length;
+    assert.deepEqual({ slug: t.slug, pdf, word }, { slug: t.slug, pdf: want, word: want });
+  }
 });

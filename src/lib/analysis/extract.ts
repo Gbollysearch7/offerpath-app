@@ -82,6 +82,26 @@ export function pdfReadingOrderText(pdf: unknown): Promise<string> {
   return compiled(pdf);
 }
 
+/**
+ * Word text via mammoth's HTML, not its raw text: raw text drops list bullets and the tab before right-aligned
+ * dates, so bulleted CVs read as plain paragraphs and "Analyst" ran into "2024 – 2025". List items come back as
+ * "• " lines. Plain JavaScript in a string for the same reason as READING_ORDER_SOURCE.
+ */
+const DOCX_SOURCE = `async function docxText(mammoth, buffer) {
+  const noImages = mammoth.images.imgElement(() => Promise.resolve({ src: "" }));
+  const html = (await mammoth.convertToHtml({ buffer }, { convertImage: noImages })).value;
+  return html
+    .replace(/<li[^>]*>/g, "\\n• ")
+    .replace(/<br\\s*\\/?>|<\\/(p|li|h[1-6]|tr)>/g, "\\n")
+    .replace(/<\\/t[dh]>/g, "\\t")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&(amp|lt|gt|quot|#39|#(\\d+));/g, (m, name, code) => code ? String.fromCharCode(Number(code)) : { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" }[name])
+    .replace(/\\n{3,}/g, "\\n\\n");
+}`;
+
+let docxCompiled: ((mammoth: unknown, buffer: Buffer) => Promise<string>) | undefined;
+const docxText = (mammoth: unknown, buffer: Buffer) => (docxCompiled ??= new Function(`return (${DOCX_SOURCE})`)())(mammoth, buffer);
+
 export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 /** A two-page CV is around 5,000-12,000 characters. Anything far beyond that isn't a CV. */
 export const MAX_TEXT_CHARS = 40_000;
@@ -95,6 +115,7 @@ const WORKER_HEAP_MB = 256;
 const WORKER_SOURCE = `
 const { parentPort, workerData } = require("node:worker_threads");
 ${READING_ORDER_SOURCE}
+${DOCX_SOURCE}
 (async () => {
   try {
     const { kind, bytes, paths, maxPages, maxChars } = workerData;
@@ -106,8 +127,7 @@ ${READING_ORDER_SOURCE}
       text = await readingOrder(pdf);
     } else {
       const mammoth = require(paths.mammoth);
-      const res = await mammoth.extractRawText({ buffer: Buffer.from(bytes) });
-      text = res.value;
+      text = await docxText(mammoth, Buffer.from(bytes));
     }
     parentPort.postMessage({ text: text.slice(0, maxChars + 1) });
   } catch (e) {
@@ -162,7 +182,7 @@ async function parseInProcess(kind: "pdf" | "docx", bytes: Uint8Array): Promise<
       return { text: await pdfReadingOrderText(pdf) };
     }
     const mammoth = await import("mammoth");
-    return { text: (await mammoth.extractRawText({ buffer: Buffer.from(bytes) })).value };
+    return { text: await docxText(mammoth, Buffer.from(bytes)) };
   } catch (e) {
     return { error: "parse", message: e instanceof Error ? e.message : String(e) };
   }
@@ -208,7 +228,8 @@ export async function extractText(bytes: Uint8Array, fileName: string): Promise<
     throw new ExtractError(kind === "pdf" ? "We couldn't read that PDF. Try exporting it again from Word or Google Docs." : "We couldn't read that Word file. Try saving it as a PDF.");
   }
   const text = (result.text ?? "").replace(/\u0000/g, "").trim();
-  if (text.length > MAX_TEXT_CHARS) throw new ExtractError("That file has far more text than a CV. Upload just your CV, ideally two pages.");
+  // The worker cuts at MAX_TEXT_CHARS + 1, and trimming can take that one character back off, so check before trimming.
+  if ((result.text ?? "").length > MAX_TEXT_CHARS) throw new ExtractError("That file has far more text than a CV. Upload just your CV, ideally two pages.");
   if (text.replace(/\s/g, "").length < 150) {
     throw new ExtractError("We couldn't find much text. If your CV is a scan or a photo, export it as a PDF with selectable text.");
   }
