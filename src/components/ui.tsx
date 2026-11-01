@@ -120,15 +120,31 @@ export function ScoreRing({ value, of = 100, size, stroke, color, track = "#EEF2
   );
 }
 
-export const scoreColor = (score: number, of = 100) => {
+/** Traffic-light tone for a score, on the product's bands: 75+ good (green), 50–74 average (amber), under 50 weak (red). */
+export type ScoreTone = "good" | "average" | "weak";
+export const scoreTone = (score: number, of = 100): ScoreTone => {
   const s = (score / of) * 100;
-  return s >= 75 ? "#36604E" : s >= 50 ? "#8FB3A1" : "#000000";
+  return s >= 75 ? "good" : s >= 50 ? "average" : "weak";
 };
 
-export function checkBadge(s: number, on = false) {
-  if (on) return "bg-white text-black";
-  return s >= 8 ? "bg-mint text-brand" : s >= 5 ? "bg-canvas text-ink-2" : "bg-black text-white";
+// Rings and bars (graphics, 3:1 needed) use brighter tones; text needs 4.5:1, so it uses darker ones.
+// Graphics on white: green 7.1, amber 3.6, red 4.8. Text on white: green 7.1, amber 5.9, red 6.6. Badge text passes on its own tint.
+const TONE_COLOR: Record<ScoreTone, string> = { good: "#36604E", average: "#B97A00", weak: "#D92D20" };
+const TONE_TEXT: Record<ScoreTone, string> = { good: "#36604E", average: "#8A5A00", weak: "#B42318" };
+const TONE_BADGE: Record<ScoreTone, string> = { good: "bg-[#D6F0DE] text-[#17603A]", average: "bg-[#FBEFC9] text-[#6B4600]", weak: "bg-[#FDE4E1] text-[#9A1C12]" };
+
+/** Colour for a score ring or bar. */
+export const scoreColor = (score: number, of = 100) => TONE_COLOR[scoreTone(score, of)];
+/** Colour for a score shown as text. */
+export const scoreTextColor = (score: number, of = 100) => TONE_TEXT[scoreTone(score, of)];
+
+/** Pill classes for a check score out of 10. Same colours on the selected (black) row, so the tone never disappears. */
+export function checkBadge(s: number) {
+  return TONE_BADGE[scoreTone(s, 10)];
 }
+
+/** Pill classes for a band label chip, from a score out of 100. */
+export const bandBadge = (score: number) => TONE_BADGE[scoreTone(score)];
 
 export function Bar({ pct, color = "#36604E", height = 8, track = "#EEF2EF" }: { pct: number; color?: string; height?: number; track?: string }) {
   return (

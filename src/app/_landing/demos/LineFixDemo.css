@@ -1,0 +1,585 @@
+.op-linefix .ss-stage {
+  overflow: hidden;
+  background: transparent;
+  --ss-font:
+    var(--font-geist-sans, "Geist"), system-ui, -apple-system, sans-serif;
+  --ss-accent: #36604e;
+  --ss-accent-soft: rgba(54, 96, 78, 0.12);
+  --ss-ink-1: #f2f4f1;
+  --ss-ink-2: #e6ede8;
+  --ss-ink-3: #dce3de;
+  --ss-ink-4: #c9d3cd;
+  --ss-ink-5: #8fa39a;
+  --ss-text-strong: #000;
+  --ss-text: #45524d;
+  font-family: var(--ss-font);
+  color: #000;
+}
+
+.op-linefix .op-linefix-mono {
+  font-family:
+    var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", Menlo,
+    monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+/* One window, a gutter in from the top and sides, off the bottom */
+.op-linefix .op-linefix-win {
+  position: absolute;
+  top: 32px;
+  left: 40px;
+  width: 960px;
+  height: 620px;
+  box-shadow: var(--ss-shadow-hero);
+}
+
+.op-linefix .op-linefix-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+  height: 100%;
+  padding: 24px 28px 0;
+  box-sizing: border-box;
+  background: #f2f4f1;
+}
+
+/* The CV page: a sheet of paper, not another card */
+.op-linefix .op-linefix-paper {
+  min-height: 640px;
+  padding: 34px 40px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
+.op-linefix .op-linefix-name {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.op-linefix .op-linefix-contact {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eef2ef;
+}
+
+.op-linefix .op-linefix-heading {
+  margin: 20px 0 10px;
+  color: #36604e;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.op-linefix .op-linefix-heading--next {
+  margin-top: 22px;
+}
+
+.op-linefix .op-linefix-role {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  height: 20px;
+  margin-bottom: 6px;
+}
+
+.op-linefix .op-linefix-role--next {
+  margin-top: 14px;
+}
+
+.op-linefix .op-linefix-role__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.op-linefix .op-linefix-bullet {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.op-linefix .op-linefix-dot {
+  flex: none;
+  width: 8px;
+  height: 20px;
+  background: radial-gradient(
+    circle at 4px 10px,
+    #c9d3cd 2.5px,
+    transparent 3px
+  );
+}
+
+.op-linefix .op-linefix-dot--real {
+  background: none;
+  color: #36604e;
+  font-weight: 700;
+  text-align: center;
+}
+
+.op-linefix .op-linefix-bars {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-height: 20px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  box-sizing: border-box;
+}
+
+.op-linefix .op-linefix-bars:has(> :nth-child(2)) {
+  padding-top: 7px;
+}
+
+/* The weak line: hover and open draw a soft inset field around it */
+.op-linefix .op-linefix-focal {
+  margin: 2px -12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: default;
+}
+
+.op-linefix .op-linefix-focal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: #f2f4f1;
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.9s ease;
+}
+
+.op-linefix .op-linefix-focal[data-hover]::before,
+.op-linefix .op-linefix-focal[data-active]::before {
+  opacity: 1;
+}
+
+.op-linefix .op-linefix-focal[data-active]::before {
+  background: #e6ede8;
+}
+
+.op-linefix .op-linefix-focal[data-wash]::before {
+  background: #dce6df;
+  transition-duration: 0.15s;
+}
+
+.op-linefix .op-linefix-focal::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
+  background: #000;
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.3s ease;
+}
+
+.op-linefix .op-linefix-focal[data-active]::after {
+  opacity: 1;
+}
+
+.op-linefix .op-linefix-focal[data-fixed]::after {
+  background: #36604e;
+}
+
+.op-linefix .op-linefix-line .ss-swap {
+  display: block;
+}
+
+.op-linefix .op-linefix-focal > * {
+  position: relative;
+}
+
+.op-linefix .op-linefix-line {
+  flex: 1;
+  min-width: 0;
+  color: #000;
+}
+
+.op-linefix .op-linefix-line b {
+  font-weight: 600;
+}
+
+/* The margin: Impact on top, the note under it */
+.op-linefix .op-linefix-margin {
+  display: flex;
+  flex-direction: column;
+}
+
+.op-linefix .op-linefix-margin > .op-linefix-score {
+  margin-bottom: 14px;
+}
+
+/* The other points lost, one quiet card, folded while a note is open */
+.op-linefix .op-linefix-more {
+  margin-top: 12px;
+  padding: 0;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.op-linefix .op-linefix-more__row {
+  position: relative;
+  padding: 14px 20px;
+  color: #5c6b66;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.op-linefix .op-linefix-more__row + .op-linefix-more__row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  border-top: 1px solid #e6ede8;
+}
+
+.op-linefix .op-linefix-score {
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.op-linefix .op-linefix-score__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.op-linefix .op-linefix-score__name {
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.op-linefix .op-linefix-score__num {
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.op-linefix .op-linefix-track {
+  height: 6px;
+  margin-top: 12px;
+  border-radius: 99px;
+  background: #eef2ef;
+  overflow: hidden;
+}
+
+.op-linefix .op-linefix-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: #8fb3a1;
+  transition: width 0.7s cubic-bezier(0.45, 0, 0.1, 1);
+}
+
+.op-linefix .op-linefix-score__note {
+  margin-top: 12px;
+  color: #5c6b66;
+  font-size: 10.5px;
+}
+
+.op-linefix .op-linefix-note {
+  border-radius: 22px;
+  background: #fff;
+}
+
+.op-linefix .op-linefix-note__head {
+  padding: 16px 20px;
+}
+
+.op-linefix .op-linefix-note__label {
+  display: inline-flex;
+  gap: 0.45em;
+  color: #36604e;
+  white-space: nowrap;
+}
+
+.op-linefix .op-linefix-note__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px 20px;
+  margin-top: -4px;
+}
+
+.op-linefix .op-linefix-reason {
+  font-size: 15px;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+.op-linefix .op-linefix-rewrite {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 16px;
+  border: 1px solid #dce6df;
+  border-radius: 16px;
+  background: #edf4ef;
+  font-size: 14px;
+  line-height: 30px;
+}
+
+.op-linefix .op-linefix-slot {
+  position: relative;
+  display: inline-grid;
+  vertical-align: baseline;
+  padding: 0 7px;
+  line-height: 22px;
+  color: #36604e;
+}
+
+.op-linefix .op-linefix-slot--a {
+  min-width: 34px;
+}
+
+.op-linefix .op-linefix-slot--b {
+  min-width: 62px;
+}
+
+.op-linefix .op-linefix-slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.5px dashed #8fb3a1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.op-linefix .op-linefix-slot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 0 1.5px #36604e,
+    0 0 0 3px rgba(54, 96, 78, 0.14);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.op-linefix .op-linefix-slot[data-active]::after {
+  opacity: 1;
+}
+
+.op-linefix .op-linefix-slot__hint,
+.op-linefix .op-linefix-slot__val {
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.op-linefix .op-linefix-slot__hint {
+  color: #8fa39a;
+  transition: opacity 0.12s ease;
+}
+
+.op-linefix .op-linefix-slot[data-filled] .op-linefix-slot__hint {
+  opacity: 0;
+}
+
+.op-linefix .op-linefix-slot__val {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.op-linefix .op-linefix-caret {
+  width: 1.5px;
+  height: 15px;
+  margin-left: 1px;
+  margin-right: -2.5px;
+  background: #36604e;
+  animation: op-linefix-caret 1.06s steps(1) 0.5s infinite;
+}
+
+.op-linefix .op-linefix-caret[data-hide] {
+  visibility: hidden;
+}
+
+.op-linefix .op-linefix-help {
+  color: #5c6b66;
+  font-size: 12px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.op-linefix .op-linefix-actions {
+  display: flex;
+  padding-top: 2px;
+}
+
+.op-linefix .op-linefix-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    background-color 0.2s ease,
+    transform 0.12s ease;
+  will-change: transform;
+}
+
+.op-linefix .op-linefix-apply[data-hover] {
+  background: #1f2a27;
+}
+
+.op-linefix .op-linefix-apply[data-pressed] {
+  transform: scale(0.97);
+}
+
+.op-linefix .op-linefix-apply[data-applied] {
+  background: #36604e;
+}
+
+.op-linefix .op-linefix-apply__label {
+  display: inline-flex;
+  height: 18px;
+  line-height: 18px;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Compact: two cards stacked on the page, the line over its note */
+.op-linefix .op-linefix-stack {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 326px;
+}
+
+.op-linefix .op-linefix-stack > .op-linefix-note {
+  margin-top: 12px;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-more {
+  box-shadow: inset 0 0 0 1px #e6ede8;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-card,
+.op-linefix .op-linefix-stack .op-linefix-note {
+  box-shadow:
+    0 0 0 1px #eef2ef,
+    var(--ss-shadow-ground);
+}
+
+.op-linefix .op-linefix-card {
+  padding: 18px 20px 0;
+  border-radius: 22px;
+  background: #fff;
+}
+
+.op-linefix .op-linefix-where {
+  margin-bottom: 8px;
+  color: #5c6b66;
+  font-size: 10.5px;
+}
+
+.op-linefix .op-linefix-card .op-linefix-focal {
+  margin: 2px -10px;
+  padding: 8px 10px;
+}
+
+.op-linefix .op-linefix-card__score {
+  margin: 10px -20px 0;
+  border-top: 1px solid #eef2ef;
+}
+
+.op-linefix .op-linefix-score[data-inline] {
+  padding: 14px 20px 18px;
+  border-radius: 0;
+  background: none;
+}
+
+.op-linefix .op-linefix-score[data-inline] .op-linefix-score__name {
+  font-size: 16px;
+}
+
+.op-linefix .op-linefix-score[data-inline] .op-linefix-score__num {
+  font-size: 24px;
+}
+
+.op-linefix .op-linefix-score[data-inline] .op-linefix-track {
+  margin-top: 10px;
+}
+
+.op-linefix .op-linefix-score[data-inline] .op-linefix-score__note {
+  margin-top: 10px;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-note__label,
+.op-linefix .op-linefix-stack .op-linefix-more__row {
+  font-size: 10.5px;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-more {
+  background: #fff;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-reason {
+  font-size: 14px;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-rewrite {
+  font-size: 13.5px;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-rewrite {
+  line-height: 26px;
+  padding: 10px 14px 14px;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-help {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.op-linefix .op-linefix-stack .op-linefix-note__body {
+  gap: 10px;
+}
+
+@keyframes op-linefix-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}

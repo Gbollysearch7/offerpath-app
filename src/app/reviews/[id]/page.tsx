@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ResultsSidebar } from "@/components/ResultsSidebar";
 import { StudentShell, WithSidebar } from "@/components/StudentShell";
-import { Bar, Eyebrow, fmtShort, ScoreRing } from "@/components/ui";
+import { Bar, bandBadge, cx, Eyebrow, fmtShort, ScoreRing, scoreColor } from "@/components/ui";
 import { band } from "@/lib/analysis/cv";
 import type { CvReviewPayload } from "@/lib/types";
 import { loadCvReview } from "../load";
@@ -55,12 +55,12 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <section id="tour-score" aria-labelledby="sc-h" className="flex min-w-0 flex-[1_1_380px] flex-col gap-5 rounded-3xl bg-white px-[26px] py-6">
             <Eyebrow id="sc-h">READINESS SCORE</Eyebrow>
             <div className="flex flex-wrap items-center gap-6">
-              <ScoreRing value={a.score} size={144} stroke={11} color="#36604E" label={`Readiness Score ${a.score} out of 100`}>
+              <ScoreRing value={a.score} size={144} stroke={11} color={scoreColor(a.score)} label={`Readiness Score ${a.score} out of 100`}>
                 <span className="text-5xl leading-none tracking-[-0.05em]">{a.score}</span>
                 <span className="mt-1.5 font-mono text-[11px] text-subtle">OF 100</span>
               </ScoreRing>
               <div className="min-w-[180px] flex-1">
-                <span className="inline-flex rounded-full bg-mint px-3 py-1.5 text-[13px] font-medium text-brand">{band(a.score)}</span>
+                <span className={cx("inline-flex rounded-full px-3 py-1.5 text-[13px] font-medium", bandBadge(a.score))}>{band(a.score)}</span>
                 <p className="mt-3 mb-0 text-[15px] leading-normal text-body">
                   {change === null ? "Your first review. " : newRubric ? "We've updated how CVs are scored since your last upload, so the two scores don't compare directly. " : change > 0 ? `Up ${change} since your last upload. ` : change < 0 ? `Down ${-change} since your last upload. ` : "Same as your last upload. "}
                   {top ? `${top.text} is the quickest way to ${a.score >= 75 ? "reach Interview-ready" : a.score >= 50 ? "reach Strong" : "reach Getting there"}.` : "Keep tailoring it to each role."}
@@ -69,9 +69,9 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
             </div>
             <div>
               <div className="flex h-2 overflow-hidden rounded-full" role="img" aria-label={`Score bands: needs work 0 to 49, getting there 50 to 74, strong 75 to 89, interview-ready 90 and above. You are at ${a.score}.`}>
-                <span className="flex-[50] bg-mist" />
-                <span className="flex-[25] bg-mint" />
-                <span className="flex-[15] bg-sage" />
+                <span className="flex-[50] bg-[#F4B8B1]" />
+                <span className="flex-[25] bg-[#F2D27A]" />
+                <span className="flex-[15] bg-[#9FD3AE]" />
                 <span className="flex-[10] bg-brand" />
               </div>
               <div className="relative h-[18px]">
@@ -88,7 +88,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
               {a.areas.filter((ar) => ar.key !== "sector").map((ar) => (
                 <Link key={ar.key} href={`/reviews/${id}/checks/${[...ar.checks].sort((p, q) => p.score - q.score)[0].key}`} className="grid grid-cols-[minmax(0,1fr)_100px_30px] items-center gap-3 text-sm text-black no-underline hover:text-brand sm:grid-cols-[minmax(0,1fr)_140px_30px]">
                   <span>{ar.name}</span>
-                  <Bar pct={ar.score} color={ar.score >= 75 ? "#36604E" : "#8FB3A1"} />
+                  <Bar pct={ar.score} color={scoreColor(ar.score)} />
                   <span className="text-right font-mono text-[13px]">{ar.score}</span>
                 </Link>
               ))}
@@ -98,7 +98,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
                     Fit for {sector.toLowerCase()}
                     <span className="block text-xs text-subtle">Not counted in your score</span>
                   </span>
-                  <Bar pct={fit.score} color={fit.score >= 75 ? "#36604E" : "#8FB3A1"} />
+                  <Bar pct={fit.score} color={scoreColor(fit.score)} />
                   <span className="text-right font-mono text-[13px]">{fit.score}</span>
                 </Link>
               )}

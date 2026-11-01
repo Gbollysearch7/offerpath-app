@@ -98,15 +98,15 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
             {o.bands ? (
               <>
                 <div role="img" aria-label={`Needs work ${o.bands.needs} percent, getting there ${o.bands.getting} percent, strong ${o.bands.strong} percent, interview-ready ${o.bands.ready} percent`} className="flex h-[18px] overflow-hidden rounded-full">
-                  <span className="bg-mist" style={{ flex: o.bands.needs }} />
-                  <span className="bg-mint" style={{ flex: o.bands.getting }} />
-                  <span className="bg-sage" style={{ flex: o.bands.strong }} />
+                  <span className="bg-[#F4B8B1]" style={{ flex: o.bands.needs }} />
+                  <span className="bg-[#F2D27A]" style={{ flex: o.bands.getting }} />
+                  <span className="bg-[#9FD3AE]" style={{ flex: o.bands.strong }} />
                   <span className="bg-brand" style={{ flex: o.bands.ready }} />
                 </div>
                 {[
-                  ["Needs work", o.bands.needs, "#E6EDE8"],
-                  ["Getting there", o.bands.getting, "#DCE6DF"],
-                  ["Strong", o.bands.strong, "#8FB3A1"],
+                  ["Needs work", o.bands.needs, "#F4B8B1"],
+                  ["Getting there", o.bands.getting, "#F2D27A"],
+                  ["Strong", o.bands.strong, "#9FD3AE"],
                   ["Interview-ready", o.bands.ready, "#36604E"],
                 ].map(([n, p, c]) => (
                   <div key={n as string} className="flex items-center gap-2.5 text-sm">

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Expandable } from "@/components/client";
 import { ResultsSidebar } from "@/components/ResultsSidebar";
 import { StudentShell, WithSidebar } from "@/components/StudentShell";
-import { Arrow, Eyebrow, ScoreRing, Tick } from "@/components/ui";
+import { Arrow, Eyebrow, ScoreRing, scoreColor, Tick } from "@/components/ui";
 import { CHECK_CONTENT } from "@/lib/analysis/check-content";
 import { AREA_META, CHECK_META, CHECK_ORDER, findCheck } from "@/lib/analysis/cv";
 import type { CheckKey } from "@/lib/types";
@@ -33,7 +33,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
     <StudentShell profile={profile} active="review">
       <WithSidebar narrow sidebar={<ResultsSidebar reviewId={id} areas={a.areas} active={key} />}>
         <div className="flex items-center gap-5 px-1 pt-2 pb-1">
-          <ScoreRing value={c.score} of={10} size={72} stroke={6} color="#000000" track="#E6EDE8" label={`Check score ${c.score} out of 10`}>
+          <ScoreRing value={c.score} of={10} size={72} stroke={6} color={scoreColor(c.score, 10)} track="#E6EDE8" label={`Check score ${c.score} out of 10`}>
             <span className="text-2xl tracking-[-0.04em]">
               {c.score}
               <span className="text-[13px] text-subtle">/10</span>

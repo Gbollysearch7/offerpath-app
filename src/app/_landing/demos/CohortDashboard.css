@@ -1,0 +1,584 @@
+/* Offerpath's night palette mapped onto the kit's dark tokens: the page is
+   night, the window a step up, cards a step up again. Sage is the one lit
+   color; brand green fills the bars quietly. */
+.op-cohort .ss-stage {
+  --op-cohort-night: #0b0d0c;
+  --op-cohort-side: #111513;
+  --op-cohort-surface: #151a18;
+  --op-cohort-card: #1a1f1d;
+  --op-cohort-raised: #2a2f2d;
+  --op-cohort-sage: #8fb3a1;
+  --op-cohort-brand: #36604e;
+  --ss-surface: var(--op-cohort-surface);
+  --ss-canvas: var(--op-cohort-side);
+  --ss-chrome: var(--op-cohort-side);
+  --ss-raised: var(--op-cohort-raised);
+  --ss-text-strong: #e4eae7;
+  --ss-text: #b8c2be;
+  --ss-text-faint: #7d8984;
+  --ss-icon: #b8c2be;
+  --ss-line: rgb(212 219 216 / 0.09);
+  --ss-line-faint: rgb(212 219 216 / 0.06);
+  --ss-ink-1: rgb(212 219 216 / 0.05);
+  --ss-ink-2: rgb(212 219 216 / 0.075);
+  --ss-ink-3: rgb(212 219 216 / 0.11);
+  --ss-ink-4: rgb(212 219 216 / 0.15);
+  --ss-ink-5: rgb(212 219 216 / 0.24);
+  --ss-accent: var(--op-cohort-sage);
+  overflow: hidden;
+  /* No plate: the window sits straight on the section's black */
+  background: transparent;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Inset top and left, off the right and the bottom */
+.op-cohort .op-cohort-win {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  width: 1060px;
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px rgb(212 219 216 / 0.08);
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-win {
+  top: 16px;
+  left: 16px;
+  width: 400px;
+}
+
+.op-cohort .op-cohort-side {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 14px 12px;
+}
+
+.op-cohort .op-cohort-side__label {
+  padding: 4px 12px 8px;
+  color: var(--ss-text-faint);
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.op-cohort .op-cohort-nav {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--ss-text);
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.op-cohort .op-cohort-nav[data-active] {
+  background: var(--op-cohort-raised);
+  color: var(--ss-text-strong);
+  font-weight: 500;
+}
+
+.op-cohort .op-cohort-nav[data-hover]:not([data-active]) {
+  background: var(--op-cohort-card);
+}
+
+.op-cohort .op-cohort-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 640px;
+  padding: 24px 66px 0 34px;
+  background: var(--ss-surface);
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-body {
+  gap: 14px;
+  gap: 12px;
+  min-height: 420px;
+  padding: 16px 74px 0 16px;
+}
+
+.op-cohort .op-cohort-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.op-cohort .op-cohort-head__text {
+  display: grid;
+  gap: 6px;
+}
+
+.op-cohort .op-cohort-head__tools {
+  display: flex;
+  gap: 8px;
+}
+
+.op-cohort .op-cohort-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px 0 16px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--ss-line);
+  color: var(--ss-text);
+  font-size: 12.5px;
+}
+
+.op-cohort .op-cohort-pill svg {
+  flex: none;
+  color: var(--ss-text-faint);
+}
+
+.op-cohort .op-cohort-pill--solid {
+  padding: 0 16px;
+  box-shadow: none;
+  background: var(--ss-text-strong);
+  color: #0b0d0c;
+  font-weight: 500;
+}
+
+.op-cohort .op-cohort-eyebrow {
+  color: var(--op-cohort-sage);
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.op-cohort .op-cohort-card .op-cohort-eyebrow {
+  color: var(--ss-text-faint);
+}
+
+.op-cohort .op-cohort-title {
+  color: var(--ss-text-strong);
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+/* KPI tiles: one card step up, the number the heaviest mark */
+.op-cohort .op-cohort-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.op-cohort .op-cohort-kpi {
+  display: grid;
+  gap: 4px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: var(--op-cohort-card);
+}
+
+.op-cohort .op-cohort-kpi__l {
+  color: var(--ss-text);
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+
+.op-cohort .op-cohort-kpi__v {
+  color: var(--ss-text-strong);
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.op-cohort .op-cohort-kpi__d {
+  color: var(--ss-text-faint);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.op-cohort .op-cohort-kpi__d[data-lit] {
+  color: var(--op-cohort-sage);
+}
+
+.op-cohort .op-cohort-grid {
+  display: grid;
+  grid-template-columns: 324px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.op-cohort .op-cohort-note {
+  padding-top: 10px;
+  border-top: 1px solid var(--ss-line);
+  color: var(--ss-text-faint);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.op-cohort .op-cohort-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 18px 18px;
+  border-radius: 20px;
+  background: var(--op-cohort-card);
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-card {
+  padding: 14px 18px 0;
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-title {
+  font-size: 24px;
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-kpi {
+  padding: 12px 18px;
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-kpi__v {
+  font-size: 22px;
+}
+
+/* The breakdown */
+.op-cohort .op-cohort-seg {
+  --ss-row: 30px;
+  border-radius: 999px;
+  background: rgb(212 219 216 / 0.06);
+}
+
+.op-cohort .op-cohort-seg .ss-seg__option {
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.op-cohort .op-cohort-seg .ss-seg__thumb {
+  border-radius: 999px;
+  background: var(--op-cohort-raised);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+.op-cohort .op-cohort-bars {
+  display: grid;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.op-cohort .op-cohort-bar {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 10px;
+  height: 28px;
+  font-size: 13px;
+}
+
+.op-cohort .op-cohort-bar__name {
+  display: grid;
+  color: var(--ss-text);
+  white-space: nowrap;
+}
+
+.op-cohort .op-cohort-bar__name > span {
+  grid-area: 1 / 1;
+  opacity: 0;
+  filter: blur(2px);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+  transition-delay: calc(var(--i) * 50ms);
+}
+
+.op-cohort .op-cohort-bar__name > span[data-on] {
+  opacity: 1;
+  filter: none;
+  transition-delay: calc(var(--i) * 50ms + 0.12s);
+}
+
+.op-cohort .op-cohort-bar__track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(212 219 216 / 0.07);
+}
+
+.op-cohort .op-cohort-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--op-cohort-brand);
+  transition: width 0.7s cubic-bezier(0.45, 0, 0.1, 1);
+  transition-delay: calc(var(--i) * 50ms);
+}
+
+.op-cohort .op-cohort-bar__v {
+  justify-self: end;
+  color: var(--ss-text-strong);
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+}
+
+/* Who needs a hand */
+.op-cohort .op-cohort-needs {
+  gap: 6px;
+  padding-bottom: 0;
+}
+
+.op-cohort .op-cohort-needs__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+}
+
+.op-cohort .op-cohort-link {
+  color: var(--ss-text);
+  font-size: 12.5px;
+}
+
+
+.op-cohort .op-cohort-link[data-hover] {
+  color: var(--ss-text-strong);
+}
+
+.op-cohort .op-cohort-reason {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  border-top: 1px solid var(--ss-line);
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.op-cohort .op-cohort-reason__n {
+  justify-self: end;
+  color: var(--ss-text-strong);
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.op-cohort .op-cohort-reason__why {
+  overflow: hidden;
+  color: var(--ss-text-strong);
+  text-overflow: ellipsis;
+}
+
+.op-cohort .op-cohort-reason__hint {
+  color: var(--ss-text-faint);
+  font-size: 12.5px;
+}
+
+/* Two pages in one window: only the body crossfades, with a small rise */
+.op-cohort .op-cohort-pages {
+  display: grid;
+}
+
+.op-cohort .op-cohort-page {
+  grid-area: 1 / 1;
+  opacity: 0;
+  translate: 0 8px;
+  pointer-events: none;
+  /* Held on its own layer, so its text never hops as the rise lands */
+  will-change: transform, opacity;
+  transition: opacity 0.22s ease, translate 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.op-cohort .op-cohort-page[data-on] {
+  opacity: 1;
+  translate: 0 0;
+  pointer-events: auto;
+  transition-delay: 0.08s;
+}
+
+.op-cohort .op-cohort-intro {
+  color: var(--ss-text);
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+/* Students */
+.op-cohort .op-cohort-search {
+  display: flex;
+  gap: 8px;
+}
+
+.op-cohort .op-cohort-field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--op-cohort-card);
+  color: var(--ss-text-faint);
+  font-size: 12.5px;
+}
+
+.op-cohort .op-cohort-field svg {
+  flex: none;
+}
+
+.op-cohort .op-cohort-search .op-cohort-pill {
+  height: 36px;
+}
+
+.op-cohort .op-cohort-pill--raised {
+  padding: 0 16px;
+  box-shadow: none;
+  background: var(--op-cohort-raised);
+  color: var(--ss-text-strong);
+  font-weight: 500;
+}
+
+.op-cohort .op-cohort-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.op-cohort .op-cohort-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--ss-line);
+  color: var(--ss-text);
+  font-size: 12.5px;
+  white-space: nowrap;
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.op-cohort .op-cohort-chip[data-on] {
+  box-shadow: none;
+  background: var(--ss-text-strong);
+  color: #0b0d0c;
+  font-weight: 500;
+}
+
+.op-cohort .op-cohort-chip__n {
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.op-cohort .op-cohort-table {
+  gap: 0;
+  padding: 4px 18px 0;
+}
+
+.op-cohort .op-cohort-tr {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 56px 92px 40px 50px 120px;
+  align-items: center;
+  gap: 12px;
+  height: 46px;
+  border-bottom: 1px solid var(--ss-line);
+  color: var(--ss-text-strong);
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.op-cohort .op-cohort-tr--head {
+  height: 42px;
+  color: var(--ss-text-faint);
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.op-cohort .op-cohort-tr--head > :nth-child(5),
+.op-cohort .op-cohort-tr--head > :nth-child(6),
+.op-cohort .op-cohort-tr__num {
+  justify-self: end;
+}
+
+.op-cohort .op-cohort-tr__id {
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.op-cohort .op-cohort-tr__course {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.op-cohort .op-cohort-tr__muted {
+  color: var(--ss-text);
+}
+
+.op-cohort .op-cohort-tr__num {
+  color: var(--ss-text);
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.op-cohort .op-cohort-tr__num[data-up] {
+  color: var(--op-cohort-sage);
+}
+
+.op-cohort .op-cohort-tr--filler > :nth-child(5),
+.op-cohort .op-cohort-tr--filler > :nth-child(6) {
+  justify-self: end;
+}
+
+.op-cohort .op-cohort-flag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgb(143 179 161 / 0.16);
+  color: var(--op-cohort-sage);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+/* Compact: one column, the flag or score at the row's end */
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-table {
+  padding: 0 16px;
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-tr {
+  grid-template-columns: minmax(0, 1fr) auto;
+  height: 58px;
+}
+
+.op-cohort .op-cohort-tr__who {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.op-cohort .ss-stage[data-layout='compact'] .op-cohort-tr__course {
+  color: var(--ss-text-faint);
+  font-size: 12px;
+}
+
+.op-cohort .op-cohort-tr__score {
+  color: var(--ss-text);
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+}
+
+/* The last block of each page runs to the window's foot, off the stage */
+.op-cohort .op-cohort-body > :last-child {
+  flex: 1;
+}

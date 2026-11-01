@@ -1,0 +1,314 @@
+/* A plain desktop mail app in Offerpath's calm greens, on a white page:
+   no plate, the window pinned a gutter from the top and right, bleeding off
+   the bottom, the careers queue straddling its left edge over the sidebar. */
+
+.op-problem .ss-stage {
+  --gutter: 24px;
+  --op-problem-ink: #000;
+  --op-problem-body: #35423d;
+  --op-problem-muted: #45524d;
+  --op-problem-subtle: #5c6b66;
+  --op-problem-line: #eef2ef;
+  --op-problem-edge: #dce3de;
+  --op-problem-mist: #e6ede8;
+  --op-problem-mint: #dce6df;
+  --op-problem-brand: #36604e;
+  --ss-canvas: #f2f4f1;
+  --ss-chrome: #f2f4f1;
+  --ss-surface: #ffffff;
+  --ss-line: #e3e9e5;
+  --ss-text: var(--op-problem-muted);
+  --ss-text-strong: var(--op-problem-ink);
+  --ss-icon: #6b7a75;
+  --ss-icon-faint: #b3beb9;
+  --ss-bar: #d9e0dc;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.op-problem .op-problem-icon {
+  flex: none;
+  color: var(--ss-icon);
+}
+
+/* ---- Window ---- */
+
+.op-problem .op-problem-window {
+  position: absolute;
+  top: var(--gutter);
+  left: 144px;
+  width: 872px;
+  height: 500px;
+  border-radius: 14px;
+  box-shadow: var(--ss-shadow-hero);
+}
+
+.op-problem .op-problem-window .ss-window__bar {
+  background: var(--ss-surface);
+}
+
+.op-problem .op-problem-window .ss-window__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--op-problem-ink);
+}
+
+.op-problem .op-problem-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 28px;
+  padding: 0 14px 0 10px;
+  border-radius: 999px;
+  background: #f2f4f1;
+}
+
+/* ---- Sidebar ---- */
+
+.op-problem .op-problem-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px 0;
+}
+
+.op-problem .op-problem-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+}
+
+.op-problem .op-problem-nav[data-active] {
+  background: var(--op-problem-mint);
+}
+
+.op-problem .op-problem-nav[data-active] .op-problem-icon {
+  color: var(--op-problem-brand);
+}
+
+.op-problem .op-problem-nav__label {
+  font-size: 13px;
+  color: var(--op-problem-body);
+}
+
+.op-problem .op-problem-nav[data-active] .op-problem-nav__label {
+  font-weight: 600;
+  color: #264a3b;
+}
+
+.op-problem .op-problem-section {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  margin-top: 8px;
+  padding: 0 10px;
+}
+
+/* ---- The list ---- */
+
+.op-problem .op-problem-body {
+  background: var(--ss-surface);
+}
+
+.op-problem .op-problem-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 4px 4px 0;
+}
+
+.op-problem .op-problem-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+  min-width: 0;
+  padding: 12px 12px 13px;
+  will-change: transform;
+  border-radius: 12px;
+  background: rgba(230, 237, 232, 0);
+  transition: background-color 1.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.op-problem .op-problem-row::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 1px;
+  background: var(--op-problem-line);
+}
+
+.op-problem .op-problem-row[data-fresh] {
+  background: var(--op-problem-mist);
+  transition-duration: 0.3s;
+}
+
+.op-problem .op-problem-row__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.op-problem .op-problem-row__from {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--op-problem-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.op-problem .op-problem-row__line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: clip;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.op-problem .op-problem-row__role {
+  flex: none;
+  color: var(--op-problem-body);
+  font-weight: 500;
+}
+
+.op-problem .op-problem-row__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--op-problem-subtle);
+}
+
+.op-problem .op-problem-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px 0 8px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--op-problem-edge);
+  background: #fff;
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--op-problem-muted);
+}
+
+.op-problem .op-problem-chip__icon {
+  color: var(--op-problem-brand);
+}
+
+/* ---- Careers queue: the satellite over the sidebar ---- */
+
+.op-problem .op-problem-queue {
+  position: absolute;
+  left: var(--gutter);
+  top: 212px;
+  width: 240px;
+  padding: 18px 20px 16px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: var(--ss-shadow-satellite), 0 0 0 1px var(--op-problem-line);
+  color: var(--op-problem-ink);
+}
+
+.op-problem .op-problem-queue p {
+  margin: 0;
+}
+
+.op-problem .op-problem-queue__label {
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--op-problem-subtle);
+}
+
+.op-problem .op-problem-queue .op-problem-queue__title {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--op-problem-body);
+}
+
+.op-problem .op-problem-queue .op-problem-queue__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+  white-space: nowrap;
+}
+
+.op-problem .op-problem-queue__num {
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.op-problem .op-problem-queue__unit {
+  font-size: 14px;
+  color: var(--op-problem-muted);
+}
+
+.op-problem .op-problem-queue__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--op-problem-line);
+  font-size: 12px;
+  color: var(--op-problem-subtle);
+}
+
+.op-problem .op-problem-queue__when {
+  font-weight: 600;
+  color: var(--op-problem-ink);
+}
+
+/* ---- Compact: no sidebar, the list across the column ---- */
+
+.op-problem .ss-stage[data-layout='compact'] {
+  --gutter: 16px;
+}
+
+.op-problem .ss-stage[data-layout='compact'] .op-problem-window {
+  left: 16px;
+  top: 16px;
+  width: 326px;
+  height: 460px;
+}
+
+.op-problem .ss-stage[data-layout='compact'] .op-problem-row__line {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.op-problem .ss-stage[data-layout='compact'] .op-problem-row__role {
+  font-size: 13px;
+}
+
+.op-problem .ss-stage[data-layout='compact'] .op-problem-search {
+  padding: 0 8px;
+}
+
+/* Each reply's fold takes the list's width, so long lines ellipsize */
+.op-problem .op-problem-list > .ss-collapse {
+  grid-template-columns: minmax(0, 1fr);
+}

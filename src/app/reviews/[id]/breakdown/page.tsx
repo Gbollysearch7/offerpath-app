@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ResultsSidebar } from "@/components/ResultsSidebar";
 import { StudentShell, WithSidebar } from "@/components/StudentShell";
-import { Arrow, Bar, checkBadge, cx, PageTitle } from "@/components/ui";
+import { Arrow, Bar, checkBadge, cx, PageTitle, scoreColor } from "@/components/ui";
 import { loadCvReview } from "../../load";
 
 export const metadata: Metadata = { title: "Score breakdown" };
@@ -23,7 +23,7 @@ export default async function BreakdownPage({ params }: { params: Promise<{ id: 
                 </h2>
                 <p className="m-0 text-[30px] tracking-[-0.05em]">{ar.score}</p>
               </div>
-              <Bar pct={ar.score} height={6} color={ar.score >= 75 ? "#36604E" : "#8FB3A1"} />
+              <Bar pct={ar.score} height={6} color={scoreColor(ar.score)} />
               <p className="m-0 text-sm leading-normal text-muted">{ar.what}</p>
               <div className="flex flex-col">
                 {ar.checks.map((k) => (

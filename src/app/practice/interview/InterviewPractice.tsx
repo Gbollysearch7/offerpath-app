@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertDot, btn, CheckDot, cx, scoreColor } from "@/components/ui";
+import { AlertDot, btn, CheckDot, cx, scoreTextColor } from "@/components/ui";
 import { type AnswerFeedback, type InterviewQuestion, starFeedback } from "@/lib/practice";
 
 const KIND_LABEL: Record<InterviewQuestion["kind"], string> = { competency: "Competency", motivation: "Motivation", commercial: "Commercial awareness", technical: "Technical" };
@@ -60,7 +60,7 @@ export function InterviewPractice({ questions }: { questions: InterviewQuestion[
       {feedback && (
         <div role="status" className="flex flex-col gap-3 rounded-2xl bg-canvas p-5">
           <p className="m-0 text-lg">
-            <span className="font-mono" style={{ color: scoreColor(feedback.score, 10) }}>
+            <span className="font-mono" style={{ color: scoreTextColor(feedback.score, 10) }}>
               {feedback.score}/10
             </span>{" "}
             <span className="text-muted">for structure</span>

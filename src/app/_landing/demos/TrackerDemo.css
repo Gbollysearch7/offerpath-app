@@ -1,0 +1,477 @@
+/* Offerpath's look, scoped to this demo. On a white page: the stage is
+   transparent, the window and phone sit on the page itself. */
+.op-tracker {
+  & .ss-stage {
+    --ss-font:
+      var(--font-geist-sans, "Geist"), system-ui, -apple-system, sans-serif;
+    --ss-mono:
+      var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", monospace;
+    --ss-accent: #36604e;
+    --ss-accent-soft: #dce6df;
+    --ss-text-strong: #000;
+    --ss-text: #45524d;
+    --ss-text-faint: #5c6b66;
+    --ss-line: #eef2ef;
+    --ss-line-faint: #eef2ef;
+    --ss-canvas: #f2f4f1;
+    --ss-ink-1: #eef2ef;
+    --ss-ink-2: #e6ede8;
+    --ss-ink-3: #dce3de;
+    --ss-ink-4: #d3dbd6;
+    --ss-ink-5: #c9d3cd;
+    --ss-icon: #5c6b66;
+    --gutter: 32px;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--ss-font);
+    color: #000;
+  }
+
+  /* The window fades out at its foot over the list's lower cards, rather
+     than a stage edge slicing a card's button; the phone sits outside it */
+  .op-tracker-mask {
+    position: absolute;
+    inset: 0;
+    mask-image: linear-gradient(to bottom, #000 76%, transparent 99%);
+  }
+
+  /* The tracker: pinned top-left, off the bottom. Its content ends a full
+     16px before the phone; only the page's canvas runs under it. */
+  .op-tracker-win {
+    position: absolute;
+    top: var(--gutter);
+    left: var(--gutter);
+    width: 848px;
+    height: 620px;
+    box-shadow: var(--ss-shadow-hero);
+  }
+
+  .op-tracker-body {
+    height: 100%;
+    padding: 20px 22px;
+    background: #f2f4f1;
+  }
+
+  .op-tracker-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 648px;
+    padding: 2px 4px 0 18px;
+  }
+
+  .op-tracker-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .op-tracker-title {
+    font-size: 30px;
+    line-height: 1.1;
+    font-weight: 400;
+    letter-spacing: -0.045em;
+  }
+
+  .op-tracker-tabs {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 999px;
+    background: #fff;
+  }
+
+  .op-tracker-tab {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: #45524d;
+    font-size: 12.5px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .op-tracker-tab[data-on] {
+    background: #000;
+    color: #fff;
+  }
+
+  .op-tracker-tab {
+    gap: 0.3em;
+  }
+
+  .op-tracker-cols {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    width: 648px;
+    margin-top: 18px;
+  }
+
+  /* Filters: the white aside card */
+  .op-tracker-filters {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 16px;
+    width: 218px;
+    padding: 18px;
+    border-radius: 20px;
+    background: #fff;
+  }
+
+  .op-tracker-micro {
+    margin-bottom: 9px;
+    color: #5c6b66;
+    font-family: var(--ss-mono);
+    font-size: 10px;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+  }
+
+  .op-tracker-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .op-tracker-pillrow {
+    display: flex;
+    gap: 6px;
+  }
+
+  .op-tracker-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid #dce3de;
+    border-radius: 999px;
+    background: #fff;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .op-tracker-pill[data-on] {
+    border-color: #000;
+    background: #000;
+    color: #fff;
+  }
+
+  .op-tracker-switchrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .op-tracker-switchrow:not([data-first]):nth-child(2) {
+    padding-top: 14px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .op-tracker-switchtext {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .op-tracker-switchlabel {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .op-tracker-switchhint {
+    color: #5c6b66;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  /* The product's own switch (Switch in src/components/client.tsx), at 0.8 */
+  .op-tracker-switch {
+    position: relative;
+    flex: none;
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: #dce3de;
+    transition: background-color 0.2s ease;
+  }
+
+  .op-tracker-switch[data-on] {
+    background: #36604e;
+  }
+
+  .op-tracker-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    transition: transform 0.24s cubic-bezier(0.3, 0.75, 0.1, 1);
+  }
+
+  .op-tracker-switch[data-on] .op-tracker-knob {
+    transform: translateX(18px);
+  }
+
+  .op-tracker-fine {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  /* Results */
+  .op-tracker-results {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .op-tracker-countword {
+    margin-left: 8px;
+  }
+
+  .op-tracker-count {
+    display: flex;
+    margin: 0 4px 10px;
+    color: #45524d;
+    font-size: 12.5px;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .op-tracker-card {
+    margin-bottom: 10px;
+    will-change: transform;
+  }
+
+  .op-tracker-card {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 46px 82px;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 14px 14px 14px;
+    border-radius: 18px;
+    background: #fff;
+  }
+
+  .op-tracker-tile {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #f2f4f1;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .op-tracker-main {
+    min-width: 0;
+  }
+
+  .op-tracker-role {
+    font-size: 15px;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+
+  .op-tracker-org {
+    margin-top: 2px;
+    color: #45524d;
+    font-size: 12px;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .op-tracker-chips {
+    display: flex;
+    gap: 4px;
+    margin-top: 7px;
+  }
+
+  .op-tracker-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 19px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #f2f4f1;
+    color: #45524d;
+    font-family: var(--ss-mono);
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+
+  .op-tracker-chip[data-visa] {
+    background: #dce6df;
+    color: #36604e;
+  }
+
+  .op-tracker-closes {
+    text-align: right;
+  }
+
+  .op-tracker-closeslabel {
+    color: #5c6b66;
+    font-size: 10.5px;
+    line-height: 1.3;
+  }
+
+  .op-tracker-date {
+    margin-top: 2px;
+    color: #45524d;
+    font-size: 13.5px;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .op-tracker-date[data-soon] {
+    color: #000;
+  }
+
+  /* Track: black pill; Tracking: brand outline on mint (the product's own states) */
+  .op-tracker-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    border: 1px solid #000;
+    border-radius: 999px;
+    background: #000;
+    color: #fff;
+    font-size: 12.5px;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .op-tracker-btn[data-hover] {
+    background: #1f2622;
+  }
+
+  .op-tracker-btn[data-on] {
+    border-color: #36604e;
+    background: #e6ede8;
+    color: #36604e;
+  }
+
+  .op-tracker-btn .ss-text {
+    color: inherit;
+  }
+
+  /* The phone straddles the window's right edge over its canvas margin */
+  .op-tracker-phone {
+    position: absolute;
+    top: 96px;
+    right: var(--gutter);
+    box-shadow:
+      var(--ss-shadow-satellite),
+      0 30px 50px -20px rgba(38, 74, 59, 0.35);
+  }
+
+  .op-tracker-mail {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .op-tracker-subject {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The email drops in under the clock by margin, so its text lands without a hop */
+  .op-tracker-note {
+    opacity: 0;
+    margin-block: -14px 14px;
+    transition:
+      opacity 0.35s ease,
+      margin 0.45s ease;
+  }
+
+  .op-tracker-note[data-show] {
+    opacity: 1;
+    margin-block: 0;
+    transition:
+      opacity 0.45s ease-out,
+      margin 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  /* Compact: the phone column. The filter card holds just the switch; the
+     cards drop the date column; the phone stands a gutter in from the right,
+     below the first two cards. */
+  & .ss-stage[data-layout="compact"] {
+    --gutter: 16px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-win {
+    width: 420px;
+    height: 338px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-mask {
+    mask-image: linear-gradient(to bottom, #000 262px, transparent 354px);
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-body {
+    padding: 16px 16px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-head,
+  & .ss-stage[data-layout="compact"] .op-tracker-cols {
+    width: 310px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-title {
+    font-size: 24px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-cols {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-filters {
+    width: auto;
+    padding: 14px 16px;
+    border-radius: 18px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-card {
+    grid-template-columns: 36px minmax(0, 1fr) 80px;
+    padding: 12px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-tile {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+  }
+
+  & .ss-stage[data-layout="compact"] .op-tracker-phone {
+    top: 314px;
+  }
+}
+
+.op-tracker .ss-stage[data-layout="compact"] .op-tracker-head {
+  padding-left: 16px;
+}
+
+/* Mail's lock screen banner: sender, subject, one line of preview */
+.op-tracker .op-tracker-note .ss-notification__body {
+  -webkit-line-clamp: 2;
+}

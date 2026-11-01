@@ -1,0 +1,533 @@
+/* Offerpath's tailor screen. Every rule is scoped under the demo's root. */
+.op-tailor {
+  & .ss-stage {
+    /* Offerpath tokens mapped onto the kit's */
+    --ss-font: var(--font-geist-sans, 'Geist'), system-ui, -apple-system, sans-serif;
+    --ss-mono: var(--font-geist-mono, 'Geist Mono'), 'SF Mono', Menlo, ui-monospace, monospace;
+    --ss-canvas: #f2f4f1;
+    --ss-well: #f2f4f1;
+    --ss-surface: #fff;
+    --ss-text-strong: #000;
+    --ss-text: #45524d;
+    --ss-text-faint: #5c6b66;
+    --ss-line: #eef2ef;
+    --ss-accent: #36604e;
+    --op-body: #35423d;
+    --op-edge: #dce3de;
+    --op-mint: #dce6df;
+    --op-sage: #8fb3a1;
+    --op-brand: #36604e;
+    --op-okbg: #edf4ef;
+    --op-ease: cubic-bezier(0.45, 0, 0.1, 1);
+    --op-arrive: cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+    border-radius: 28px;
+    background: var(--ss-canvas);
+    font-family: var(--ss-font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Pinned top and sides, off the bottom */
+  .op-tailor-card {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    width: 472px;
+    height: 380px;
+    overflow: hidden;
+    border-radius: 24px;
+    background: var(--ss-surface);
+    box-shadow: var(--ss-shadow-ground);
+  }
+
+  .op-tailor-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 18px;
+    background: var(--ss-surface);
+    color: #000;
+  }
+
+  /* Header: who and what on the left, the match ring on the right */
+  .op-tailor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .op-tailor-who {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .op-tailor-eyebrow {
+    font-family: var(--ss-mono);
+    font-size: 10px;
+    line-height: 13px;
+    letter-spacing: 0.04em;
+    color: var(--op-brand);
+  }
+
+  .op-tailor-title {
+    margin-top: 5px;
+    font-size: 20px;
+    line-height: 24px;
+    letter-spacing: -0.04em;
+    color: #000;
+  }
+
+  .op-tailor-sub {
+    margin-top: 3px;
+    font-size: 11.5px;
+    line-height: 15px;
+    color: var(--ss-text);
+  }
+
+  .op-tailor-match {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+  }
+
+  .op-tailor-match-label {
+    font-family: var(--ss-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--ss-text-faint);
+  }
+
+  .op-tailor-ring {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    flex: none;
+
+    & svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+  }
+
+  .op-tailor-ring-track {
+    fill: none;
+    stroke: var(--ss-line);
+    stroke-width: 6;
+  }
+
+  .op-tailor-ring-arc {
+    fill: none;
+    stroke: var(--op-sage);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 100 100;
+    opacity: 0;
+    transition: stroke-dashoffset 0.9s var(--op-ease), stroke 0.3s ease, opacity 0.2s ease 0.7s;
+  }
+
+  .op-tailor-ring-arc[data-on] {
+    opacity: 1;
+    transition: stroke-dashoffset 0.9s var(--op-ease), stroke 0.3s ease, opacity 0.15s ease;
+  }
+
+  .op-tailor-ring[data-tailored] .op-tailor-ring-arc {
+    stroke: var(--op-brand);
+  }
+
+  .op-tailor-ring-value {
+    position: relative;
+    font-size: 17px;
+    line-height: 20px;
+    letter-spacing: -0.03em;
+    color: #000;
+  }
+
+  .op-tailor-dash {
+    color: var(--ss-text-faint);
+  }
+
+  /* The view tabs and the action, one line */
+  .op-tailor-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .op-tailor-tabs {
+    --ss-row: 26px;
+    margin-left: -3px;
+    width: 196px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--ss-canvas);
+
+    & .ss-seg__thumb {
+      top: 3px;
+      bottom: 3px;
+      left: 3px;
+      width: calc((100% - 6px) / var(--n));
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 0 0 1px rgb(0 0 0 / 0.04), 0 1px 2px rgb(0 0 0 / 0.06);
+    }
+
+    & .ss-seg__option {
+      padding: 0 8px;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--ss-text);
+    }
+
+    & .ss-seg__option[data-on] {
+      color: #000;
+    }
+  }
+
+  .op-tailor-btn {
+    display: grid;
+    place-items: center;
+    flex: none;
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: #000;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    will-change: transform;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+  }
+
+  .op-tailor-btn[data-hover] {
+    background: #1f2a27;
+  }
+
+  .op-tailor-btn[data-pressed] {
+    transform: scale(0.97);
+  }
+
+  /* An even box, so the spinner sits on whole pixels */
+  .op-tailor-btn-busy {
+    display: inline-flex;
+    align-items: center;
+    width: 76px;
+    gap: 6px;
+
+    & .ss-spinner {
+      color: #fff;
+    }
+  }
+
+  /* The pane: two views in one cell, crossfading with a small rise */
+  .op-tailor-pane {
+    display: grid;
+    grid-template-areas: 'v';
+    height: 86px;
+    margin-top: 12px;
+  }
+
+  .op-tailor-view {
+    grid-area: v;
+    min-width: 0;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    will-change: transform;
+    transition: opacity 0.22s ease, transform 0.3s var(--op-ease);
+  }
+
+  .op-tailor-view[data-on] {
+    opacity: 1;
+    transform: none;
+    transition-delay: 0.06s;
+  }
+
+  .op-tailor-field {
+    position: relative;
+    height: 100%;
+    padding: 11px 13px;
+    border-radius: 14px;
+    border: 1px solid var(--op-edge);
+    background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .op-tailor-field[data-focused] {
+    border-color: var(--op-brand);
+    box-shadow: 0 0 0 3px rgb(54 96 78 / 0.12);
+  }
+
+  .op-tailor-placeholder,
+  .op-tailor-ad {
+    position: absolute;
+    inset: 11px 13px;
+    font-size: 12px;
+    line-height: 18px;
+    transition: opacity 0.15s ease;
+  }
+
+  /* The placeholder leaves on the paste, at once, as a field's does */
+  .op-tailor-placeholder {
+    display: flex;
+    align-items: flex-start;
+    color: var(--ss-text-faint);
+    opacity: 0;
+    transition: none;
+  }
+
+  .op-tailor-placeholder[data-on] {
+    opacity: 1;
+    transition: opacity 0.2s ease 0.1s;
+  }
+
+  .op-tailor-caret {
+    width: 1px;
+    height: 15px;
+    margin: 2px 1px 0 0;
+    background: var(--op-brand);
+    animation: op-tailor-blink 1s steps(1) infinite;
+  }
+
+  .op-tailor-ad {
+    color: var(--op-body);
+    opacity: 0;
+    transition: none;
+  }
+
+  .op-tailor-ad[data-on] {
+    opacity: 1;
+    transition: opacity 0.12s ease;
+  }
+
+  .op-tailor-ad-text {
+    border-radius: 2px;
+    transition: background-color 0.12s ease;
+  }
+
+  .op-tailor-ad-text[data-selected] {
+    background: #cfe0d6;
+  }
+
+  /* Side by side: the line as written, the line tailored */
+  .op-tailor-sbs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    height: 100%;
+    /* The pane's own white: the two lines are cells of one layout, not cards on a tile */
+    background: var(--ss-surface);
+  }
+
+  .op-tailor-col {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .op-tailor-col-label {
+    font-family: var(--ss-mono);
+    font-size: 10px;
+    line-height: 13px;
+    letter-spacing: 0.04em;
+    color: var(--ss-text-faint);
+  }
+
+  .op-tailor-before,
+  .op-tailor-after {
+    margin: 0;
+    padding: 9px 12px;
+    border-radius: 14px;
+    font-size: 11.5px;
+    line-height: 16px;
+  }
+
+  .op-tailor-before {
+    background: var(--ss-canvas);
+    color: var(--ss-text);
+  }
+
+  .op-tailor-after {
+    border: 1px solid var(--op-mint);
+    background: var(--op-okbg);
+    color: #000;
+
+    & mark {
+      padding: 0 2px;
+      border-radius: 4px;
+      background: transparent;
+      color: inherit;
+      transition: background-color 0.4s ease;
+    }
+
+    & mark[data-on] {
+      background: var(--op-mint);
+    }
+  }
+
+  /* Keywords: a fixed lane, the hint and the chips in one cell */
+  .op-tailor-keys {
+    display: grid;
+    align-items: center;
+    min-height: 28px;
+    margin-top: 7px;
+  }
+
+  .op-tailor-hint {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--ss-text-faint);
+  }
+
+  .op-tailor-chips {
+    display: grid;
+    gap: 6px;
+  }
+
+  .op-tailor-chip-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .op-tailor-keys-label {
+    margin-top: 14px;
+    font-family: var(--ss-mono);
+    font-size: 10px;
+    line-height: 13px;
+    letter-spacing: 0.04em;
+    color: var(--ss-text-faint);
+  }
+
+  .op-tailor-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--op-edge);
+    background: #fff;
+    color: #000;
+    font-size: 12px;
+    opacity: 0;
+    transform: translateY(-4px);
+    will-change: transform;
+    transition:
+      opacity 0.35s var(--op-arrive) var(--d, 0ms),
+      transform 0.45s var(--op-arrive) var(--d, 0ms),
+      background-color 0.35s ease,
+      border-color 0.35s ease;
+  }
+
+  .op-tailor-chip[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .op-tailor-chip[data-found] {
+    border-color: var(--op-mint);
+    background: var(--op-mint);
+    color: #264a3b;
+  }
+
+  /* The tick opens its own room, so a chip turning found grows from its word */
+  .op-tailor-chip-tick {
+    display: inline-flex;
+    width: 0;
+    margin-right: 0;
+    overflow: hidden;
+    color: var(--op-brand);
+    opacity: 0;
+    /* Closing: the tick fades before its room closes */
+    transition: width 0.35s var(--op-ease) 0.12s, margin-right 0.35s var(--op-ease) 0.12s, opacity 0.12s ease;
+  }
+
+  /* Opening: the room opens, then the tick fades in once the edge has passed */
+  .op-tailor-chip[data-found] .op-tailor-chip-tick {
+    width: 12px;
+    margin-right: 5px;
+    opacity: 1;
+    transition: width 0.35s var(--op-ease), margin-right 0.35s var(--op-ease), opacity 0.2s ease 0.3s;
+  }
+
+  /* Missing reads the way the product marks it: a black underline */
+  .op-tailor-chip-word {
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    text-decoration-color: #000;
+    transition: text-decoration-color 0.3s ease;
+  }
+
+  .op-tailor-chip[data-found] .op-tailor-chip-word {
+    text-decoration-color: transparent;
+  }
+
+  /* Compact: a column-width window, the two lines stacked */
+  & .ss-stage[data-layout='compact'] {
+    .op-tailor-card {
+      top: 12px;
+      left: 12px;
+      width: 334px;
+      height: 460px;
+    }
+
+    .op-tailor-body {
+      padding: 16px 13px;
+    }
+
+    .op-tailor-title {
+      font-size: 18px;
+      line-height: 22px;
+    }
+
+    .op-tailor-match-label {
+      display: none;
+    }
+
+    .op-tailor-ring {
+      width: 58px;
+      height: 58px;
+    }
+
+    .op-tailor-ring-value {
+      font-size: 15px;
+    }
+
+    .op-tailor-tabs {
+      width: 170px;
+    }
+
+    .op-tailor-btn {
+      padding: 0 13px;
+    }
+
+    /* The pane takes the stacked lines' height; the field fills it */
+    .op-tailor-pane {
+      height: auto;
+    }
+
+    .op-tailor-sbs {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto;
+      align-content: start;
+      gap: 10px;
+    }
+
+  }
+}
+
+@keyframes op-tailor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

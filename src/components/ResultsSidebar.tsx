@@ -38,7 +38,7 @@ function Items({ reviewId, areas, active }: { reviewId: string; areas: AreaResul
             return (
               <Link key={c.key} href={`${base}/checks/${c.key}`} aria-current={on ? "page" : undefined} className={link(on)}>
                 <span className="flex-1">{c.name}</span>
-                <span className={cx("inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-full px-1.5 font-mono text-xs", checkBadge(c.score, on))}>
+                <span className={cx("inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-full px-1.5 font-mono text-xs", checkBadge(c.score))}>
                   <span className="sr-only-abs">Score </span>
                   {c.score}
                 </span>
