@@ -49,3 +49,7 @@ next-env.d.ts
 
 # supabase CLI cache
 /supabase/.temp/
+
+# stageshow skill: its tools and the practice copies of the landing demos (the shipped demos live in src/app/_landing/demos)
+/.agents/skills/stageshow/node_modules/
+/.agents/skills/stageshow/examples/op-*/

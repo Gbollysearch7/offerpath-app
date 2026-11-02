@@ -1,0 +1,177 @@
+/* Offerpath look, scoped to this demo */
+.op-trust {
+  & .ss-stage {
+    --ss-font: var(--font-geist-sans, "Geist"), system-ui, sans-serif;
+    --ss-mono: var(--font-geist-mono, "Geist Mono"), ui-monospace, "SF Mono", Menlo, monospace;
+    --ss-accent: #36604e;
+    --ss-accent-soft: #dce6df;
+    --ss-success: #36604e;
+    --ss-text-strong: #000;
+    --ss-text: #45524d;
+    --ss-text-faint: #5c6b66;
+    --ss-line: #eef2ef;
+    --ss-ink-2: #e6ede8;
+    --ss-ink-3: #dce3de;
+    --gutter: 24px;
+    overflow: hidden;
+    border-radius: 24px;
+    background: #f2f4f1;
+    font-family: var(--ss-font);
+    color: #000;
+  }
+
+  /* The hero: the page's white section card, pinned top, off right and bottom */
+  .op-trust-card {
+    position: absolute;
+    top: var(--gutter);
+    left: 112px;
+    width: 420px;
+    height: 420px;
+    padding: 20px 22px;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(38, 74, 59, 0.06), 0 12px 32px -12px rgba(38, 74, 59, 0.18);
+  }
+  /* Narrow: the card stops above the bottom gutter, bleeding right only, and
+     the toast straddles its bottom edge over the next section's filler. */
+  & [data-layout="compact"] .op-trust-card {
+    left: var(--gutter);
+    width: 400px;
+    height: auto;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+  & [data-layout="compact"] .op-trust-stats { display: none; }
+  & [data-layout="compact"] .op-trust-next { padding-bottom: 14px; }
+  & [data-layout="compact"] .op-trust-toast { left: 46px; }
+
+  .op-trust-title {
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    color: #000;
+  }
+
+  .op-trust-facts {
+    display: flex;
+    flex-direction: column;
+    margin-top: 12px;
+  }
+
+  .op-trust-fact {
+    display: grid;
+    grid-template-columns: 92px auto;
+    justify-content: start;
+    align-items: center;
+    height: 38px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .op-trust-label {
+    font-family: var(--ss-mono);
+    font-size: 10.5px;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    color: #5c6b66;
+  }
+
+  .op-trust-value {
+    font-size: 13.5px;
+    line-height: 1.3;
+    font-weight: 500;
+    color: #000;
+  }
+
+  .op-trust-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #edf4ef;
+    color: #264a3b;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-box: trim-both cap alphabetic;
+    justify-self: start;
+  }
+
+  .op-trust-ai {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: #e6ede8;
+    color: #35423d;
+    font-family: var(--ss-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    justify-self: start;
+  }
+
+  .op-trust-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .op-trust-btn {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    height: 34px;
+    padding: 0 15px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .op-trust-btn--solid { background: #000; color: #fff; font-weight: 500; }
+  .op-trust-btn--line { border: 1px solid #000; background: #fff; color: #000; }
+
+  /* Filler: the next section, a tinted block under the toast */
+  .op-trust-next {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 20px -22px 0;
+    padding: 18px 22px;
+    background: #f7f9f6;
+    border-top: 1px solid #eef2ef;
+  }
+  .op-trust-stats { display: flex; gap: 10px; }
+  .op-trust-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: none;
+    width: 112px;
+    height: 76px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff;
+  }
+
+  /* The satellite: straddles the card's left edge, over the filler section */
+  .op-trust-toast {
+    position: absolute;
+    left: var(--gutter);
+    bottom: var(--gutter);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 176px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: var(--ss-shadow-satellite);
+  }
+  .op-trust-check { flex: none; }
+  .op-trust-check .ss-check__fill { fill: #36604e; }
+  .op-trust-toast-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .op-trust-toast-title { font-size: 13px; line-height: 1.3; font-weight: 500; color: #000; }
+  .op-trust-toast-sub { font-size: 11.5px; line-height: 1.3; color: #45524d; }
+}

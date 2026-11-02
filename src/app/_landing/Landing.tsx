@@ -1,8 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/ui";
-import { HeroPreview } from "./HeroPreview";
 import { PilotForm } from "./PilotForm";
+import { CohortDashboard } from "./demos/CohortDashboard";
+import { JourneyBento } from "./demos/JourneyBento";
+import { LineFixDemo } from "./demos/LineFixDemo";
+import { OfferpathHero } from "./demos/OfferpathHero";
+import { PrivacyCard } from "./demos/PrivacyCard";
+import { ProblemDemo } from "./demos/ProblemDemo";
+import { TailorDemo } from "./demos/TailorDemo";
+import { TrackerDemo } from "./demos/TrackerDemo";
 
 // Public marketing page (design: Landing_v2). Claims here must match what the product actually does.
 
@@ -33,18 +40,22 @@ const JOURNEY: [string, string, string, boolean][] = [
   ["05", "Offer", "Outcome tracking for students and universities.", false],
 ];
 
+// Features with their own animated demo, shown beside their copy.
+const SHOWCASE = [
+  ["Tailor to a job", "Paste a job ad to see the keywords, your match before and after, and a side-by-side tailored version."],
+  ["Opportunities tracker", "UK grad schemes, spring weeks, placements and internships, with deadlines, email reminders and a visa sponsorship filter."],
+];
+
 const BANDS = [
-  ["0–49", "Needs work", "bg-mist text-black"],
-  ["50–74", "Getting there", "bg-mint text-black"],
-  ["75–89", "Strong", "bg-sage text-black"],
+  ["0–49", "Needs work", "bg-[#FDE4E1] text-black"],
+  ["50–74", "Getting there", "bg-[#FBEFC9] text-black"],
+  ["75–89", "Strong", "bg-[#D6F0DE] text-black"],
   ["90+", "Interview-ready", "bg-brand text-white"],
 ];
 
 const FEATURES: [keyof typeof ICONS, string, string][] = [
   ["score", "CV review and Readiness Score", "A score out of 100 across impact, clarity, structure and ATS, sector relevance, spelling and grammar, and length and formatting."],
-  ["target", "Tailor to a job", "Paste a job ad to see the keywords, your match before and after, and a side-by-side tailored version."],
   ["letter", "Cover letters", "Write or review a letter from your CV and the job ad, following UK conventions."],
-  ["cal", "Opportunities tracker", "UK grad schemes, spring weeks, placements and internships, with deadlines, reminders and a visa sponsorship filter."],
   ["doc", "ATS-friendly templates", "CV layouts that screening software can read, with PDF and Word export."],
   ["trend", "Reports and history", "Every review is saved, so students can watch their score improve."],
   ["chat", "Interview practice", "Sector questions with instant feedback on structure, detail and length."],
@@ -144,7 +155,7 @@ export function Landing() {
         </section>
 
         <section aria-label="Product preview with sample data" className="op-rise op-d5 mx-auto max-w-[1240px] px-4 pt-8 sm:px-8">
-          <HeroPreview />
+          <OfferpathHero />
         </section>
 
         <div aria-label="Opportunity types covered" className="mt-14 overflow-hidden border-y border-line py-[18px]">
@@ -160,6 +171,7 @@ export function Landing() {
 
         <section aria-labelledby="prob-h" className="mx-auto flex max-w-[1240px] flex-col gap-12 px-4 pt-20 pb-16 sm:px-8 sm:pt-[120px] sm:pb-24">
           <SectionHead n="01 · THE PROBLEM" id="prob-h" title="Students apply blind. Careers teams can't reach everyone." />
+          <ProblemDemo />
           <div className="flex flex-wrap gap-5">
             {PROBLEMS.map(([big, t, d]) => (
               <div key={t} className="op-reveal op-card flex min-w-0 flex-[1_1_320px] flex-col gap-2.5 rounded-[28px] bg-canvas p-8">
@@ -189,6 +201,7 @@ export function Landing() {
                 ))}
               </ol>
             </div>
+            <JourneyBento />
           </div>
         </section>
 
@@ -210,6 +223,23 @@ export function Landing() {
               </div>
             ))}
           </div>
+          <LineFixDemo />
+          <div className="flex flex-wrap items-center gap-x-12 gap-y-6">
+            <div className="op-reveal min-w-0 flex-[1_1_300px]">
+              <h3 className="m-0 text-[28px] font-normal tracking-[-0.04em]">{SHOWCASE[0][0]}</h3>
+              <p className="mt-3 mb-0 text-[17px] leading-relaxed text-muted">{SHOWCASE[0][1]}</p>
+            </div>
+            <div className="min-w-0 flex-[1.4_1_358px]">
+              <TailorDemo />
+            </div>
+          </div>
+          <div className="flex flex-col gap-6">
+            <div className="op-reveal max-w-[640px]">
+              <h3 className="m-0 text-[28px] font-normal tracking-[-0.04em]">{SHOWCASE[1][0]}</h3>
+              <p className="mt-3 mb-0 text-[17px] leading-relaxed text-muted">{SHOWCASE[1][1]}</p>
+            </div>
+            <TrackerDemo />
+          </div>
           <div className="flex flex-wrap gap-5">
             {FEATURES.map(([icon, t, d]) => (
               <article key={t} className="op-reveal op-card flex min-w-0 flex-[1_1_340px] flex-col gap-3 rounded-[28px] bg-canvas p-[30px]">
@@ -228,6 +258,7 @@ export function Landing() {
         <section id="universities" aria-labelledby="uni-h" className="scroll-mt-4 bg-black text-white">
           <div className="mx-auto flex max-w-[1240px] flex-col gap-12 px-4 py-20 sm:px-8 sm:py-[120px]">
             <SectionHead n="04 · FOR UNIVERSITIES" id="uni-h" title="See how every cohort is getting on, and who needs a hand." dark />
+            <CohortDashboard />
             <div className="flex flex-wrap gap-px overflow-hidden rounded-[28px] bg-night-3">
               {UNI_POINTS.map(([n, t, d]) => (
                 <div key={n} className="op-reveal min-w-0 flex-[1_1_340px] bg-night p-[30px]">
@@ -243,6 +274,9 @@ export function Landing() {
         <section id="trust" aria-labelledby="trust-h" className="mx-auto flex max-w-[1240px] scroll-mt-4 flex-wrap gap-12 px-4 py-20 sm:px-8 sm:py-[120px]">
           <div className="min-w-0 flex-[1_1_360px]">
             <SectionHead n="05 · TRUST AND COMPLIANCE" id="trust-h" title="Your students' data stays yours." />
+            <div className="mt-10 max-w-[460px]">
+              <PrivacyCard />
+            </div>
           </div>
           <div className="flex min-w-0 flex-[1.4_1_520px] flex-col">
             {TRUST.map(([t, d]) => (

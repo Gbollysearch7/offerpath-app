@@ -18,6 +18,9 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Vendored: the stageshow skill and its copied kit (third-party, MIT).
+      ".agents/**",
+      "src/components/stageshow/kit/**",
     ],
   },
 ];

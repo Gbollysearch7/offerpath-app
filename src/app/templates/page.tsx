@@ -66,11 +66,17 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
         <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-5">
           {list.map((t) => (
             <article key={t.slug} className="flex min-w-0 flex-col gap-3.5 rounded-3xl bg-white p-[18px]">
-              <Link href={`/templates/${t.slug}${mine ? "?with=mine" : ""}`} aria-label={`Preview ${t.name}`} className="flex h-[300px] justify-center overflow-hidden rounded-2xl bg-canvas pt-5 no-underline">
+              {/* The thumbnail is a mouse shortcut; the name below is the accessible link (its text matches what's on screen). */}
+              <Link href={`/templates/${t.slug}${mine ? "?with=mine" : ""}`} aria-hidden="true" tabIndex={-1} className="flex h-[300px] justify-center overflow-hidden rounded-2xl bg-canvas pt-5 no-underline">
                 <CvPreview blocks={mine ?? templateBlocks(t)} theme={t} scale={0.3} label={`${t.name} template${mine ? " with your CV" : ""}`} />
               </Link>
               <div className="flex items-baseline justify-between gap-2.5">
-                <h2 className="m-0 text-xl font-normal tracking-[-0.04em]">{t.name}</h2>
+                <h2 className="m-0 text-xl font-normal tracking-[-0.04em]">
+                  <Link href={`/templates/${t.slug}${mine ? "?with=mine" : ""}`} className="text-black no-underline hover:underline">
+                    {t.name}
+                    <span className="sr-only-abs"> template preview</span>
+                  </Link>
+                </h2>
                 <span className="rounded-full bg-mint px-[9px] py-1 font-mono text-[11px] text-brand">ATS-SAFE</span>
               </div>
               <p className="m-0 text-sm leading-normal text-muted">{t.best}</p>
