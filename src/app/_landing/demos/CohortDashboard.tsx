@@ -114,6 +114,7 @@ export function CohortDashboard() {
       role="img"
       aria-label="Sample product preview: Offerpath's careers dashboard for a fictional university. Tiles show 1,240 active students, an average score of 71 (up from 57), 3,580 CVs reviewed and 2,115 applications tracked. The average score breakdown switches from faculty to course, with groups under five students hidden. The May need a hand card lists 86 students by reason, such as 22 whose score is not improving after 3 uploads. Pressing See all opens the Students list filtered to May need a hand, showing students by ID, course, year, status, score and a flag such as Not improving, No CV yet or Deadline soon. Fictional data."
     >
+    <div aria-hidden="true">
     <Stage<S>
       width={1080}
       height={620}
@@ -154,6 +155,7 @@ export function CohortDashboard() {
         )
       }}
     </Stage>
+    </div>
     </div>
   )
 }

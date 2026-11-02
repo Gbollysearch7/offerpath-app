@@ -841,3 +841,6 @@
 @keyframes op-hero-spin {
   to { transform: rotate(360deg); }
 }
+
+/* The kit's faint address text is below 4.5:1 on the light bar; use the app's subtle grey (5.3:1). */
+.op-hero .ss-window__url { color: #5c6b66; }

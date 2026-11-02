@@ -305,6 +305,7 @@ export function LineFixDemo() {
       role="img"
       aria-label="Sample product preview: a fictional student's CV in Offerpath's line by line review. The bullet “Responsible for the society's social media accounts” is flagged −5 Impact because no result is shown; the suggested rewrite has placeholders the student fills with their own figures, giving “Grew the society's Instagram by 40% in one term”, which is applied to the CV and the Impact score rises from 58 to 63. Scores are AI-assisted guidance. Fictional data."
     >
+      <div aria-hidden="true">
       <Stage<S>
         width={1040}
         height={590}
@@ -379,6 +380,7 @@ export function LineFixDemo() {
           )
         }
       </Stage>
+      </div>
     </div>
   );
 }

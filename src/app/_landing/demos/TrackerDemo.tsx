@@ -185,6 +185,7 @@ export function TrackerDemo() {
       role="img"
       aria-label="Sample product preview: the Offerpath opportunities tracker filters UK roles to those that sponsor visas, Jordan tracks the Graduate Analyst role at Northbridge Partners, and a deadline reminder email from Offerpath arrives on their phone a few days before it closes."
     >
+      <div aria-hidden="true">
       <Stage<S>
         width={1000}
         height={560}
@@ -401,6 +402,7 @@ export function TrackerDemo() {
           );
         }}
       </Stage>
+      </div>
     </div>
   );
 }

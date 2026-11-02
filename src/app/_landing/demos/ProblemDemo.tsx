@@ -161,6 +161,7 @@ function Scene({ s, layout }: { s: S; layout: Layout }) {
 export function ProblemDemo() {
   return (
     <div className="op-problem-root" role="img" aria-label="Sample illustration, not Offerpath: a student's mail folder called Applications, where reply after reply from fictional employers arrives for graduate schemes, spring weeks and placements, each sent with the same CV, Jordan_Reed_CV.pdf, and each beginning “Unfortunately” with no reason given. Beside it, a careers service card shows 312 CVs waiting for review and the next appointment in 3 weeks. Fictional data.">
+    <div aria-hidden="true">
     <Stage<S>
       width={1040}
       height={456}
@@ -173,6 +174,7 @@ export function ProblemDemo() {
     >
       {(s, _rect, layout) => <Scene s={s} layout={layout} />}
     </Stage>
+    </div>
     </div>
   )
 }

@@ -80,7 +80,10 @@ function Tile({ area, title, children, picture, tone }: { area: string; title?: 
       ) : (
         children
       )}
-      {picture}
+      {/* The picture is decoration beside the copy; screen readers get the copy only. */}
+      <div aria-hidden="true" style={{ display: 'contents' }}>
+        {picture}
+      </div>
     </section>
   )
 }
@@ -228,7 +231,10 @@ function Match() {
           <b>Tailor to a job.</b> Paste the ad and see your match.
         </span>
         <span className="op-journey-stat-number">
-          <Count value={seen || reduced ? 81 : 54} duration={1300} />
+          <span aria-hidden="true">
+            <Count value={seen || reduced ? 81 : 54} duration={1300} />
+          </span>
+          <span className="sr-only-abs">81%</span>
         </span>
         <span className="op-journey-stat-label">Job match after adding three missing keywords, up from 54.</span>
       </div>
@@ -389,7 +395,7 @@ function Practice() {
 
 export function JourneyBento() {
   return (
-    <div className="op-journey" aria-label="Sample product preview: Offerpath's Readiness Score, job tailoring, cover letters, opportunities tracker and practice tools, with fictional data">
+    <div className="op-journey">
       <div className="op-journey-grid">
         <Score />
         <Match />

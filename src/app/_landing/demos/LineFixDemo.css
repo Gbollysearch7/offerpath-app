@@ -583,3 +583,6 @@
     opacity: 0;
   }
 }
+
+/* The kit's faint address text is below 4.5:1 on the light bar; use the app's subtle grey (5.3:1). */
+.op-linefix .ss-window__url { color: #5c6b66; }

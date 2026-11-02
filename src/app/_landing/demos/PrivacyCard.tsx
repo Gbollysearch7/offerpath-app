@@ -32,6 +32,7 @@ export function PrivacyCard() {
       role="img"
       aria-label="Sample product preview: a student's Privacy and my data screen in Offerpath, showing the university as data controller, data stored in the UK or EU, scores labelled as AI-assisted guidance, buttons to download or delete their data, and an Export ready message. Fictional data."
     >
+      <div aria-hidden="true">
       <Stage
         width={460}
         height={340}
@@ -96,6 +97,7 @@ export function PrivacyCard() {
           </>
         )}
       </Stage>
+      </div>
     </div>
   );
 }

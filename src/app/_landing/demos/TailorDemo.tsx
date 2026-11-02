@@ -144,6 +144,7 @@ export function TailorDemo() {
       role="img"
       aria-label="Sample product preview: a job ad for a Graduate Data Analyst is pasted in, its keywords are marked found or missing, and the CV match rises from 54% to 81% once the tailored version is shown side by side."
     >
+      <div aria-hidden="true">
       <Stage
         width={520}
         height={340}
@@ -354,6 +355,7 @@ export function TailorDemo() {
           </div>
         )}
       </Stage>
+      </div>
     </div>
   );
 }

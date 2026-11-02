@@ -172,6 +172,7 @@ export function OfferpathHero() {
   const [ref, narrow] = useNarrow()
   return (
     <div ref={ref} className="op-hero-host" role="img" aria-label="Sample product preview with fictional data: a student's CV is uploaded, scored 68 out of 100, one weak line is rewritten with the student's own numbers, and the Readiness Score rises to 72.">
+    <div aria-hidden="true">
     <Stage<S>
       width={1080}
       height={640}
@@ -185,6 +186,7 @@ export function OfferpathHero() {
     >
       {(s, _rect, layout) => <Scene s={s} layout={layout} />}
     </Stage>
+    </div>
     </div>
   )
 }
