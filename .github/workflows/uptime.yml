@@ -1,0 +1,37 @@
+name: Uptime
+
+# Checks production every 15 minutes. A failed run emails the repository owner (GitHub's default
+# notification for failed scheduled workflows). Set the repository variable PRODUCTION_URL to change
+# the address. GitHub pauses scheduled workflows after 60 days with no commits; re-enable from the
+# Actions tab if that happens.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      URL: ${{ vars.PRODUCTION_URL || 'https://offerpath-app-lake.vercel.app' }}
+    steps:
+      - name: Health endpoint reports ok with a working database
+        run: |
+          for attempt in 1 2 3; do
+            body=$(curl -sS --max-time 20 "$URL/api/health" || true)
+            echo "attempt $attempt: $body"
+            if echo "$body" | grep -q '"status":"ok"' && echo "$body" | grep -q '"database":"ok"'; then exit 0; fi
+            sleep 20
+          done
+          echo "::error::$URL/api/health is not ok"
+          exit 1
+      - name: Landing page loads
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 "$URL/")
+          echo "HTTP $code"
+          test "$code" = "200"

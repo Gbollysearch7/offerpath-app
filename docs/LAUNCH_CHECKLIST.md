@@ -33,3 +33,19 @@ Status: `[ ]` to do · `[~]` built, waiting on something from you · `[x]` done 
 - [x] **T20-adviser** Adviser features behind a flag: view CVs of students who consent, score review notes.
 - [x] **T21-tools** Interview practice, aptitude practice, role roadmaps.
 - [x] **T22-polish** App icon, social share image, optional privacy-friendly analytics.
+
+## Before the first pilot (2026-11-02)
+Tracked as GitHub issues with the `production` label; `blocker` ones come before any real student data.
+
+- [~] **#1 CI on main** Fixed in PR #15; `main` now requires the `check` job to pass before merging.
+- [ ] **#14 Supabase Pro + backups** The database is on the Free plan (pauses when idle, no point-in-time restore).
+- [ ] **#2 Domain** Production runs on `offerpath-app-lake.vercel.app`; the demos and email default say `offerpath.app`.
+- [ ] **#3 Email from your domain** `EMAIL_FROM` is Resend's test sender, which only delivers to the account owner.
+- [ ] **#5 Production config** Deployed and healthy; the legal details below are still missing.
+- [ ] **#8 Company and ICO details** The legal pages show placeholders until the `LEGAL_*` variables are set.
+- [ ] **#9 Legal sign-off** · **#10 Adviser content review** · **#11 Scoring calibration** · **#12 First pilot university**
+- [ ] **Test sign-in off** Remove `TEST_LOGIN` from the Production environment before real students sign up.
+- [~] **#6 Staging** Preview deployments need `DEMO_MODE=true` and a `DEMO_SECRET` (Preview only) to run as a demo-data staging site.
+- [~] **#7 Monitoring** `.github/workflows/uptime.yml` checks `/api/health` every 15 minutes and emails on failure; chat alerts need `ALERT_WEBHOOK_URL`.
+- [x] **#13 Secrets** Full git history scanned (no keys or env files); GitHub secret scanning and push protection on. Public vs private is still your call.
+- [ ] **#4 Reminders** `CRON_SECRET` is set; confirm one reminder email arrives once email is on your domain.
