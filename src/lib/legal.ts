@@ -17,7 +17,7 @@ export const legal = {
 
 export const SUB_PROCESSORS = [
   { name: "Supabase", purpose: "Database, sign-in and file storage", data: "Account details, CVs, reports, applications", location: "UK or EU region (chosen when the project is created)" },
-  { name: "Anthropic (Claude)", purpose: "AI feedback: CV scoring, rewrites and cover letter drafts", data: "Text of CVs, job ads and cover letters, only when AI feedback is used", location: "United States, under a data processing agreement and UK International Data Transfer Addendum" },
+  { name: "Anthropic (Claude)", purpose: "AI feedback: CV scoring, rewrites and cover letter drafts", data: "Text of CVs, job ads and cover letters, only when AI feedback is used", location: "United States. A data processing agreement and UK transfer safeguard are required before any pilot goes live" },
   { name: "Vercel", purpose: "Hosting the app", data: "Requests passing through the app, server logs", location: "UK (London region) with global edge network" },
-  { name: "Resend", purpose: "Sending sign-in and deadline reminder emails", data: "Email address, email content", location: "United States / EU, under a data processing agreement" },
+  { name: "Resend", purpose: "Sending sign-in and deadline reminder emails", data: "Email address, email content", location: "United States / EU. A data processing agreement is required before any pilot goes live" },
 ];

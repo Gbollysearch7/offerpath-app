@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { parseCsv, rowsToObjects } from "@/lib/csv";
+import { addNoteFlow } from "@/lib/institution/flow";
 import { hit, TOO_MANY } from "@/lib/rate-limit";
 import type { ImportResult, StudentRecordInput } from "@/lib/repo/types";
 import { getRepo } from "@/lib/session";
@@ -156,15 +157,12 @@ export async function importOpportunities(csvText: string): Promise<{ saved?: nu
   }
 }
 
+// Careers admins and advisers, for students they can see. addNoteFlow checks the role; the database checks the student.
 export async function addAdviserNote(reportId: string, studentKey: string, note: string): Promise<{ error?: string }> {
-  try {
-    const repo = await adminRepo();
-    const text = note.trim();
-    if (text.length < 2 || text.length > 2000) return { error: "Write a note between 2 and 2,000 characters." };
-    await repo.adminAddNote(reportId, text);
-    revalidatePath(`/admin/students/${studentKey}`);
-    return {};
-  } catch (e) {
-    return { error: safeMessage(e, "That note didn't save. Try again.") };
-  }
+  const repo = await getRepo();
+  if (!repo) return { error: "Your session has expired. Sign in again." };
+  if (!(await hit("adviserWritePerUser", repo.userId))) return { error: TOO_MANY };
+  const r = await addNoteFlow(repo, reportId, note);
+  if (!r.error) revalidatePath(`/admin/students/${studentKey}`);
+  return { error: r.error };
 }

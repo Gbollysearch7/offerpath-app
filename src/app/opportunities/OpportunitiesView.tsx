@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { moveApplication, trackOpportunity } from "@/app/actions/tailor";
+import { announce, focusSoon, onTabListKey } from "@/components/a11y";
 import { FormError, Switch } from "@/components/client";
 import { cx, pill } from "@/components/ui";
 import { SECTORS } from "@/lib/analysis/lexicon";
@@ -21,6 +22,8 @@ export function OpportunitiesView({ opps, apps, defaultSector, defaultVisa, toda
   const [soon, setSoon] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Asks before stopping: an application can hold links to documents, and they don't come back by themselves.
+  const [stopping, setStopping] = useState<string | null>(null);
 
   const tracked = new Set(apps.map((a) => a.opportunityId));
   const list = useMemo(
@@ -32,12 +35,19 @@ export function OpportunitiesView({ opps, apps, defaultSector, defaultVisa, toda
     [opps, type, sector, visa, soon, today],
   );
 
-  const act = (fn: () => Promise<{ error?: string }>) =>
+  const act = (fn: () => Promise<{ error?: string }>, said?: string) =>
     start(async () => {
       setError(null);
       const r = await fn();
       if (r.error) setError(r.error);
+      else if (said) announce(said);
     });
+  // A moved card is redrawn in its new column, so its control is a new element. Focus follows it there.
+  const moved = useRef<string | null>(null);
+  useEffect(() => {
+    if (moved.current) document.getElementById(`move-${moved.current}`)?.focus();
+    moved.current = null;
+  }, [apps]);
 
   return (
     <main id="main" className="mx-auto flex max-w-[1440px] flex-col gap-5 px-4 pt-6 pb-14 sm:px-7">
@@ -46,9 +56,9 @@ export function OpportunitiesView({ opps, apps, defaultSector, defaultVisa, toda
           <h1 className="m-0 text-[34px] font-normal leading-[1.1] tracking-[-1.5px] sm:text-[44px] sm:tracking-[-1.98px]">Opportunities</h1>
           <p className="mt-2 mb-0 text-[15px] text-muted">UK graduate schemes, spring weeks, placements and internships, with deadlines and reminders.</p>
         </div>
-        <div role="tablist" aria-label="View" className="flex gap-1 rounded-full bg-white p-1">
+        <div role="tablist" aria-label="View" onKeyDown={onTabListKey} className="flex gap-1 rounded-full bg-white p-1">
           {["Browse", `My applications · ${apps.length}`].map((label, i) => (
-            <button key={label} role="tab" aria-selected={tab === i} onClick={() => setTab(i)} className={cx("min-h-10 rounded-full border-0 px-[18px] text-sm", tab === i ? "bg-black text-white" : "bg-transparent text-muted")}>
+            <button key={label} type="button" role="tab" id={`opp-tab-${i}`} aria-selected={tab === i} tabIndex={tab === i ? 0 : -1} aria-controls="opp-panel" onClick={() => setTab(i)} className={cx("min-h-10 rounded-full border-0 px-[18px] text-sm", tab === i ? "bg-black text-white" : "bg-transparent text-muted")}>
               {label}
             </button>
           ))}
@@ -57,7 +67,7 @@ export function OpportunitiesView({ opps, apps, defaultSector, defaultVisa, toda
       <FormError message={error} />
 
       {tab === 0 ? (
-        <div className="flex flex-wrap items-start gap-5">
+        <div id="opp-panel" role="tabpanel" aria-labelledby="opp-tab-0" className="flex flex-wrap items-start gap-5">
           <aside aria-label="Filters" className="flex w-full flex-col gap-[18px] rounded-3xl bg-white p-[22px] lg:max-w-[280px] lg:flex-[1_1_260px]">
             <div>
               <p className="mt-0 mb-2.5 font-mono text-[11px] text-subtle">TYPE</p>
@@ -133,17 +143,36 @@ export function OpportunitiesView({ opps, apps, defaultSector, defaultVisa, toda
                         Tailor CV
                       </Link>
                     )}
-                    <button type="button" disabled={pending} aria-pressed={tr} onClick={() => act(() => trackOpportunity(o.id, !tr))} className={cx("min-h-[42px] rounded-full px-[18px] text-sm", tr ? "border border-brand bg-okbg text-brand" : "border-0 bg-black text-white hover:bg-ink-2")}>
+                    <button
+                      id={`track-${o.id}`}
+                      type="button"
+                      disabled={pending}
+                      aria-pressed={tr}
+                      aria-expanded={tr ? stopping === o.id : undefined}
+                      onClick={() => (tr ? setStopping(stopping === o.id ? null : o.id) : act(() => trackOpportunity(o.id, true), `Tracking ${o.role} at ${o.org}.`))}
+                      className={cx("min-h-[42px] rounded-full px-[18px] text-sm", tr ? "border border-brand bg-okbg text-brand" : "border-0 bg-black text-white hover:bg-ink-2")}>
                       {tr ? "Tracking" : "Track"}
+                      <span className="sr-only-abs"> {o.role} at {o.org}</span>
                     </button>
                   </div>
+                  {tr && stopping === o.id && (
+                    <div className="flex w-full flex-wrap items-center gap-2 text-[13px] text-muted">
+                      <span id={`stop-q-${o.id}`} className="min-w-0 flex-[1_1_240px]">Stop tracking this role? Your documents stay in My reports, but this application&apos;s status and its links to them go.</span>
+                      <button type="button" disabled={pending} onClick={() => { setStopping(null); act(() => trackOpportunity(o.id, false), `Stopped tracking ${o.role} at ${o.org}.`); focusSoon(`track-${o.id}`); }} className="min-h-[38px] rounded-full border border-edge bg-white px-3.5 text-[13px] text-black">
+                        Stop tracking
+                      </button>
+                      <button type="button" autoFocus aria-describedby={`stop-q-${o.id}`} onClick={() => { setStopping(null); focusSoon(`track-${o.id}`); }} className="min-h-[38px] rounded-full border border-edge bg-white px-3.5 text-[13px] text-black">
+                        Keep it
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })}
           </section>
         </div>
       ) : (
-        <div className="flex gap-3.5 overflow-x-auto pb-2">
+        <div id="opp-panel" role="tabpanel" aria-labelledby="opp-tab-1" className="flex gap-3.5 overflow-x-auto pb-2">
           {COLS.map((col) => {
             const cards = apps.filter((a) => a.status === col);
             return (
@@ -164,8 +193,8 @@ export function OpportunitiesView({ opps, apps, defaultSector, defaultVisa, toda
                       <p className="mt-[3px] mb-0 text-[13px] text-muted">{k.org}</p>
                       <p className={cx("mt-2.5 mb-2 font-mono text-[11px]", col === "saved" && d !== null && d <= 7 ? "text-black" : col === "interview" ? "text-brand" : "text-muted")}>{note}</p>
                       <label className="flex items-center gap-2 text-xs text-muted">
-                        Move to
-                        <select value={k.status} disabled={pending} onChange={(e) => act(() => moveApplication(k.id, e.target.value))} className="min-h-8 flex-1 rounded-lg border border-edge bg-white px-2 text-xs text-black">
+                        Move <span className="sr-only-abs">{k.role} at {k.org} </span>to
+                        <select id={`move-${k.id}`} value={k.status} disabled={pending} onChange={(e) => { const to = e.target.value as (typeof COLS)[number]; moved.current = k.id; act(() => moveApplication(k.id, to), `${k.role} moved to ${APP_STATUS_LABEL[to]}.`); }} className="min-h-8 flex-1 rounded-lg border border-edge bg-white px-2 text-xs text-black">
                           {COLS.map((c) => (
                             <option key={c} value={c}>
                               {APP_STATUS_LABEL[c]}

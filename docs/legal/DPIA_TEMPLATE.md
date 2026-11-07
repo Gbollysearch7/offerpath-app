@@ -3,6 +3,8 @@
 Prepared by the operator for each partner university's data protection officer to review and adopt.
 Not legal advice. Fill in the bracketed items and have it reviewed before launch.
 
+**DRAFT FOR LEGAL REVIEW. No lawyer or DPO has approved this document.** Wording changed on 7 November 2026 so that it says only what is true today. `[NOT IN PLACE]` marks a mitigation that doesn't exist yet: it is a plan, not a fact, and must not be relied on until the linked decision in `docs/FOUNDER_DECISIONS.md` is closed.
+
 ## 1. The processing
 - **Purpose:** feedback on students' CVs and cover letters, job-ad tailoring, application tracking, and aggregate careers-service reporting.
 - **Controller:** [University]. **Processor:** [Operator]. **Sub-processors:** see `/legal/sub-processors`.
@@ -13,7 +15,7 @@ Not legal advice. Fill in the bracketed items and have it reviewed before launch
 
 ## 2. Necessity and proportionality
 - **Lawful basis:** public task (education and employability support) or legitimate interests: [University to confirm].
-- **Minimisation:** no date of birth, address or photo requested. The careers service sees scores and activity (not CVs) only for students who opt in, and exports hide groups under five.
+- **Minimisation:** no date of birth, address or photo requested. The careers service sees scores and activity (not CVs) only for students who opt in, and summary exports hide groups under five. Careers teams can also export a named list of sharing students, when five or more share, and a log of staff access naming students.
 - **Transparency:** in-app privacy notice, explicit opt-in for sharing, "How your score is calculated" page.
 - **Rights:** self-service export (ZIP) and deletion; other rights via the university DPO.
 
@@ -24,12 +26,12 @@ Not legal advice. Fill in the bracketed items and have it reviewed before launch
 | Risk | Likelihood / impact | Mitigation |
 |---|---|---|
 | Unauthorised access to CVs | Low / High | Row-level security, server-only writes, private storage, admins can't open CVs (unless adviser access is enabled with consent) |
-| International transfer to AI provider | Medium / Medium | DPA + UK IDTA with Anthropic; no training on data; text sent only when AI feature used |
-| Inaccurate or unfair scores | Medium / Medium | Fixed rubric, deterministic guardrails, same CV always same score, calibration with advisers, scores framed as guidance |
-| Re-identification in reports | Low / Medium | Group-of-five threshold on exports, opt-in sharing |
+| International transfer to AI provider | Medium / Medium | Text sent only when AI feature used. `[NOT IN PLACE: DPA and UK transfer safeguard on file with Anthropic, required before any pilot goes live; which safeguard is open, FD-80.]` Anthropic's published commercial terms say it may not train models on customer content. `[NOT CONFIRMED for this account, FD-81.]` |
+| Inaccurate or unfair scores | Medium / Medium | Fixed rubric, deterministic guardrails, same CV always same score, scores framed as guidance. `[NOT IN PLACE: calibration with advisers. Tooling exists and has only been tested on synthetic data; no adviser has marked anything, FD-36, FD-37.]` |
+| Re-identification in reports | Low / Medium | Group-of-five threshold on summary exports and on the named list as a whole, opt-in sharing. Named exports exist for careers teams, see section 2. |
 | Prompt injection / manipulation | Low / Low | Untrusted-text handling, per-student caches, rule guardrails |
-| Data kept too long | Medium / Low | Self-service deletion, inactivity purge, backup expiry |
-| Breach at a sub-processor | Low / High | DPAs, breach notification terms, encryption in transit and at rest |
+| Data kept too long | Medium / Low | Self-service deletion. Inactivity deletion is built for student accounts, needs working email for its warning, and hasn't been run on production. `[NOT IN PLACE: backup expiry. No backups run; period undecided, FD-03, FD-04, FD-84.]` |
+| Breach at a sub-processor | Low / High | Encryption in transit. `[NOT IN PLACE: DPAs and breach notification terms on file, FD-80. Evidence of encryption at rest from providers, P-08 in docs/procurement/09_OPEN_ITEMS.md.]` |
 
 ## 5. Sign-off
 - DPO advice: [ ]   Residual risk accepted by: [ ]   Date: [ ]   Review date: [ ]

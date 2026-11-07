@@ -60,7 +60,8 @@ export function reviewLetter(letter: string, jobText: string, employer: string, 
 
   const fails = checks.filter((c) => !c.ok);
   const fixes = fails.slice(0, 2).map((f) => fixPhrase(f, missing.length)).join(" and ");
-  const summary = fails.length === 0 ? "Ready to send. Read it aloud once more before you do." : `${paras >= 3 ? "Good structure. " : "Add more structure. "}${cap(fixes)}.`;
+  // Passing every check here says the letter's structure and conventions are in order, not that its content is right.
+  const summary = fails.length === 0 ? `All ${checks.length} checks pass. Read it aloud once more and check every fact before you send it.` : `${paras >= 3 ? "Good structure. " : "Add more structure. "}${cap(fixes)}.`;
   return { checks, score, keywordsUsed: used, keywordsMissing: missing, words, paras, summary: cap(summary.trim()), signoffMismatch: !signoffOk && !!signoff };
 }
 

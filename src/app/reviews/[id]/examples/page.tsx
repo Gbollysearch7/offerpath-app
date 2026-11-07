@@ -14,7 +14,7 @@ export default async function ExamplesPage({ params }: { params: Promise<{ id: s
   return (
     <StudentShell profile={profile} active="review">
       <WithSidebar sidebar={<ResultsSidebar reviewId={id} areas={a.areas} active="samples" />}>
-        <PageTitle title="Example CV lines" sub="Strong bullet points from typical student experiences. Use them for ideas, then write your own with your real numbers." />
+        <PageTitle title="Example CV lines" sub="Strong bullet points from typical student experiences, with made-up figures to show the pattern. Use them for ideas, then write your own with your real numbers and the level of responsibility you actually had." />
         <ExampleTabs data={EXAMPLE_LINES} />
       </WithSidebar>
     </StudentShell>

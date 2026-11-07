@@ -3,19 +3,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
 import { Bar, Eyebrow, fmtDate } from "@/components/ui";
-import { band } from "@/lib/analysis/cv";
+import { AREA_LABELS, bandLabel } from "@/lib/analysis/labels";
 import { featureFlags } from "@/lib/env";
-import { requireAdmin } from "@/lib/session";
+import { requireStaff } from "@/lib/session";
+import { DisagreementPanel, ReferralPanel } from "./CaseworkPanels";
 import { NoteForm } from "./NoteForm";
 
 export const metadata: Metadata = { title: "Student" };
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
-  const { repo, profile } = await requireAdmin();
+  const { repo, profile } = await requireStaff();
   const [uni, s] = await Promise.all([repo.adminUniversity(), repo.adminStudentDetail(key)]);
+  // The same answer for "doesn't exist", "another university", "stopped sharing" and "outside your groups".
   if (!s) notFound();
   const latest = s.reports[0];
+  // Staff can choose a service contact as a referral's target. Contacts are also shown to students, so nothing here is private.
+  const contacts = (await repo.myInstitution())?.contacts ?? [];
   const cvFeature = featureFlags.adviserCvAccess();
   return (
     <AdminShell profile={profile} university={uni.name} active="students" title={`Student ${s.studentNumber}`} intro={[s.course, s.year, s.faculty, s.feeStatus].filter(Boolean).join(" · ") || "No course details yet"}>
@@ -28,14 +32,15 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           {latest ? (
             <>
               <p className="m-0 text-[44px] leading-none tracking-[-0.05em]">
-                {latest.score ?? "–"} <span className="text-base tracking-normal text-brand">{latest.score != null && band(latest.score)}</span>
+                {latest.score ?? "–"} <span className="text-base tracking-normal text-brand">{latest.score != null && bandLabel(latest.score)}</span>
               </p>
               <p className="m-0 text-sm text-muted">
                 {latest.title} · {fmtDate(latest.createdAt)}
               </p>
               {latest.areas?.map((a) => (
                 <div key={a.key} className="grid grid-cols-[minmax(0,1fr)_120px_30px] items-center gap-3 text-sm">
-                  <span>{a.name}</span>
+                  {/* Current area name by key; the saved name is the fallback for a key this build doesn't know. */}
+                  <span>{a.key in AREA_LABELS ? AREA_LABELS[a.key as keyof typeof AREA_LABELS] : a.name}</span>
                   <Bar pct={a.score} color={a.score >= 75 ? "#36604E" : "#8FB3A1"} />
                   <span className="text-right font-mono">{a.score}</span>
                 </div>
@@ -62,10 +67,20 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             </div>
           ))}
           <p className="m-0 pt-2 text-[13px] text-subtle">
-            {!cvFeature ? "Opening student CVs isn't switched on for your university yet." : s.cvSharing ? "This student has chosen to let advisers open their CV. Each opening is logged." : "This student hasn't chosen to share their CV with advisers."}
+            {!cvFeature ? "Opening student CVs is off for now: it needs a legal review first." : s.cvSharing ? "This student has chosen to let advisers open their CV. Each opening is logged." : "This student hasn't chosen to share their CV with advisers."}
           </p>
         </section>
       </div>
+      <section aria-labelledby="flow-h" className="flex flex-col gap-2 rounded-3xl bg-mist px-6 py-[22px]">
+        <Eyebrow id="flow-h">HOW WORK WITH THIS STUDENT FITS TOGETHER</Eyebrow>
+        <ol className="m-0 flex list-decimal flex-col gap-1 pl-5 text-sm leading-relaxed">
+          <li><strong className="font-medium">Sharing is the student&apos;s.</strong> They chose to share their progress and can stop at any time. If they do, this page closes for you on your next visit.</li>
+          <li><strong className="font-medium">A note is yours,</strong> signed with your name, and the student sees it.</li>
+          <li><strong className="font-medium">A disagreement is yours too.</strong> The student sees it beside the automated result, which stays exactly as it was.</li>
+          <li><strong className="font-medium">A referral starts with you and waits for the student.</strong> Once they accept, its owner has the next step.</li>
+        </ol>
+        <p className="m-0 text-[13px] text-muted">Students see these on their careers service page next time they sign in. Offerpath doesn&apos;t email them about it, so tell them yourself if it matters. Opening this page is logged, and the student can see that.</p>
+      </section>
       <section aria-labelledby="notes-h" className="flex flex-col gap-3 rounded-3xl bg-white px-6 py-[22px]">
         <Eyebrow id="notes-h">ADVISER NOTES · VISIBLE TO THE STUDENT</Eyebrow>
         {latest ? <NoteForm reportId={latest.id} studentKey={s.key} /> : <p className="m-0 text-sm text-muted">Notes can be added once the student has reviewed a CV.</p>}
@@ -78,6 +93,8 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           </div>
         ))}
       </section>
+      <DisagreementPanel studentKey={s.key} reports={s.reports} disagreements={s.disagreements ?? []} viewerName={profile.fullName} viewerIsAdmin={profile.role === "admin"} />
+      <ReferralPanel studentKey={s.key} reportId={latest?.id ?? null} referrals={s.referrals ?? []} staff={s.staff ?? []} contacts={contacts} viewerId={profile.id} viewerIsAdmin={profile.role === "admin"} />
     </AdminShell>
   );
 }

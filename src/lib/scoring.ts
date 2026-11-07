@@ -1,15 +1,12 @@
 import "server-only";
 import { aiEnabled, aiJudgeBullets } from "@/lib/ai";
-import { AI_JUDGE_MODEL, isCore, isRelevance } from "@/lib/analysis/judgment";
+import { AI_JUDGE_CONFIG, AI_JUDGE_MODEL, isCore, isRelevance } from "@/lib/analysis/judgment";
 import { memoryStore, scoreCvWith, type JudgmentStore, type ScoreResult, type StoredJudgment } from "@/lib/scoring-core";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { alert } from "@/lib/log";
 import { supabaseConfigured } from "@/lib/supabase/server";
 
 export class ScoringUnavailableError extends Error {}
-
-/** How many independent Haiku judgments to take for a new bullet (majority wins). */
-const VOTES = Math.min(5, Math.max(1, Number(process.env.SCORING_VOTES ?? 3) || 3));
 
 const g = globalThis as unknown as { __offerpathJudgments?: Map<string, StoredJudgment> };
 
@@ -41,7 +38,12 @@ function store(): JudgmentStore {
   return supabaseConfigured() ? supabaseStore() : memoryStore((g.__offerpathJudgments ??= new Map()));
 }
 
-/** Scores a CV with Claude Haiku when configured, otherwise with the rule engine. */
+/**
+ * Scores a CV with Claude Haiku when configured, otherwise with the rule engine. Takes only the text and the target
+ * sector: nothing about the student or their institution can reach the score, because nothing about them comes in.
+ * The sector only reaches relevance, which carries no weight. If the judge fails there is no score at all, never a
+ * rule-based stand-in: the two methods are separate scoring series (scoring-contract.ts).
+ */
 export async function scoreCv(text: string, sector: string): Promise<ScoreResult> {
   if (!aiEnabled()) return scoreCvWith(text, sector, { method: "rules", store: memoryStore(), judgeName: "rules" });
   try {
@@ -49,8 +51,9 @@ export async function scoreCv(text: string, sector: string): Promise<ScoreResult
       method: "ai",
       store: store(),
       judgeName: AI_JUDGE_MODEL,
+      quorum: AI_JUDGE_CONFIG.quorum,
       judge: async (bullets, s) => {
-        const votes = await aiJudgeBullets(bullets, s, VOTES);
+        const votes = await aiJudgeBullets(bullets, s, AI_JUDGE_CONFIG.votes);
         return new Map([...votes].map(([id, js]) => [id, js.map(({ result, verb, kind, relevance }) => ({ result, verb, kind, relevance }))]));
       },
     });

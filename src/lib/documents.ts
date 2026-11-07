@@ -1,11 +1,12 @@
 import "server-only";
-import { AlignmentType, BorderStyle, Document, LevelFormat, Packer, Paragraph, ShadingType, TabStopType, TextRun, type IBorderOptions, type IRunOptions } from "docx";
+import { AlignmentType, BorderStyle, Document, HeadingLevel, LevelFormat, Packer, Paragraph, ShadingType, TabStopType, TextRun, type IBorderOptions, type IRunOptions } from "docx";
 import { PDFDocument, rgb, setCharacterSpacing, StandardFonts, type PDFFont, type PDFPage, type RGB } from "pdf-lib";
 import { CV_EXAMPLES } from "@/lib/cv-examples";
 import { contactLine, FONTS, LETTER_THEME, taglineColour, tint, withRoles, type CvTheme } from "@/lib/cv-themes";
 import type { DocBlock } from "@/lib/documents-types";
 
-// Builds ATS-safe Word and PDF files from blocks and a theme: one column, standard fonts, real text.
+// Builds Word and PDF files from blocks and a theme: one column, standard fonts, real text, no tables or
+// text boxes. That is the layout screening software reads most reliably, not a guarantee about any system.
 
 export type { DocBlock } from "@/lib/documents-types";
 
@@ -13,6 +14,9 @@ const A4 = { w: 11906, h: 16838 }; // twips
 const marginOf = (t: CvTheme) => Math.round(1000 * (t.space < 0.9 ? 0.8 : t.space > 1.1 ? 1.15 : 1));
 const GREY = "4A5550";
 const hex = (c: string) => c.replace("#", "").toUpperCase();
+
+/** A file's title and language are what a screen reader reads first. */
+const documentTitle = (blocks: DocBlock[], theme: CvTheme) => blocks.find((b) => b.kind === "name")?.text ?? blocks.find((b) => b.kind === "heading")?.text ?? (theme === LETTER_THEME ? "Cover letter" : "Document");
 
 export async function toDocx(blocks: DocBlock[], theme: CvTheme = LETTER_THEME): Promise<Uint8Array> {
   const font = FONTS[theme.font].word;
@@ -37,6 +41,7 @@ export async function toDocx(blocks: DocBlock[], theme: CvTheme = LETTER_THEME):
       h.style === "bar" ? { left: { style: BorderStyle.SINGLE, size: 24, space: 6, color: accent } } :
       undefined;
     return new Paragraph({
+      heading: HeadingLevel.HEADING_1,
       keepNext: true,
       spacing: { before: sp(260), after: sp(100) },
       border,
@@ -54,13 +59,14 @@ export async function toDocx(blocks: DocBlock[], theme: CvTheme = LETTER_THEME):
       theme.date === "right" ? [title, run(`\t${date}`, { color: GREY, size: sz(theme.body - 0.5) })] :
       theme.date === "inline" ? [title, run(`  ·  ${date}`, { color: GREY })] :
       [title, new TextRun({ break: 1 }), run(date, { italics: true, color: GREY, size: sz(theme.body - 0.5) })];
-    return new Paragraph({ keepNext: true, spacing: { before: sp(160), after: sp(50) }, tabStops: [{ type: TabStopType.RIGHT, position: textWidth }], children });
+    return new Paragraph({ heading: HeadingLevel.HEADING_2, keepNext: true, spacing: { before: sp(160), after: sp(50) }, tabStops: [{ type: TabStopType.RIGHT, position: textWidth }], children });
   };
 
   const children = blocks.map((b) => {
     switch (b.kind) {
       case "name":
         return new Paragraph({
+          heading: HeadingLevel.TITLE,
           alignment: align,
           spacing: { after: sp(40) },
           children: [run(theme.nameStyle.upper ? b.text.toUpperCase() : b.text, { bold: theme.nameStyle.bold, size: sz(theme.nameStyle.size), color: theme.nameStyle.accent ? accent : "111111", characterSpacing: Math.round(theme.nameStyle.tracking * 20) })],
@@ -96,6 +102,8 @@ export async function toDocx(blocks: DocBlock[], theme: CvTheme = LETTER_THEME):
 
   const doc = new Document({
     creator: "Offerpath",
+    title: documentTitle(blocks, theme),
+    styles: { default: { document: { run: { language: { value: "en-GB" } } } } },
     numbering: {
       config: [
         {
@@ -165,6 +173,8 @@ export async function toPdf(blocks: DocBlock[], theme: CvTheme = LETTER_THEME): 
 async function layoutPdf(blocks: DocBlock[], theme: CvTheme, fit: number) {
   const pdf = await PDFDocument.create();
   pdf.setCreator("Offerpath");
+  pdf.setTitle(safe(documentTitle(blocks, theme)), { showInWindowTitleBar: true });
+  pdf.setLanguage("en-GB");
   const serif = FONTS[theme.font].pdf === "serif";
   const regular = await pdf.embedFont(serif ? StandardFonts.TimesRoman : StandardFonts.Helvetica);
   const bold = await pdf.embedFont(serif ? StandardFonts.TimesRomanBold : StandardFonts.HelveticaBold);
@@ -282,11 +292,13 @@ async function layoutPdf(blocks: DocBlock[], theme: CvTheme, fit: number) {
         const dw = regular.widthOfTextAtSize(date, body - 0.5);
         const lines = wrap(b.text, bold, body, W - 2 * M - dw - 12);
         ensure(body * lh * lines.length + nextLine);
-        page.drawText(date, { x: W - M - dw, y: y - body, size: body - 0.5, font: regular, color: grey });
+        // The title first: an untagged PDF is read in the order it's drawn.
+        const dateY = y - body;
         for (const line of lines) {
           page.drawText(line, { x: M, y: y - body, size: body, font: bold, color: ink });
           y -= body * lh;
         }
+        page.drawText(date, { x: W - M - dw, y: dateY, size: body - 0.5, font: regular, color: grey });
       } else if (date && theme.date === "inline") {
         const text = `${b.text}  ·  `;
         const lines = wrap(text + date, bold, body, W - 2 * M);
@@ -305,9 +317,12 @@ async function layoutPdf(blocks: DocBlock[], theme: CvTheme, fit: number) {
       }
       y -= gap(1.5);
     } else if (b.kind === "bullet") {
-      // Draw the text first so the bullet mark lands beside its first line, whichever page that is on.
-      const first = draw(b.text, regular, body, ink, 14);
-      first.page.drawText(safe(theme.bullet), { x: M + 3, y: first.y - body, size: body, font: bold, color: accent });
+      // The mark first, as an untagged PDF is read in the order it's drawn. It takes the same page break draw() would.
+      const height = wrap(b.text, regular, body, W - 2 * M - 14).length * body * lh;
+      if (height < H - 2 * M) ensure(height);
+      ensure(body * lh);
+      page.drawText(safe(theme.bullet), { x: M + 3, y: y - body, size: body, font: bold, color: accent });
+      draw(b.text, regular, body, ink, 14);
       y -= gap(1.5);
     } else {
       draw(b.text, regular, body, ink);

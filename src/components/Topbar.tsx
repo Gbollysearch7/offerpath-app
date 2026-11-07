@@ -2,13 +2,14 @@ import Link from "next/link";
 import { signOut } from "@/app/actions/auth";
 import { cx, Logo } from "./ui";
 
-export type TopbarActive = "dashboard" | "review" | "tailor" | "letters" | "opportunities" | "templates" | "practice" | null;
+export type TopbarActive = "dashboard" | "review" | "tailor" | "letters" | "linkedin" | "opportunities" | "templates" | "practice" | null;
 
 const ITEMS: [Exclude<TopbarActive, null>, string, string][] = [
   ["dashboard", "Dashboard", "/dashboard"],
   ["review", "CV review", "/reviews/latest"],
   ["tailor", "Tailor to a job", "/tailor"],
   ["letters", "Cover letters", "/letters"],
+  ["linkedin", "LinkedIn review", "/linkedin"],
   ["opportunities", "Opportunities", "/opportunities"],
   ["templates", "Templates", "/templates"],
   ["practice", "Practice", "/practice"],
@@ -41,13 +42,16 @@ export function Topbar({ active, initials, name }: { active: TopbarActive; initi
             </svg>
             Re-score CV
           </Link>
-          <details className="relative">
+          <details data-menu className="relative">
             <summary className="flex h-[42px] w-[42px] cursor-pointer list-none items-center justify-center rounded-full bg-canvas text-sm font-medium text-brand [&::-webkit-details-marker]:hidden">
               <span aria-hidden="true">{initials}</span>
               <span className="sr-only-abs">Account menu for {name}</span>
             </summary>
             <div className="absolute right-0 z-20 mt-2 w-56 rounded-2xl border border-line bg-white p-2 shadow-lg">
               <p className="m-0 px-3 py-2 text-sm font-medium">{name}</p>
+              <Link href="/careers-service" className="block rounded-xl px-3 py-2.5 text-sm text-ink-2 no-underline hover:bg-canvas hover:text-black">
+                Your careers service
+              </Link>
               <Link href="/privacy" className="block rounded-xl px-3 py-2.5 text-sm text-ink-2 no-underline hover:bg-canvas hover:text-black">
                 Privacy and my data
               </Link>

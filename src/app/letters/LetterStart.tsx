@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { createLetterDraft, createLetterReview } from "@/app/actions/letters";
+import { useAttemptKey } from "@/app/upload/SourceEditor";
+import { announce } from "@/components/a11y";
 import { FormError } from "@/components/client";
 import { cx } from "@/components/ui";
 
@@ -21,24 +23,31 @@ export function LetterStart({ initialMode, jobs, cvs }: { initialMode: number; j
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+  const attempt = useAttemptKey();
 
   const submit = (fd: FormData) =>
     start(async () => {
       setError(null);
+      // The same request sends the same key until it lands, so a retry or a double click finds the first instead of making a second letter.
+      const file = fd.get("file");
+      const what = `letter|${mode}|${[...fd.entries()].map(([k, v]) => `${k}=${typeof v === "string" ? v : `${v.name}|${v.size}`}`).join("&")}|${file instanceof File ? file.lastModified : "-"}`;
+      fd.set("key", attempt.key(what));
+      announce(mode === 0 ? "Writing your draft." : "Checking your letter.");
       const res = mode === 0 ? await createLetterDraft(fd) : await createLetterReview(fd);
-      if (res.error || !res.id) setError(res.error ?? "Something went wrong.");
-      else router.push(`/letters/${res.id}`);
+      if (res.error || !res.id) return setError(res.error ?? "Something went wrong.");
+      attempt.done(what);
+      router.push(`/letters/${res.id}${"notice" in res && res.notice ? `?notice=${res.notice}` : ""}`);
     });
 
   return (
     <main id="main" className="mx-auto flex max-w-[960px] flex-col gap-6 px-4 pt-12 pb-16 sm:px-7">
       <div>
         <h1 className="m-0 text-[34px] font-normal leading-[1.1] tracking-[-1.5px] sm:text-[44px] sm:tracking-[-1.98px]">Cover letters</h1>
-        <p className="mt-2.5 mb-0 text-base text-muted">Built from your CV and the job ad, following UK conventions. We never add facts you didn&apos;t give us.</p>
+        <p className="mt-2.5 mb-0 text-base text-muted">Drafted using your CV and the job ad, following UK conventions. Drafts can introduce mistakes, so check every claim and replace any placeholders before you send yours.</p>
       </div>
-      <div role="radiogroup" aria-label="What do you want to do?" className="flex flex-wrap gap-4">
+      <div role="group" aria-label="What do you want to do?" className="flex flex-wrap gap-4">
         {MODES.map(([t, d], i) => (
-          <button key={t} type="button" role="radio" aria-checked={mode === i} onClick={() => setMode(i)} className={cx("flex-[1_1_300px] rounded-3xl border-2 bg-white px-[26px] py-6 text-left text-black", mode === i ? "border-black" : "border-transparent hover:border-edge")}>
+          <button key={t} type="button" aria-pressed={mode === i} onClick={() => setMode(i)} className={cx("flex-[1_1_300px] rounded-3xl border-2 bg-white px-[26px] py-6 text-left text-black", mode === i ? "border-black" : "border-transparent hover:border-edge")}>
             <span className="block text-2xl tracking-[-0.04em]">{t}</span>
             <span className="mt-1.5 block text-[15px] leading-normal text-muted">{d}</span>
           </button>
@@ -48,7 +57,7 @@ export function LetterStart({ initialMode, jobs, cvs }: { initialMode: number; j
       {cvs.length === 0 && mode === 0 ? (
         <section className="flex flex-col items-start gap-3 rounded-[28px] bg-white p-7">
           <p className="m-0 text-lg">Upload a CV first</p>
-          <p className="m-0 text-sm text-muted">We write your letter only from facts in your CV.</p>
+          <p className="m-0 text-sm text-muted">We write your letter from your CV and the job ad, so we need a CV to draw on.</p>
           <Link href="/upload" className="inline-flex min-h-11 items-center rounded-full bg-black px-[18px] text-sm font-medium text-white no-underline hover:text-white">
             Upload my CV
           </Link>
@@ -79,7 +88,7 @@ export function LetterStart({ initialMode, jobs, cvs }: { initialMode: number; j
                 </label>
               </div>
               <label className="flex flex-col gap-1.5 text-sm font-medium">
-                Job ad text <span className="font-normal text-subtle">So we can check keywords</span>
+                Job ad text <span className="font-normal text-subtle">So we can compare your letter with what it asks for</span>
                 <textarea name="jobText" rows={5} placeholder="Paste the role description and requirements." className="resize-y rounded-[14px] border border-edge p-3.5 text-[15px] font-normal leading-[1.55]" />
               </label>
             </>
@@ -113,7 +122,7 @@ export function LetterStart({ initialMode, jobs, cvs }: { initialMode: number; j
               <div className="flex flex-col items-center gap-3 rounded-[20px] border-[1.5px] border-dashed border-sage bg-paper px-6 py-9 text-center">
                 <p className="m-0 text-xl tracking-[-0.03em]">{fileName ?? "Drop your cover letter here"}</p>
                 <p className="m-0 text-sm text-subtle">PDF or Word, up to 2 MB, or paste the text below</p>
-                <input ref={fileRef} type="file" name="file" aria-label="Cover letter file" accept=".pdf,.docx" className="sr-only-abs" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
+                <input ref={fileRef} type="file" name="file" aria-label="Cover letter file" tabIndex={-1} accept=".pdf,.docx" className="sr-only-abs" onChange={(e) => { const name = e.target.files?.[0]?.name ?? null; setFileName(name); if (name) announce(`${name} chosen.`); }} />
                 <button type="button" onClick={() => fileRef.current?.click()} className="min-h-[46px] rounded-full border-0 bg-black px-[22px] text-[15px] text-white hover:bg-ink-2">
                   Choose a file
                 </button>
@@ -121,6 +130,27 @@ export function LetterStart({ initialMode, jobs, cvs }: { initialMode: number; j
               <label className="flex flex-col gap-1.5 text-sm font-medium">
                 Or paste your letter
                 <textarea name="letterText" rows={8} className="resize-y rounded-[14px] border border-edge p-3.5 text-[15px] font-normal leading-[1.55]" />
+              </label>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex flex-[1_1_220px] flex-col gap-1.5 text-sm font-medium">
+                  Where is this going?
+                  <select name="format" defaultValue="letter" className={field}>
+                    <option value="letter">A letter I&apos;ll upload or send</option>
+                    <option value="statement">An application form or short statement</option>
+                  </select>
+                </label>
+                <label className="flex flex-[1_1_220px] flex-col gap-1.5 text-sm font-medium">
+                  <span>
+                    Word limit <span className="font-normal text-subtle">Optional</span>
+                  </span>
+                  <input type="number" name="wordLimit" min={20} max={5000} inputMode="numeric" className={field} />
+                </label>
+              </div>
+              <label className="flex flex-col gap-1.5 text-sm font-medium">
+                <span>
+                  What do you know about this employer, and where from? <span className="font-normal text-subtle">Optional. We don&apos;t look up employers, so this helps us tell a specific reason from a general one.</span>
+                </span>
+                <textarea name="notes" rows={3} placeholder="For example, what their careers page says, or who you spoke to at a fair" className="resize-y rounded-[14px] border border-edge p-3.5 text-[15px] font-normal leading-[1.55]" />
               </label>
             </>
           )}

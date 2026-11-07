@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import Script from "next/script";
+import { A11yRuntime } from "@/components/A11yRuntime";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="en-GB">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
+        <A11yRuntime />
         {plausible && <Script src="https://plausible.io/js/script.js" data-domain={plausible} strategy="afterInteractive" nonce={nonce} />}
       </body>
     </html>

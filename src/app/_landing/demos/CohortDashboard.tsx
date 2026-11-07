@@ -12,7 +12,7 @@ import './CohortDashboard.css'
 // Wide story, a loop:
 // 1. The dashboard at rest: four KPI tiles, average score by faculty, and
 //    the "May need a hand" card, which lists reasons with a count each.
-// 2. The adviser switches the breakdown to Course: names crossfade, bars
+// 2. The adviser switches the breakdown to Year of study: names crossfade, bars
 //    ease, scores roll.
 // 3. They press "See all" on May need a hand. The address gains
 //    /students?f=needs, Students lights in the sidebar, and the Students
@@ -35,7 +35,7 @@ const initial: S = { by: 0, page: 'dash', needs: false }
 
 const GROUPS: [string, number][][] = [
   [['Business', 74], ['Sciences', 72], ['Engineering', 70], ['Social sciences', 69], ['Arts and humanities', 66]],
-  [['Computer Science', 81], ['Economics', 75], ['Law', 68], ['Physics', 63], ['History', 57]],
+  [['Year 1', 64], ['Year 2', 69], ['Year 3', 73], ['Year 4', 75], ['Postgraduate', 71]],
 ]
 
 const KPIS = [
@@ -112,7 +112,7 @@ export function CohortDashboard() {
     <div
       className="op-cohort-root"
       role="img"
-      aria-label="Sample product preview: Offerpath's careers dashboard for a fictional university. Tiles show 1,240 active students, an average score of 71 (up from 57), 3,580 CVs reviewed and 2,115 applications tracked. The average score breakdown switches from faculty to course, with groups under five students hidden. The May need a hand card lists 86 students by reason, such as 22 whose score is not improving after 3 uploads. Pressing See all opens the Students list filtered to May need a hand, showing students by ID, course, year, status, score and a flag such as Not improving, No CV yet or Deadline soon. Fictional data."
+      aria-label="Sample product preview: Offerpath's careers dashboard for a fictional university. Tiles show 1,240 active students, an average score of 71 (up from 57), 3,580 CVs reviewed and 2,115 applications tracked. The average score breakdown switches from faculty to year of study, with groups under five students hidden. The May need a hand card lists 86 students by reason, such as 22 whose score is not improving after 3 uploads. Pressing See all opens the Students list filtered to May need a hand, showing students by ID, course, year, status, score and a flag such as Not improving, No CV yet or Deadline soon. Fictional data."
     >
     <div aria-hidden="true">
     <Stage<S>
@@ -193,7 +193,7 @@ function Dashboard({ by }: { by: 0 | 1 }) {
       <div className="op-cohort-grid">
         <section className="op-cohort-card op-cohort-break">
           <div className="op-cohort-eyebrow">Average score by</div>
-          <Segmented className="op-cohort-seg" items={['Faculty', 'Course', 'Home vs intl']} value={by} targets={['by-faculty', 'by-course', undefined]} cursor="pointer" />
+          <Segmented className="op-cohort-seg" items={['Faculty', 'Year of study', 'Home vs intl']} value={by} targets={['by-faculty', 'by-course', undefined]} cursor="pointer" />
           <div className="op-cohort-bars">
             {groups.map(([, v], i) => (
               <div key={i} className="op-cohort-bar" style={{ ['--i' as string]: i }}>

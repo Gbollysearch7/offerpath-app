@@ -6,8 +6,8 @@ export const metadata: Metadata = { title: "Sub-processors" };
 
 export default function SubProcessors() {
   return (
-    <LegalPage title="Sub-processors" intro={<>These companies process personal data on our behalf to run Offerpath. Each is bound by a data processing agreement. We tell partner universities before adding or replacing one.</>}>
-      <div className="overflow-x-auto">
+    <LegalPage title="Sub-processors" draft intro={<>These companies process personal data on our behalf to run Offerpath. A data processing agreement with each of them is required before any pilot goes live. Before a pilot starts, we&apos;ll agree with the university how it&apos;s told about changes to this list.</>}>
+      <div tabIndex={0} role="region" aria-label="Sub-processors table, scrolls sideways" className="overflow-x-auto">
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
             <tr className="text-left">

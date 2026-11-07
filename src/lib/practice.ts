@@ -56,7 +56,10 @@ export function interviewQuestions(sector: string): InterviewQuestion[] {
 
 export const INTERVIEW_SECTORS = Object.keys(SECTOR_QUESTIONS);
 
-/* Rule-based STAR feedback. Deterministic, so the same answer always gets the same feedback. */
+/*
+ * Rule-based STAR feedback. Deterministic, so the same answer always gets the same feedback. Kept unchanged, but the app no
+ * longer shows it (OP-023): its mark gave credit for STAR-sounding words. Interview practice uses practice-feedback.ts.
+ */
 export interface AnswerFeedback {
   score: number; // 0-10
   points: { ok: boolean; t: string }[];

@@ -3,14 +3,16 @@
 Source of truth for the design: `design/*.dc.html`, imported from page 4 ("Web app (v2 style)") of the
 OfferPath UI Redesign canvas. Owned by `senior-tech-lead`; update the API contract here before changing it.
 
+> The tables below describe the original build and aren't a complete list of later routes, tables or actions; the code and `supabase/migrations/` are authoritative. Launch status is in [STATUS_REGISTER.md](STATUS_REGISTER.md).
+
 ## Stack
 
 - **Next.js 15 (App Router) + TypeScript + Tailwind v4**: server components by default, server actions for writes.
 - **Supabase** (via the `supabase-new` MCP): Postgres, Auth (magic link, SAML SSO when a university enables it), Storage for CV files.
 - **Analysis engine** (`src/lib/analysis`): deterministic CV / job ad / cover letter checks.
-- **CV scoring** (`src/lib/scoring-core.ts`, `src/lib/scoring.ts`): Claude Haiku (`claude-haiku-5-5`) answers four categorical questions per bullet (result, verb, kind, relevance), 3 votes, majority wins. Code computes the score from those answers plus exact rule checks. Judgments are cached forever by `sha256(rubric, judge, sector, normalised bullet words)`, so the same CV always gets the same score and edits only re-judge changed bullets. If the judge fails, the upload fails cleanly rather than mixing methods. Without an API key, the rule engine supplies the judgments.
-- **Claude (optional)**: `claude-opus-5-5` for bullet rewrites and letter drafts when `ANTHROPIC_API_KEY` is set, with server-side refusal fallback. Falls back to the rule-based engine on any error.
-- **Demo mode**: when Supabase env vars are missing, an in-memory store (`src/lib/repo/demo.ts`) with fictional seed data stands in, behind the same `Repo` interface.
+- **CV scoring** (`src/lib/scoring-core.ts`, `src/lib/scoring.ts`): Claude Haiku (`claude-haiku-5-5`) answers four categorical questions per bullet (result, verb, kind, relevance), 3 votes, majority wins. Code computes the score from those answers plus exact rule checks. Judgments are cached forever in the shared `judgment_cache`, by a hash of rubric, judge, part (sector only for the relevance part) and normalised bullet words, so the same CV always gets the same score, for any student, and edits only re-judge changed bullets. If the judge fails, the upload fails cleanly rather than mixing methods. Without an API key, the rule engine supplies the judgments.
+- **Claude (optional)**: `claude-opus-5-5` for bullet rewrites and letter drafts when `ANTHROPIC_API_KEY` is set, with server-side refusal fallback. What happens on an error now varies by workflow (OP-012, OP-025): some use a rule-based draft, some return a clear error rather than a weaker result.
+- **Demo mode**: when Supabase env vars are missing (in a production or preview configuration, only with `DEMO_MODE=true`), an in-memory store (`src/lib/repo/demo.ts`) with fictional seed data stands in, behind the same `Repo` interface.
 
 ## Screens → routes
 
@@ -44,11 +46,11 @@ Extra routes not in the prototype: `/help`, `/privacy-notice`, `/reviews/latest`
 
 - `universities(id, name, domain)`: email domain → university on sign-up.
 - `profiles(id → auth.users, role, university_id, stage, sectors[], visa_sponsorship, deadline_reminders, share_progress, onboarded_at, course, faculty, fee_status, student_number, last_active_at)`.
-- `reports(id, user_id, type cv_review|tailor|cover_letter, title, score, payload jsonb, storage_path)`: payload shapes are `CvReviewPayload`, `TailorPayload`, `CoverLetterPayload` in `src/lib/types.ts`.
+- `reports(id, user_id, type cv_review|tailor|cover_letter|linkedin, title, score, payload jsonb, storage_path)`: payload shapes are `CvReviewPayload`, `TailorPayload`, `CoverLetterPayload` in `src/lib/types.ts`.
 - `opportunities(id, role, org, location, type, sector, sponsors_visa, closes_on, description)`: public read.
 - `applications(id, user_id, opportunity_id, role, org, status saved|applied|tests|interview|offer, closes_on)`.
 - `ai_usage(user_id, day, kind, count)`: daily limits (25 line rewrites, 10 letters).
-- `bullet_judgments(key, judgment, judge)`: shared, append-only judgment cache. No CV text stored. Service role only.
+- `judgment_cache(key, judgment, judge)`: shared, append-only judgment cache, which replaced `bullet_judgments`. No CV text stored. Service role only.
 
 Security: RLS on every table; reports are read-only for students (the server writes them and their scores
 with the service role); students can only update whitelisted profile columns; admin data only via
@@ -75,6 +77,33 @@ CV files live in the private `cvs` bucket under `<user_id>/…`.
 Route handlers: `GET /api/templates/[slug]?format=docx|pdf`, `GET /api/letters/[id]?format=docx|pdf`,
 `GET /api/export` (ZIP), `GET /admin/export` (CSV, `?pack=tef` for the summary pack).
 
+## Report payload contract (`reports.payload`)
+
+Update this section before changing a payload shape. The schemas live in `src/lib/report-schema.ts`; the
+TypeScript types in `src/lib/types.ts` are checked against them at compile time.
+
+- **Version.** Every payload carries `payloadVersion` (currently `1`, `PAYLOAD_VERSION`). A payload with no
+  version is v0: the same fields, saved before 5 November 2026, with no findings.
+- **Write path.** Both repositories call `toStored(type, payload)` from `createReport` and `updateReport`. It
+  validates against the strict schema for the report's type (unknown keys, out-of-range scores and malformed
+  provider output all fail), then checks every evidence reference against the saved text. Failure throws
+  `PayloadError` and nothing is saved. Server actions keep enforcing ownership before they reach the repository.
+- **Read path.** Both repositories call `fromStored(type, raw)` from `getReport` and `latestReport`. v1 is
+  validated and returned; v0 is adapted in memory to v1 (scores untouched, `assessment.origin = "legacy"`) and
+  is only rewritten in storage if the student later edits that report. A version this build does not know
+  throws `PayloadError` rather than rendering a guess.
+- **Findings.** `CvReviewPayload.assessment` and `CoverLetterPayload.assessment` hold one `Assessment`:
+  `documentVersion` (sha256 of the assessed text), `versions` (`parser`, `rubric`, `model`, `dictionary`; null
+  means not recorded), `origin` (`engine` | `legacy`), `limits` (what it cannot say) and `findings[]`. A
+  `Finding` has `id`, `check`, `status` (`passed` | `needs_attention` | `not_applicable` | `unavailable` |
+  `uncertain`), `severity` (`high` | `medium` | `low` | `info`), `confidence` (0 to 1 or null), `method`
+  (`rules` | `ai` | null), `explanation`, `action` and `evidence[]`. Each `EvidenceRef` names a
+  `documentVersion`, a stable `block` (`doc`, or `line:<n>` for `analysis.lines[n]`), an optional `range`
+  (character offsets valid only in that document version) and the `quote` found there.
+- **What stays fixed.** `analysis` (every score, `meta.fingerprint`, `meta.rubric`) is produced by
+  `analyseCv` and is never changed by the schema, the adapters or the findings. `TailorPayload` carries the
+  version only; its findings arrive with the requirement-extraction work (OP-012/013).
+
 ## Tasks
 
 - [x] Role skills (`.claude/skills`)
@@ -85,6 +114,7 @@ Route handlers: `GET /api/templates/[slug]?format=docx|pdf`, `GET /api/letters/[
 - [x] Supabase schema, RLS, storage, admin RPCs + tests in PGlite (`npm run test:db`)
 - [x] Supabase repo implementation
 - [x] Consistent AI scoring with Claude Haiku: rubric, voting, judgment cache, guarantee tests, live-tested
-- [ ] Create the `offerpath` Supabase project in supabase-new, apply migration + seed, set env vars (needs user approval)
+- [x] Versioned report payloads: findings schema, write-time validation, legacy adapters (OP-004; locally verified only)
+- [x] Create the Supabase project (named `levelup`, not `offerpath`), apply migrations, set env vars. Later migrations are pending: see the [status register](STATUS_REGISTER.md).
 - [ ] Enable SAML SSO per partner university (Supabase Pro feature)
-- [ ] Deadline reminder emails (preference is stored; sending job not built)
+- [x] Deadline reminder job built (`/api/cron/reminders`). No real delivery recorded yet.

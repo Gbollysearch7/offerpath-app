@@ -24,7 +24,8 @@ import "./TrackerDemo.css";
 // rest carrying up; it tracks Graduate Analyst at Northbridge Partners; then
 // the deadline reminder lands on the lock screen as an email from Offerpath
 // (the product sends reminders by email, for tracked roles closing within a
-// week; it has no phone app). Reset: the email is cleared, the switch goes
+// week; it has no phone app). An earlier reminder for a role already tracked
+// sits on the lock screen from the start, so the phone is never empty. Reset: the email is cleared, the switch goes
 // off and the role is untracked, both clicked.
 //
 // Real strings: the page title, the filter, the role cards (the list is the
@@ -108,13 +109,13 @@ async function script(a: Act<S>) {
   await a.click({ at: "visa", x: 0.5, y: 0.55 });
   a.mark("filter");
   a.set({ visa: true });
-  await a.wait(1500);
+  await a.wait(1100);
   await a.move({ at: "track", x: 0.82, y: 0.62 });
   await a.wait(150);
   await a.click({ at: "track", x: 0.82, y: 0.62 });
   a.mark("track");
   a.set({ tracked: true });
-  await a.wait(700);
+  await a.wait(350);
   a.mark("note");
   a.set({ note: true });
   await a.wait(3000);
@@ -189,7 +190,7 @@ export function TrackerDemo() {
       <Stage<S>
         width={1000}
         height={560}
-        compact={{ below: 1000, width: 358, height: 600 }}
+        compact={{ below: 1000, width: 358, height: 640 }}
         initial={initial}
         poster={poster}
         script={script}
@@ -378,6 +379,7 @@ export function TrackerDemo() {
                 <LockScreen
                   size="satellite"
                   stack="top"
+                  clock={!compact}
                   date="Monday 9 November"
                   time="8:02"
                 >
@@ -390,6 +392,21 @@ export function TrackerDemo() {
                       <>
                         <span className="op-tracker-subject">
                           Northbridge Partners closes Friday 13 November
+                        </span>
+                        Hi Jordan, you&rsquo;re tracking a role that closes
+                        within a week.
+                      </>
+                    }
+                  />
+                  <Notification
+                    className="op-tracker-earlier"
+                    icon={<MailIcon />}
+                    title="Offerpath"
+                    time="Sun"
+                    body={
+                      <>
+                        <span className="op-tracker-subject">
+                          Halden &amp; Rowe closes Wednesday 11 November
                         </span>
                         Hi Jordan, you&rsquo;re tracking a role that closes
                         within a week.

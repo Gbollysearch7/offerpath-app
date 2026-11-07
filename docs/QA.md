@@ -1,5 +1,7 @@
 # QA log
 
+> **A dated history, not current status.** Entries are left as written, so some describe things since changed (for example, "no sender yet" for reminders). Current status is in [STATUS_REGISTER.md](STATUS_REGISTER.md).
+
 ## 2026-10-26: full pass, demo mode (`npm start` on :3100, Chromium via Playwright)
 
 Scope: every student screen and both admin screens from `design/*.dc.html`, at 1440px and 375px.

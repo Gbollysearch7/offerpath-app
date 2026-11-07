@@ -12,5 +12,6 @@ export default async function Home() {
   const profile = await getProfile();
   if (!profile) return <Landing />;
   if (profile.role === "admin") redirect("/admin");
+  if (profile.role === "adviser") redirect("/admin/students");
   redirect(profile.onboarded ? "/dashboard" : "/onboarding");
 }

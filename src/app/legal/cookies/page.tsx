@@ -7,7 +7,7 @@ export default function Cookies() {
   const analytics = !!process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
   return (
     <LegalPage title="Cookies" intro={<>Offerpath only uses cookies that are needed to sign you in and keep you signed in. Because they are strictly necessary, we don&apos;t ask for consent, and there are no advertising or tracking cookies.</>}>
-      <div className="overflow-x-auto">
+      <div tabIndex={0} role="region" aria-label="Cookies table, scrolls sideways" className="overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-sm">
           <thead>
             <tr className="text-left">

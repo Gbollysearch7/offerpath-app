@@ -3,22 +3,24 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { featureFlags } from "@/lib/env";
+import { demoLoginAllowed, featureFlags } from "@/lib/env";
 import { resetDemoUser } from "@/lib/repo/demo";
 import { DEMO_COOKIE, getRepo, isDemoMode, readDemoSession, signDemoSession } from "@/lib/session";
 import { clientIp, hit, TOO_MANY } from "@/lib/rate-limit";
+import { ssoUniversities } from "@/lib/sso";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import type { Stage } from "@/lib/types";
 
 export type AuthState = { error?: string; sent?: string } | null;
 
-async function startDemo(role: "student" | "admin") {
+async function startDemo(role: "student" | "admin" | "adviser") {
+  if (!demoLoginAllowed()) redirect(`/sign-in?error=${encodeURIComponent("Sign-in isn't available right now.")}`);
   const store = await cookies();
   const existing = readDemoSession(store.get(DEMO_COOKIE)?.value);
   const id = existing?.role === role ? existing.id : crypto.randomUUID();
   store.set(DEMO_COOKIE, signDemoSession(role, id), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 7 });
-  redirect(role === "admin" ? "/admin" : "/dashboard");
+  redirect(role === "admin" ? "/admin" : role === "adviser" ? "/admin/students" : "/dashboard");
 }
 
 /** Where auth emails and SSO send people back to. Never taken from request headers. */
@@ -40,17 +42,19 @@ async function isPartnerDomain(email: string): Promise<boolean> {
 export async function signInWithUniversity(formData: FormData) {
   const asAdmin = formData.get("admin") === "1";
   if (isDemoMode()) return startDemo(asAdmin ? "admin" : "student");
-  // University single sign-on (SAML) is configured per university in Supabase.
+  // University single sign-on (SAML) is configured per university in Supabase, and listed in SSO_UNIVERSITIES.
+  const notSetUp = `/sign-in?error=${encodeURIComponent("University sign-in isn't set up for your university yet. Use the email link below.")}`;
+  const domain = String(formData.get("domain") ?? "").trim().toLowerCase();
+  if (!ssoUniversities().some((u) => u.domain === domain)) redirect(notSetUp);
   const sb = await createSupabaseServer();
-  const domain = String(formData.get("domain") ?? "").trim();
   const { data, error } = await sb.auth.signInWithSSO({ domain, options: { redirectTo: `${await siteUrl()}/auth/callback` } });
-  if (error || !data?.url) redirect(`/sign-in?error=${encodeURIComponent("University sign-in isn't set up for your university yet. Use the email link below.")}`);
+  if (error || !data?.url) redirect(notSetUp);
   redirect(data.url);
 }
 
 export async function signInWithEmail(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = z.string().trim().email().safeParse(formData.get("email"));
-  if (!parsed.success) return { error: "Enter a valid email address, like you@northfield.ac.uk." };
+  if (!parsed.success) return { error: "Enter a valid email address, like you@your-university.ac.uk." };
   if (isDemoMode()) await startDemo(formData.get("admin") === "1" ? "admin" : "student");
   if (!(await hit("signInPerIp", await clientIp())) || !(await hit("signInPerEmail", parsed.data))) return { error: TOO_MANY };
   if (!(await isPartnerDomain(parsed.data))) {
@@ -65,9 +69,15 @@ export async function signInWithEmail(_prev: AuthState, formData: FormData): Pro
 /** Test accounts at the test university. The admin one is made an admin on first sign-in. */
 const TEST_ACCOUNTS = { student: "test.student@levelup-qa.ac.uk", admin: "test.careers@levelup-qa.ac.uk" } as const;
 
-/** Testing phase only (TEST_LOGIN=true): sign straight in as a test account, without an email link. */
+/**
+ * Testing phase only: sign straight in as a test account, without an email link. Needs TEST_LOGIN=true outside a
+ * production configuration (src/lib/env.ts). This is a server action and can be called without the button, so the
+ * check here is the control; hiding the button is not.
+ */
 export async function testSignIn(formData: FormData) {
   const role = formData.get("admin") === "1" ? "admin" : "student";
+  // Demo mode only: fictional data, so the adviser's narrower view can be tried. There is no adviser test account.
+  if (isDemoMode() && formData.get("adviser") === "1") return startDemo("adviser");
   if (isDemoMode()) return startDemo(role);
   if (!featureFlags.testLogin()) redirect("/sign-in");
   const email = TEST_ACCOUNTS[role];

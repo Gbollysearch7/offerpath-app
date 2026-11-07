@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
 import { cx, pill, SearchIcon } from "@/components/ui";
 import type { StudentQuery } from "@/lib/repo/types";
-import { requireAdmin } from "@/lib/session";
+import { isDemoMode, requireStaff } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Students" };
 
@@ -11,13 +11,14 @@ const PAGE = 25;
 const FILTERS: [NonNullable<StudentQuery["filter"]>, string][] = [["all", "All students"], ["needs", "May need a hand"], ["home", "Home"], ["international", "International"]];
 
 export default async function AdminStudentsPage({ searchParams }: { searchParams: Promise<{ f?: string; q?: string; faculty?: string; page?: string }> }) {
-  const { repo, profile } = await requireAdmin();
+  const { repo, profile } = await requireStaff();
   const sp = await searchParams;
   const filter = FILTERS.find(([k]) => k === sp.f)?.[0] ?? "all";
   const search = (sp.q ?? "").slice(0, 80);
   const faculty = (sp.faculty ?? "").slice(0, 120);
   const page = Math.max(1, Number(sp.page) || 1);
-  const [o, data] = await Promise.all([repo.adminOverview(), repo.adminStudents({ filter, search, faculty, limit: PAGE, offset: (page - 1) * PAGE })]);
+  const isAdmin = profile.role === "admin";
+  const [uni, data] = await Promise.all([repo.adminUniversity(), repo.adminStudents({ filter, search, faculty, limit: PAGE, offset: (page - 1) * PAGE })]);
   const pages = Math.max(1, Math.ceil(data.total / PAGE));
   const qs = (patch: Record<string, string | number | undefined>) => {
     const p = new URLSearchParams();
@@ -28,7 +29,7 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
   };
 
   return (
-    <AdminShell profile={profile} university={o.universityName} active="students" title="Students" intro={o.sample ? "Sample data for a fictional university." : "Students who have chosen to share their progress with your careers team."}>
+    <AdminShell profile={profile} university={uni.name} active="students" title="Students" intro={isDemoMode() ? "Sample data for a fictional university." : isAdmin ? "Students who have chosen to share their progress with your careers team." : "Students who share their progress and are within what your university lets you see as an adviser."}>
       <form action="/admin/students" className="flex flex-wrap items-end gap-3">
         {filter !== "all" && <input type="hidden" name="f" value={filter} />}
         <label className="flex min-h-11 min-w-[260px] flex-1 items-center gap-2 rounded-full bg-white px-4">
@@ -124,16 +125,14 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
         <p className="mx-2 mt-3 mb-0 text-[13px] text-subtle">Open a student to see their history and leave a note they&apos;ll see.</p>
       </section>
 
-      <section id="export" aria-labelledby="ex-h" className="rounded-3xl bg-white px-6 py-[22px]">
+      {isAdmin && <section id="export" aria-labelledby="ex-h" className="rounded-3xl bg-white px-6 py-[22px]">
         <form action="/admin/export" className="flex flex-wrap items-center gap-5">
-          <input type="hidden" name="filter" value={filter} />
-          <input type="hidden" name="faculty" value={faculty} />
-          <input type="hidden" name="q" value={search} />
+          <input type="hidden" name="pack" value="students" />
           <div className="min-w-0 flex-[1_1_380px]">
             <h2 id="ex-h" className="m-0 text-[22px] font-normal tracking-[-0.04em]">
-              Export
+              Export the named list
             </h2>
-            <p className="mt-1.5 mb-0 text-sm leading-[1.55] text-muted">Download this view as CSV. A view of fewer than five students can&apos;t be exported.</p>
+            <p className="mt-1.5 mb-0 text-sm leading-[1.55] text-muted">One row per student who chose to share, for a team acting on them. It is always the whole list, whatever is filtered above, because comparing narrowed files could identify someone. Each download is recorded in the access log. For reporting, use the dashboard&apos;s figures, which name nobody.</p>
             <div className="mt-3.5 flex flex-wrap gap-3.5 text-sm">
               {[["scores", "Scores by area"], ["activity", "Activity"]].map(([n, l]) => (
                 <label key={n} className="flex items-center gap-2">
@@ -144,15 +143,12 @@ export default async function AdminStudentsPage({ searchParams }: { searchParams
             </div>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <a href="/admin/export?pack=tef" className="inline-flex min-h-[46px] items-center rounded-full border border-edge bg-white px-5 text-sm text-black no-underline hover:bg-paper hover:text-black">
-              Graduate Outcomes and TEF pack
-            </a>
             <button type="submit" className="min-h-[46px] rounded-full border-0 bg-black px-5 text-sm font-medium text-white hover:bg-ink-2">
-              Download CSV
+              Download named list
             </button>
           </div>
         </form>
-      </section>
+      </section>}
     </AdminShell>
   );
 }

@@ -1,0 +1,135 @@
+{
+  "schema": "offerpath-thresholds/1",
+  "dataset": "",
+  "dataset_version": "",
+  "minimum_heldout_groups": null,
+  "minimum_subgroup_groups": null,
+  "agreed_by": [
+    {
+      "name": "",
+      "role": "pilot_partner",
+      "date": ""
+    },
+    {
+      "name": "",
+      "role": "founder",
+      "date": ""
+    }
+  ],
+  "gates": [
+    {
+      "metric": "score.mae",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "score.mae",
+      "scope": "each:discipline",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rank.spearman",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "coverage.scored_share",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "reviewers.alpha",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "severity.weighted_kappa",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "findings.review_coverage",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "findings.false_positive_rate",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "findings.false_positive_rate",
+      "scope": "each:check",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "findings.missed_major_per_doc",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "improvement.share_improved",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "gaming.rewarded_share",
+      "scope": "each:variant_kind",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rewrite.review_coverage",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rewrite.fidelity_failure_rate",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rewrite.seniority_inflation_rate",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rewrite.unnecessary_change_rate",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rewrite.usefulness_mean",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rewrite.check_missed_invention_rate",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    },
+    {
+      "metric": "rewrite.check_false_rejection_rate",
+      "scope": "overall",
+      "threshold": null,
+      "why": ""
+    }
+  ]
+}

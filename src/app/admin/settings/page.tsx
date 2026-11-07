@@ -44,7 +44,7 @@ export default async function SettingsPage() {
           </li>
           <li>Release these attributes so course details fill in automatically (optional, but saves CSV imports):</li>
         </ol>
-        <pre className="m-0 overflow-x-auto rounded-2xl bg-canvas p-4 font-mono text-xs leading-relaxed">{JSON.stringify(MAPPING, null, 2)}</pre>
+        <pre tabIndex={0} aria-label="Single sign-on attribute mapping" className="m-0 overflow-x-auto rounded-2xl bg-canvas p-4 font-mono text-xs leading-relaxed">{JSON.stringify(MAPPING, null, 2)}</pre>
         <p className="m-0 text-sm text-muted">Attribute names vary by provider; we&apos;ll adjust the mapping to match yours. Values from an imported CSV take priority over SSO values.</p>
       </section>
     </AdminShell>

@@ -2,26 +2,35 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { StudentShell } from "@/components/StudentShell";
 import { btn, cx, fmtDate, pill, SearchIcon } from "@/components/ui";
-import { band } from "@/lib/analysis/cv";
+import { presentedScore } from "@/lib/analysis/coverage";
+import { bandLabel } from "@/lib/analysis/labels";
+import { comparableScores } from "@/lib/analysis/scoring-contract";
+import { loadWorkspace } from "@/lib/applications/flow";
+import { actionChips } from "@/lib/applications/next-actions";
+import { downloadSentence, downloadState, MEANINGFUL_SCORE_CHANGE, type ArtefactSummary } from "@/lib/applications/workspace";
 import { requireStudent } from "@/lib/session";
 import { REPORT_TYPE_LABEL, type ReportRow, type ReportType } from "@/lib/types";
+import { summarisePractice } from "@/lib/practice-types";
+import { ApplicationsPanel } from "./ApplicationsPanel";
+import { NextActions } from "./NextActions";
 import { ShareButton } from "./ShareButton";
 
 export const metadata: Metadata = { title: "My reports" };
 
 const PAGE = 7;
-const FILTERS: [ReportType | "all", string][] = [["all", "All"], ["cv_review", "CV review"], ["tailor", "Tailor to a job"], ["cover_letter", "Cover letter"]];
+const FILTERS: [ReportType | "all", string][] = [["all", "All"], ["cv_review", "CV review"], ["tailor", "Tailor to a job"], ["cover_letter", "Cover letter"], ["linkedin", "LinkedIn review"]];
 
 const ICONS = {
   review: "M7 3.5h7l4 4v13H7zM10 12h5M10 16h3.5",
   tailor: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
   letters: "M3.5 6.5h17v11h-17zM3.5 7l8.5 6 8.5-6",
+  linkedin: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5a7.5 7.5 0 0 1 15 0",
   opps: "M4.5 6h15v14h-15zM4.5 10h15M8.5 3.5V7M15.5 3.5V7",
   templates: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
 };
 
 function hrefFor(r: ReportRow) {
-  return r.type === "cv_review" ? `/reviews/${r.id}` : r.type === "tailor" ? `/tailor/${r.id}` : `/letters/${r.id}`;
+  return r.type === "cv_review" ? `/reviews/${r.id}` : r.type === "tailor" ? `/tailor/${r.id}` : r.type === "linkedin" ? `/linkedin/${r.id}` : `/letters/${r.id}`;
 }
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ type?: string; q?: string; page?: string }> }) {
@@ -39,9 +48,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     repo.listReports({ type: "tailor", limit: 1 }),
     repo.listReports({ type: "cover_letter", limit: 1 }),
   ]);
+  const { workspace, actions, dismissed, downloads: downloadRecords } = await loadWorkspace(repo, { today: new Date().toISOString().slice(0, 10), extraIds: list.rows.map((r) => r.id) });
+  const progress = workspace.progress;
+  const practice = summarisePractice(await repo.practiceAnswers());
+  const downloads = (a: ArtefactSummary) => {
+    const d = downloadState(a, downloadRecords);
+    return { sentence: downloadSentence(d), can: d.state === "current" || d.state === "behind" || d.state === "never" };
+  };
+  const docTiles = [
+    { label: "Uploaded files", n: progress.uploads, note: progress.repeatUploads ? `${progress.repeatUploads} ${progress.repeatUploads === 1 ? "was" : "were"} the same CV again` : "Files you've given us", href: "/dashboard?type=cv_review#reports" },
+    { label: "Reviewed versions", n: progress.reviewedVersions, note: "Different CV texts we've reviewed", href: "/dashboard?type=cv_review#reports" },
+    { label: "Tailored applications", n: progress.tailored, note: "CVs tailored to an advert", href: "/dashboard?type=tailor#reports" },
+    { label: "Letters", n: progress.letters, note: "Cover letters and statements", href: "/dashboard?type=cover_letter#reports" },
+    { label: "Completed edits", n: progress.completedEdits, note: progress.improvements ? `${progress.improvements} CV ${progress.improvements === 1 ? "version" : "versions"} clearly improved on the last` : "Corrections and changes you kept", href: "#applications" },
+  ];
   const latest = cvHistory.rows[0];
   const prev = cvHistory.rows[1];
-  const delta = latest?.score != null && prev?.score != null ? latest.score - prev.score : null;
+  // A change is only a change within one scoring series; a rule change or incomplete reading is not progress.
+  const latestScore = latest ? presentedScore(latest) : null;
+  const delta = latestScore != null && prev?.score != null && comparableScores(latest?.scoring?.series, prev.scoring?.series) ? latestScore - prev.score : null;
 
   const now = new Date();
   const weekAhead = new Date(now.getTime() + 7 * 864e5);
@@ -52,6 +77,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { label: "CV review", href: "/upload", icon: ICONS.review, done: counts.cvs > 0 },
     { label: "Tailor to a job", href: "/tailor", icon: ICONS.tailor, done: tailors.total > 0 },
     { label: "Cover letters", href: "/letters", icon: ICONS.letters, done: letters.total > 0 },
+    { label: "LinkedIn review", href: "/linkedin", icon: ICONS.linkedin, done: counts.linkedin > 0 },
     { label: "Opportunities", href: "/opportunities", icon: ICONS.opps, done: apps.length > 0 },
     { label: "CV templates", href: "/templates", icon: ICONS.templates, done: false },
   ];
@@ -117,11 +143,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="flex-[1_1_220px] rounded-[22px] bg-white px-5 py-[18px]">
               <p className="m-0 text-[13px] text-subtle">Latest CV score</p>
               <p className="mt-1.5 mb-0 text-[34px] tracking-[-0.05em]">
-                {latest?.score ?? "–"}{" "}
-                {latest?.score != null && (
+                {latestScore ?? "–"}{" "}
+                {latestScore != null && (
                   <span className="text-sm tracking-normal text-brand">
-                    {band(latest.score)}
-                    {delta !== null && delta !== 0 && ` · ${delta > 0 ? "+" : ""}${delta}`}
+                    {bandLabel(latestScore)}
+                    {delta !== null && Math.abs(delta) >= MEANINGFUL_SCORE_CHANGE && ` · ${delta > 0 ? "+" : ""}${delta}`}
                   </span>
                 )}
               </p>
@@ -138,7 +164,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </div>
 
-          <section aria-labelledby="rep-h" className="flex flex-col gap-4 rounded-3xl bg-white px-4 py-[22px] sm:px-6">
+          <NextActions actions={actions.map((a) => ({ key: a.key, title: a.title, why: a.why, href: a.href, cta: a.cta, chips: actionChips(a) }))} dismissed={dismissed} />
+
+          <ApplicationsPanel workspace={workspace} downloads={downloads} practice={practice} />
+
+          <section aria-labelledby="docs-h" className="flex flex-col gap-3 rounded-3xl bg-white px-4 py-[22px] sm:px-6">
+            <h2 id="docs-h" className="m-0 text-lg font-normal tracking-[-0.02em]">
+              My documents
+            </h2>
+            <ul className="m-0 flex list-none flex-wrap gap-2.5 p-0">
+              {docTiles.map((t) => (
+                <li key={t.label} className="min-w-0 flex-[1_1_150px]">
+                  <Link href={t.href} className="flex h-full flex-col gap-0.5 rounded-2xl bg-canvas px-4 py-3 text-black no-underline hover:bg-mist hover:text-black">
+                    <span className="text-[13px] text-muted">{t.label}</span>
+                    <span className="text-[26px] tracking-[-0.04em]">{t.n}</span>
+                    <span className="text-xs text-muted">{t.note}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {workspace.truncated && <p className="m-0 text-xs text-muted">These count your 40 most recent reports. Every report is in the list below.</p>}
+          </section>
+
+          <section id="reports" aria-labelledby="rep-h" className="flex scroll-mt-4 flex-col gap-4 rounded-3xl bg-white px-4 py-[22px] sm:px-6">
             <h2 id="rep-h" className="sr-only-abs">
               Reports
             </h2>
@@ -153,7 +201,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <label className="flex min-h-10 min-w-[220px] items-center gap-2 rounded-full bg-canvas px-3.5">
                   <SearchIcon />
                   <span className="sr-only-abs">Search reports</span>
-                  <input type="search" name="q" defaultValue={q} placeholder="Search files and scores" className="flex-1 border-0 bg-transparent text-sm outline-none" />
+                  <input type="search" name="q" defaultValue={q} placeholder="Search files and scores" className="flex-1 border-0 bg-transparent text-sm" />
                 </label>
               </form>
             </div>
@@ -170,10 +218,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] border-collapse text-sm">
+                <table className="w-full min-w-[820px] border-collapse text-sm">
                   <thead>
                     <tr className="text-left">
-                      {["FILE", "TYPE", "DATE"].map((h) => (
+                      {["FILE", "TYPE", "FOR", "DATE"].map((h) => (
                         <th key={h} className="border-b border-line px-2 py-2.5 font-mono text-[11px] font-normal text-subtle">
                           {h}
                         </th>
@@ -191,10 +239,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <td className="border-b border-line px-2 py-3.5">
                           <span className="rounded-full bg-canvas px-2.5 py-1 text-xs text-ink-2">{REPORT_TYPE_LABEL[r.type]}</span>
                         </td>
+                        <td className="max-w-[220px] border-b border-line px-2 py-3.5 text-[13px] text-muted">{workspace.belongsTo[r.id]?.join("; ") ?? "No role yet"}</td>
                         <td className="border-b border-line px-2 py-3.5 text-muted">{fmtDate(r.createdAt)}</td>
                         <td className="border-b border-line px-2 py-3.5 text-right">
-                          <span className="font-mono">{r.score ?? "–"}</span>
-                          {r.score != null && <span className="ml-1.5 text-xs text-subtle">{band(r.score)}</span>}
+                          <span className="font-mono">{presentedScore(r) ?? "–"}</span>
+                          {presentedScore(r) != null && r.type !== "tailor" && <span className="ml-1.5 text-xs text-subtle">{bandLabel(r.score!)}</span>}
+                          {r.scoring?.coverage === "incomplete" && <span className="ml-1.5 text-xs text-subtle">Incomplete</span>}
                         </td>
                         <td className="border-b border-line px-2 py-3.5 text-right">
                           <Link href={hrefFor(r)} className="inline-flex min-h-[34px] items-center rounded-full border border-edge px-3.5 text-[13px] text-black no-underline hover:bg-paper hover:text-black" aria-label={`Open ${r.title}`}>

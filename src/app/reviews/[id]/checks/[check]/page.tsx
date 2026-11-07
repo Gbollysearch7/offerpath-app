@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 import { Expandable } from "@/components/client";
 import { ResultsSidebar } from "@/components/ResultsSidebar";
 import { StudentShell, WithSidebar } from "@/components/StudentShell";
-import { Arrow, Eyebrow, ScoreRing, scoreColor, Tick } from "@/components/ui";
-import { CHECK_CONTENT } from "@/lib/analysis/check-content";
+import { Arrow, Eyebrow, ScoreRing, scoreColor, Tag, Tick } from "@/components/ui";
+import { CHECK_CONTENT, CHECK_SCOPE, EXAMPLES_NOTE } from "@/lib/analysis/check-content";
 import { AREA_META, CHECK_META, CHECK_ORDER, findCheck } from "@/lib/analysis/cv";
+import { FINDING_STATUS_DISPLAY } from "@/lib/analysis/labels";
 import type { CheckKey } from "@/lib/types";
 import { loadCvReview } from "../../../load";
+import { ProofreadingPanel } from "./ProofreadingPanel";
 
 export async function generateMetadata({ params }: { params: Promise<{ check: string }> }): Promise<Metadata> {
   const { check } = await params;
@@ -20,10 +22,15 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
   const showAll = (await searchParams).all === "1";
   if (!(check in CHECK_META)) notFound();
   const key = check as CheckKey;
-  const { profile, a } = await loadCvReview(id);
+  const { repo, profile, report, a } = await loadCvReview(id);
   const c = findCheck(a, key);
   if (!c) notFound();
+  // The finding says whether this check was assessed, passed or had nothing to look at; the score alone can't.
+  const { assessment } = report.payload;
+  const finding = assessment.findings.find((f) => f.id === key);
   const content = CHECK_CONTENT[key];
+  // Keyed on the check, not on `c`, so a report saved under older wording still shows today's limits.
+  const scope = CHECK_SCOPE[key];
   const nextKey = CHECK_ORDER[(CHECK_ORDER.indexOf(key) + 1) % CHECK_ORDER.length];
   const affected = c.affected.map((i) => ({ i, line: a.lines[i] })).filter((x) => x.line);
   const visible = showAll ? affected : affected.slice(0, 4);
@@ -32,7 +39,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
   return (
     <StudentShell profile={profile} active="review">
       <WithSidebar narrow sidebar={<ResultsSidebar reviewId={id} areas={a.areas} active={key} />}>
-        <div className="flex items-center gap-5 px-1 pt-2 pb-1">
+        <div className="flex flex-wrap items-center gap-5 px-1 pt-2 pb-1">
           <ScoreRing value={c.score} of={10} size={72} stroke={6} color={scoreColor(c.score, 10)} track="#E6EDE8" label={`Check score ${c.score} out of 10`}>
             <span className="text-2xl tracking-[-0.04em]">
               {c.score}
@@ -41,7 +48,8 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
           </ScoreRing>
           <div className="min-w-0">
             <p className="m-0 font-mono text-xs text-brand">{AREA_META[c.area].name.toUpperCase()}</p>
-            <h1 className="mt-1 mb-0 text-[32px] font-normal leading-[1.1] tracking-[-1.4px] sm:text-[40px] sm:tracking-[-1.8px]">{c.name}</h1>
+            {/* The name comes from the check key, so an older report shows today's name beside its saved score and wording. */}
+            <h1 className="mt-1 mb-0 text-[32px] font-normal leading-[1.1] tracking-[-1.4px] sm:text-[40px] sm:tracking-[-1.8px]">{CHECK_META[key].name}</h1>
             <p className="mt-1.5 mb-0 text-[15px] text-muted">{content.tagline}</p>
           </div>
         </div>
@@ -59,10 +67,13 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
                 </svg>
               </span>
             )}
-            <span className="text-sm leading-[1.35]">{c.score >= 8 ? "Looking good" : content.icon}</span>
+            <span className="text-sm leading-[1.35]">{key === "spell" && c.score >= 8 ? "No listed variants" : c.score >= 8 ? "Looking good" : content.icon}</span>
           </div>
           <div className="min-w-0 flex-[1_1_380px]">
-            <Eyebrow id="c1">{c.name.toUpperCase()}</Eyebrow>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Eyebrow id="c1">{CHECK_META[key].name.toUpperCase()}</Eyebrow>
+              {finding && <Tag tone={finding.status === "passed" ? "green" : "grey"}>{FINDING_STATUS_DISPLAY[finding.status].toUpperCase()}</Tag>}
+            </div>
             <p className="mt-2.5 mb-0 text-base leading-relaxed">{c.detail}</p>
             {c.progress && (
               <div className="mt-3.5 flex items-center gap-3">
@@ -83,8 +94,12 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
                 ))}
               </div>
             )}
+            {scope && <p className="mt-3.5 mb-0 rounded-2xl bg-canvas px-4 py-3 text-sm leading-[1.55] text-body">{scope}</p>}
+            {assessment.origin === "legacy" && <p className="mt-3.5 mb-0 rounded-2xl bg-mist px-4 py-3 text-sm leading-[1.55] text-body">{assessment.limits.join(" ")}</p>}
           </div>
         </section>
+
+        {key === "spell" && <ProofreadingPanel reportId={id} report={report.payload.proofreading} text={report.payload.text} choices={report.payload.proofreading ? await repo.proofreadingChoices(report.payload.proofreading.documentVersion) : []} />}
 
         <section aria-labelledby="c2" className="rounded-3xl bg-white px-[26px] py-6">
           <Eyebrow id="c2">RECRUITER&apos;S INSIGHT</Eyebrow>
@@ -150,6 +165,7 @@ export default async function CheckPage({ params, searchParams }: { params: Prom
 
         <section aria-labelledby="c5" className="flex flex-col gap-3.5 rounded-3xl bg-white px-[26px] py-6">
           <Eyebrow id="c5">EXAMPLES</Eyebrow>
+          <p className="m-0 text-sm leading-[1.55] text-muted">{EXAMPLES_NOTE}</p>
           <div className="grid grid-cols-2 gap-3 font-mono text-[13px] text-subtle">
             <span>BEFORE</span>
             <span>AFTER</span>

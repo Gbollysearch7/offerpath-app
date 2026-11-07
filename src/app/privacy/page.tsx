@@ -19,6 +19,7 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Prom
     { n: counts.cvs, t: "CVs uploaded" },
     { n: counts.reports, t: "Reports saved" },
     { n: counts.letters, t: "Cover letters" },
+    { n: counts.linkedin, t: "LinkedIn reviews" },
     { n: counts.applications, t: "Tracked applications" },
   ];
 
@@ -33,7 +34,7 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Prom
         <section aria-labelledby="w-h" className="flex flex-col gap-2.5 rounded-3xl bg-white px-[26px] py-6">
           <Eyebrow id="w-h">WHO LOOKS AFTER YOUR DATA</Eyebrow>
           <p className="m-0 text-base leading-relaxed">
-            The <span className="font-medium">{profile.universityName ?? "your university"}</span> controls your data. Offerpath processes it on their behalf under UK GDPR. Your files and account are stored in the UK or EU. When AI feedback is on, the text of your CV, job ads and letters is sent to Anthropic to generate it; Anthropic doesn&apos;t use it to train its models.
+            The <span className="font-medium">{profile.universityName ?? "your university"}</span> controls your data. Offerpath processes it on their behalf under UK GDPR. Your files and account are stored in the UK or EU. When AI feedback is on, the text of your CV, job ads, letters and interview practice answers is sent to Anthropic to generate it; Anthropic&apos;s published commercial terms say it may not train models on customer content.
           </p>
           <Link href="/legal/privacy" className="text-sm">
             Read the full privacy notice
@@ -75,18 +76,18 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Prom
               <p className="m-0 text-base">
                 Let my adviser view my CV {!adviserCv && <span className="ml-1.5 rounded-full bg-canvas px-2 py-[3px] align-[2px] font-mono text-[10px] text-muted">COMING SOON</span>}
               </p>
-              <p className="mt-1 mb-0 text-sm leading-[1.45] text-muted">{adviserCv ? "Careers advisers at your university can open your CVs to help you. Every time they do is logged. Switch off any time." : "Advisers can open your CV only if you switch this on. Launching after a legal review."}</p>
+              <p className="mt-1 mb-0 text-sm leading-[1.45] text-muted">{adviserCv ? "Careers advisers at your university can open your CVs to help you. Every time they do is logged, and you can see that log on your careers service page. Switch off any time." : "Advisers can open your CV only if you switch this on. Launching after a legal review."}</p>
             </div>
             {adviserCv ? <SavedSwitch initial={profile.adviserCanViewCv} label="Let my adviser view my CV" save={setAdviserCvSharing} /> : <Switch on={false} disabled label="Let my adviser view my CV (coming soon)" />}
           </div>
-          <p className="mt-3.5 mb-3 text-[13px] text-subtle">Reports your careers service exports always leave out groups smaller than five.</p>
+          <p className="mt-3.5 mb-3 text-[13px] text-subtle">Summary reports your careers service exports leave out groups smaller than five. If five or more students share their progress, the careers team can also export a list of those students, with each one&apos;s student ID, course, scores and activity. It can also export its log of staff access to student records.</p>
         </section>
 
         <section aria-labelledby="a-h" className="rounded-3xl bg-mist px-[26px] py-[22px]">
           <h2 id="a-h" className="m-0 text-[17px] font-medium">
             About AI scores
           </h2>
-          <p className="mt-1.5 mb-0 text-[15px] leading-relaxed text-body">Your Readiness Score is guidance, not a verdict, and it&apos;s worked out the same way for every student. If you disagree with it, talk to your careers adviser. Suggested rewrites only use facts from your own CV.</p>
+          <p className="mt-1.5 mb-0 text-[15px] leading-relaxed text-body">Your Readiness Score is guidance, not a verdict, and it&apos;s worked out the same way for every student. If you disagree with it, talk to your careers adviser: they can add a note, or record that they disagree and why, though they can&apos;t change the score. Suggested rewrites use your CV as their source but can introduce mistakes. Check every figure, responsibility and outcome before accepting a suggestion.</p>
         </section>
 
         <section aria-labelledby="d-h" className="flex flex-wrap items-start gap-5 rounded-3xl bg-white px-[26px] py-6">
@@ -94,7 +95,7 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Prom
             <h2 id="d-h" className="m-0 text-xl font-normal tracking-[-0.03em]">
               Take your data or delete it
             </h2>
-            <p className="mt-1.5 mb-0 text-sm leading-[1.55] text-muted">Download everything as a ZIP of your CVs, reports and letters. Deleting your account removes it all straight away and can&apos;t be undone.</p>
+            <p className="mt-1.5 mb-0 text-sm leading-[1.55] text-muted">Download everything as a ZIP of your CVs, reports, letters and LinkedIn reviews. Deleting your account removes these straight away and can&apos;t be undone. A few things are kept or expire later, such as records your university holds, logs of staff access and copies at our service providers. <Link href="/legal/privacy">See what&apos;s kept</Link>.</p>
           </div>
           <div className="flex flex-col gap-3">
             <a href="/api/export" className="inline-flex min-h-[46px] items-center justify-center rounded-full bg-black px-5 text-sm font-medium text-white no-underline hover:bg-ink-2 hover:text-white">
@@ -105,15 +106,15 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Prom
               <form action={deleteAccount} className="mt-3 flex flex-col gap-2">
                 <label className="flex flex-col gap-1.5 text-[13px] text-muted">
                   Type DELETE to confirm
-                  <input name="confirm" autoComplete="off" aria-invalid={confirmError} className="min-h-10 rounded-xl border border-edge px-3 text-sm text-black" />
+                  <input name="confirm" autoComplete="off" aria-invalid={confirmError} aria-describedby={confirmError ? "confirm-error" : undefined} className="min-h-10 rounded-xl border border-edge px-3 text-sm text-black" />
                 </label>
                 {confirmError && (
-                  <p role="alert" className="m-0 text-[13px] text-black">
+                  <p id="confirm-error" role="alert" className="m-0 text-[13px] text-black">
                     Type DELETE in capitals to confirm.
                   </p>
                 )}
                 <button type="submit" className="min-h-[42px] rounded-full border border-black bg-white px-5 text-sm text-black hover:bg-black hover:text-white">
-                  Delete everything
+                  Delete my account and data
                 </button>
               </form>
             </details>

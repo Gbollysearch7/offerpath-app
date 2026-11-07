@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CaseworkNotice } from "@/app/careers-service/CaseworkNotice";
 import { initials } from "@/lib/session";
 import type { Profile } from "@/lib/types";
 import { SiteFooter } from "./SiteFooter";
@@ -11,6 +12,7 @@ export function StudentShell({ profile, active, children }: { profile: Profile; 
         Skip to content
       </a>
       <Topbar active={active} initials={initials(profile.fullName)} name={profile.fullName} />
+      <CaseworkNotice />
       <div className="flex-1">{children}</div>
       <SiteFooter />
     </div>

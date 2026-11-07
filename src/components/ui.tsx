@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { bandKey } from "@/lib/analysis/rubric";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
@@ -120,11 +121,15 @@ export function ScoreRing({ value, of = 100, size, stroke, color, track = "#EEF2
   );
 }
 
-/** Traffic-light tone for a score, on the product's bands: 75+ good (green), 50–74 average (amber), under 50 weak (red). */
+/**
+ * Traffic-light tone for a score, on the rubric's band thresholds (BAND_THRESHOLDS): the top two bands
+ * are green, the middle band amber, the lowest red. Colour never carries a band on its own: every strip,
+ * ring and bar that uses these tones shows the number or the band label as text as well.
+ */
 export type ScoreTone = "good" | "average" | "weak";
 export const scoreTone = (score: number, of = 100): ScoreTone => {
-  const s = (score / of) * 100;
-  return s >= 75 ? "good" : s >= 50 ? "average" : "weak";
+  const key = bandKey((score / of) * 100);
+  return key === "low" ? "weak" : key === "mid" ? "average" : "good";
 };
 
 // Rings and bars (graphics, 3:1 needed) use brighter tones; text needs 4.5:1, so it uses darker ones.

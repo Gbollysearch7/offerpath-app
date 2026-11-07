@@ -7,7 +7,7 @@ import { requireStudent } from "@/lib/session";
 export const metadata: Metadata = { title: "Practice" };
 
 const TOOLS = [
-  ["/practice/interview", "Interview practice", "Answer real interview questions and get instant feedback on structure, detail and length."],
+  ["/practice/interview", "Interview practice", "Answer typical interview questions, or questions built from your CV and a role you're tracking, in writing. Feedback covers what's in your answer as well as its shape."],
   ["/practice/aptitude", "Aptitude tests", "Timed numerical, verbal and logical practice sets, with worked answers."],
   ["/practice/roadmap", "Role roadmaps", "What to do and when, year by year, for the sector you're aiming at."],
 ] as const;

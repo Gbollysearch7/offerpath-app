@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { completeOnboarding } from "@/app/actions/auth";
 import { FormError, Switch } from "@/components/client";
 import { cx, Logo } from "@/components/ui";
@@ -29,6 +29,13 @@ export function OnboardingFlow({ firstName, initial }: { firstName: string; init
   const [s, setS] = useState<State>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Each step is a new screen: the heading takes focus, so a screen reader reads it and Tab starts from the step's first choice.
+  const heading = useRef<HTMLHeadingElement>(null);
+  const shownStep = useRef(step);
+  useEffect(() => {
+    if (shownStep.current !== step) heading.current?.focus();
+    shownStep.current = step;
+  }, [step]);
 
   const toggleSector = (t: string) => {
     setError(null);
@@ -76,7 +83,7 @@ export function OnboardingFlow({ firstName, initial }: { firstName: string; init
         {step === 0 && (
           <>
             <div>
-              <h1 className="m-0 text-[36px] font-normal leading-[1.1] tracking-[-1.6px] sm:text-5xl sm:tracking-[-2.16px]">Welcome, {firstName}. Where are you right now?</h1>
+              <h1 ref={heading} tabIndex={-1} className="m-0 text-[36px] font-normal leading-[1.1] tracking-[-1.6px] sm:text-5xl sm:tracking-[-2.16px]">Welcome, {firstName}. Where are you right now?</h1>
               <p className="mt-3 mb-0 text-[17px] text-muted">We&apos;ll tune your feedback and deadlines to your stage.</p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -99,7 +106,7 @@ export function OnboardingFlow({ firstName, initial }: { firstName: string; init
         {step === 1 && (
           <>
             <div>
-              <h1 className="m-0 text-[36px] font-normal leading-[1.1] tracking-[-1.6px] sm:text-5xl sm:tracking-[-2.16px]">Which sectors are you aiming for?</h1>
+              <h1 ref={heading} tabIndex={-1} className="m-0 text-[36px] font-normal leading-[1.1] tracking-[-1.6px] sm:text-5xl sm:tracking-[-2.16px]">Which sectors are you aiming for?</h1>
               <p className="mt-3 mb-0 text-[17px] text-muted">Pick up to three. We&apos;ll show how well your CV fits each one.</p>
             </div>
             <div className="flex flex-wrap gap-2.5">
@@ -118,7 +125,7 @@ export function OnboardingFlow({ firstName, initial }: { firstName: string; init
         {step === 2 && (
           <>
             <div>
-              <h1 className="m-0 text-[36px] font-normal leading-[1.1] tracking-[-1.6px] sm:text-5xl sm:tracking-[-2.16px]">A couple of preferences</h1>
+              <h1 ref={heading} tabIndex={-1} className="m-0 text-[36px] font-normal leading-[1.1] tracking-[-1.6px] sm:text-5xl sm:tracking-[-2.16px]">A couple of preferences</h1>
               <p className="mt-3 mb-0 text-[17px] text-muted">You can change these any time in settings.</p>
             </div>
             <div className="rounded-3xl bg-white px-6 py-2">

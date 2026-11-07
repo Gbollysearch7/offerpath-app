@@ -377,6 +377,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    font-size: 14px;
+    line-height: 1.35;
   }
 
   .op-hero-tick { flex: none; }
@@ -386,6 +388,12 @@
     flex-direction: column;
     gap: 10px;
     background: var(--op-mist);
+  }
+
+  .op-hero-data-copy {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--op-body);
   }
 
   .op-hero-data-title {
@@ -511,7 +519,7 @@
 
   .op-hero-area {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 132px 28px;
+    grid-template-columns: minmax(0, 1fr) 96px 28px;
     align-items: center;
     gap: 12px;
     font-size: 14px;

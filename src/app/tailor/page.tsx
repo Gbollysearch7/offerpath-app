@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { StudentShell } from "@/components/StudentShell";
 import { btn, fmtShort } from "@/components/ui";
+import { presentedScore } from "@/lib/analysis/coverage";
 import { requireStudent } from "@/lib/session";
 import { TailorStartForm, TrackedRoleButton } from "./TailorStartForm";
 
@@ -21,7 +22,7 @@ export default async function TailorStartPage({ searchParams }: { searchParams: 
       <main id="main" className="mx-auto flex max-w-[1120px] flex-wrap items-start gap-6 px-4 pt-12 pb-16 sm:px-7">
         <div className="flex-[1_1_100%]">
           <h1 className="m-0 text-[34px] font-normal leading-[1.1] tracking-[-1.5px] sm:text-[44px] sm:tracking-[-1.98px]">Tailor your CV to a job</h1>
-          <p className="mt-2.5 mb-0 text-base text-muted">Paste a job link. We&apos;ll rewrite your profile and most relevant bullets for that role, show your match before and after, and give you the tailored CV to copy.</p>
+          <p className="mt-2.5 mb-0 text-base text-muted">Paste a job link. We&apos;ll rewrite your profile and most relevant bullets for that role, show the evidence your CV gives for each requirement in the advert, and give you the tailored CV to copy.</p>
         </div>
         {cvs.rows.length === 0 ? (
           <section className="flex flex-[1_1_100%] flex-col items-start gap-3 rounded-[28px] bg-white p-7">
@@ -33,7 +34,7 @@ export default async function TailorStartPage({ searchParams }: { searchParams: 
           </section>
         ) : (
           <>
-            <TailorStartForm cvs={cvs.rows.map((r) => ({ id: r.id, label: `${r.title} · score ${r.score ?? "–"}` }))} />
+            <TailorStartForm cvs={cvs.rows.map((r) => ({ id: r.id, label: `${r.title} · score ${presentedScore(r) ?? "–"}` }))} />
             <aside aria-labelledby="t-h" className="flex min-w-0 flex-[1_1_320px] flex-col gap-3 rounded-[28px] bg-white p-6">
               <h2 id="t-h" className="mt-0 mb-1 font-mono text-xs font-normal tracking-[0.04em] text-subtle">
                 OR PICK A TRACKED ROLE

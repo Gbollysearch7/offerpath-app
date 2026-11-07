@@ -1,14 +1,33 @@
 // Pure builders that turn inputs into stored report payloads. Used by server actions and the demo seed.
 import { STAGE_OPTIONS } from "@/lib/stages";
 import { analyseCv } from "@/lib/analysis/cv";
-import { highlightJob, jobKeywords, matchScores } from "@/lib/analysis/job";
-import { draftLetterRuleBased, paragraphsToText, reviewLetter } from "@/lib/analysis/letter";
-import type { CoverLetterPayload, CvAnalysis, CvReviewPayload, LetterParagraph, TailorPayload } from "@/lib/types";
+import { highlightJob, placeInCv } from "@/lib/analysis/job";
+import { highlightTerms, jobMatchAssessment, keywordsFromMatch, matchRequirements } from "@/lib/analysis/job-match";
+import { type AdapterStatus, extractRequirements, type RequirementExtraction } from "@/lib/analysis/job-requirements";
+import { cvAssessment, letterAssessment } from "@/lib/analysis/findings";
+import { draftLetterRuleBased, paragraphsToText } from "@/lib/analysis/letter";
+import { inputsFor, startLetterEdits, syncLetter } from "@/lib/analysis/letter-edits";
+import { baseDocument } from "@/lib/analysis/tailor-edits";
+import { PAYLOAD_VERSION, type CoverLetterPayload, type CvAnalysis, type CvReviewPayload, type DocumentMeta, type LetterParagraph, type InstitutionalGuidance, type LetterEdits, type TailorPayload } from "@/lib/types";
 
-export function buildCvPayload(input: { fileName: string; text: string; sector: string; stage: string; storagePath?: string | null; analysis?: CvAnalysis }): CvReviewPayload {
-  const { analysis, ...rest } = input;
-  return { ...rest, storagePath: input.storagePath ?? null, analysis: analysis ?? analyseCv(input.text, input.sector) };
+export function buildCvPayload(input: { fileName: string; text: string; sector: string; stage: string; storagePath?: string | null; analysis?: CvAnalysis; document?: DocumentMeta }): CvReviewPayload {
+  const analysis = input.analysis ?? analyseCv(input.text, input.sector);
+  return {
+    payloadVersion: PAYLOAD_VERSION,
+    fileName: input.fileName,
+    sector: input.sector,
+    stage: input.stage,
+    text: input.text,
+    storagePath: input.storagePath ?? null,
+    analysis,
+    // Only when the text came from a file read by `extractDocument`; text-only builders (demo seeds, tests) leave it out.
+    ...(input.document ? { document: input.document } : {}),
+    assessment: cvAssessment(analysis, input.text),
+  };
 }
+
+/** Adds an institution's guidance beside a CV report. Only this field differs, so the common score cannot move. */
+export const withInstitutionalGuidance = (payload: CvReviewPayload, institutionalGuidance: InstitutionalGuidance): CvReviewPayload => ({ ...payload, institutionalGuidance });
 
 export function buildTailorPayload(input: {
   cvReportId: string;
@@ -19,10 +38,15 @@ export function buildTailorPayload(input: {
   jobUrl: string | null;
   jobText: string;
   deadline: string | null;
+  /** The advert's requirements, when the caller has already read them (with or without the semantic adapter). */
+  requirements?: { extraction: RequirementExtraction; status: AdapterStatus };
 }): TailorPayload {
-  const keywords = jobKeywords(input.jobText, input.cvText);
-  const m = matchScores(keywords);
+  const extraction = input.requirements?.extraction ?? extractRequirements(input.jobText);
+  const jobMatch = matchRequirements({ jobText: input.jobText, cvText: input.cvText, extraction, adapter: input.requirements?.status });
+  const keywords = keywordsFromMatch(jobMatch, (r) => placeInCv(r.terms[0], r.kind === "tool", input.jobText, input.cvText));
+  const highlight = highlightTerms(jobMatch);
   return {
+    payloadVersion: PAYLOAD_VERSION,
     cvReportId: input.cvReportId,
     cvFileName: input.cvFileName,
     jobTitle: input.jobTitle,
@@ -31,11 +55,14 @@ export function buildTailorPayload(input: {
     jobText: input.jobText,
     deadline: input.deadline,
     keywords,
-    matchNow: m.now,
-    matchTailored: m.tailored,
-    jd: highlightJob(input.jobText, keywords),
+    matchNow: jobMatch.coverage.score,
+    // Nothing has been revised yet, so there is nothing to measure. `createTailoredVersion` fills this from the real document.
+    matchTailored: null,
+    jd: highlightJob(input.jobText, highlight.hits, highlight.aliases),
     added: [],
     tailored: null,
+    jobMatch,
+    assessment: jobMatchAssessment(jobMatch),
   };
 }
 
@@ -47,33 +74,46 @@ export function buildLetterReviewPayload(input: {
   tailorReportId: string | null;
   cvReportId: string | null;
   cvFileName: string | null;
-  cvText: string;
-}): { payload: CoverLetterPayload; score: number } {
-  const r = reviewLetter(input.letterText, input.jobText, input.employer, input.cvText);
-  return {
-    score: r.score,
-    payload: {
-      mode: "review",
-      jobTitle: input.jobTitle,
-      employer: input.employer,
-      jobText: input.jobText,
-      tailorReportId: input.tailorReportId,
-      cvReportId: input.cvReportId,
-      cvFileName: input.cvFileName,
-      addressee: null,
-      notes: null,
-      letterText: input.letterText,
-      paragraphs: input.letterText.split(/\n\s*\n/).map((t) => ({ text: t.trim(), src: [] })).filter((p) => p.text),
-      checks: r.checks,
-      keywordsUsed: r.keywordsUsed,
-      keywordsMissing: r.keywordsMissing,
-      words: r.words,
-      paras: r.paras,
-      summary: r.summary,
-      saved: true,
-      aiAssisted: false,
-    },
+  /** The linked CV, which the letter's claims and skills are compared with. */
+  cvPayload?: CvReviewPayload | null;
+  /** A CV's text alone, when there's no report for it. */
+  cvText?: string;
+  notes?: string | null;
+  addressee?: string | null;
+  name?: string | null;
+  format?: "letter" | "statement";
+  wordLimit?: number | null;
+}): { payload: CoverLetterPayload; score: number | null } {
+  const paragraphs = input.letterText.split(/\n\s*\n/).map((t) => ({ text: t.trim(), src: [] as string[] })).filter((p) => p.text);
+  const signer = input.name ?? input.cvPayload?.analysis.meta.name ?? null;
+  const base: CoverLetterPayload = {
+    payloadVersion: PAYLOAD_VERSION,
+    mode: "review",
+    jobTitle: input.jobTitle,
+    employer: input.employer,
+    jobText: input.jobText,
+    tailorReportId: input.tailorReportId,
+    cvReportId: input.cvReportId,
+    cvFileName: input.cvFileName,
+    addressee: input.addressee ?? null,
+    notes: input.notes ?? null,
+    letterText: input.letterText,
+    paragraphs,
+    checks: [],
+    keywordsUsed: [],
+    keywordsMissing: [],
+    words: 0,
+    paras: 0,
+    summary: "",
+    saved: true,
+    aiAssisted: false,
+    assessment: letterAssessment({ letterText: input.letterText, jobText: input.jobText, checks: [], keywordsUsed: [], keywordsMissing: [] }),
+    signer,
   };
+  const inputs = { ...inputsFor(base, input.cvPayload ?? null), cvText: input.cvPayload ? baseDocument(input.cvPayload).text : (input.cvText ?? ""), format: input.format ?? ("letter" as const), wordLimit: input.wordLimit ?? null };
+  const edits = startLetterEdits(inputs, paragraphs, "", new Date().toISOString(), { exactText: input.letterText });
+  const score = syncLetter(base, edits);
+  return { score, payload: base };
 }
 
 export function letterHeader(name: string, email: string | null, phone: string | null, date = new Date()): string {
@@ -82,7 +122,7 @@ export function letterHeader(name: string, email: string | null, phone: string |
 }
 
 export function buildLetterDraftPayload(input: {
-  paragraphs: LetterParagraph[] | null; // from Claude, or null to use the rule-based draft
+  paragraphs: LetterParagraph[] | null; // already through checkLetterDraft, or null to use the rule-based draft
   name: string;
   email: string | null;
   phone: string | null;
@@ -96,7 +136,10 @@ export function buildLetterDraftPayload(input: {
   addressee: string | null;
   notes: string | null;
   stageLabel: string;
-}): { payload: CoverLetterPayload; score: number } {
+  withheld?: LetterEdits["withheld"];
+  claims?: LetterEdits["aiClaims"];
+  wordLimit?: number | null;
+}): { payload: CoverLetterPayload; score: number | null } {
   const paragraphs =
     input.paragraphs ??
     draftLetterRuleBased({
@@ -112,32 +155,36 @@ export function buildLetterDraftPayload(input: {
       notes: input.notes,
       stageLabel: input.stageLabel,
     });
-  const letterText = paragraphsToText(paragraphs, letterHeader(input.name, input.email, input.phone));
-  const r = reviewLetter(letterText, input.jobText, input.employer, input.cvPayload?.text ?? "");
-  return {
-    score: r.score,
-    payload: {
-      mode: "draft",
-      jobTitle: input.jobTitle,
-      employer: input.employer,
-      jobText: input.jobText,
-      tailorReportId: input.tailorReportId,
-      cvReportId: input.cvReportId,
-      cvFileName: input.cvFileName,
-      addressee: input.addressee,
-      notes: input.notes,
-      letterText,
-      paragraphs,
-      checks: r.checks,
-      keywordsUsed: r.keywordsUsed,
-      keywordsMissing: r.keywordsMissing,
-      words: r.words,
-      paras: r.paras,
-      summary: r.summary,
-      saved: false,
-      aiAssisted: !!input.paragraphs,
-    },
+  const header = letterHeader(input.name, input.email, input.phone);
+  const letterText = paragraphsToText(paragraphs, header);
+  const base: CoverLetterPayload = {
+    payloadVersion: PAYLOAD_VERSION,
+    mode: "draft",
+    jobTitle: input.jobTitle,
+    employer: input.employer,
+    jobText: input.jobText,
+    tailorReportId: input.tailorReportId,
+    cvReportId: input.cvReportId,
+    cvFileName: input.cvFileName,
+    addressee: input.addressee,
+    notes: input.notes,
+    letterText,
+    paragraphs,
+    checks: [],
+    keywordsUsed: [],
+    keywordsMissing: [],
+    words: 0,
+    paras: 0,
+    summary: "",
+    saved: false,
+    aiAssisted: !!input.paragraphs,
+    assessment: letterAssessment({ letterText, jobText: input.jobText, checks: [], keywordsUsed: [], keywordsMissing: [] }),
+    signer: input.name,
   };
+  const inputs = { ...inputsFor(base, input.cvPayload), format: "letter" as const, wordLimit: input.wordLimit ?? null };
+  const edits = startLetterEdits(inputs, paragraphs, header, new Date().toISOString(), { withheld: input.withheld, claims: input.claims });
+  const score = syncLetter(base, edits);
+  return { score, payload: base };
 }
 
 export function stageLabel(stage: string | null, course: string | null): string {

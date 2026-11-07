@@ -3,197 +3,205 @@ import Link from "next/link";
 import { AdminNav } from "@/components/AdminNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Eyebrow } from "@/components/ui";
+import { bandLegend } from "@/lib/analysis/labels";
+import { dateRangeLabel, HIDDEN, publishedFigures, scoreFigures, showFigure, STATEMENTS, type PublishedFigure } from "@/lib/analytics/definitions";
+import type { Figure } from "@/lib/analytics/types";
 import { findPeriod, listPeriods } from "@/lib/periods";
 import { requireAdmin } from "@/lib/session";
 import { PeriodSelect } from "./PeriodSelect";
 
 export const metadata: Metadata = { title: "Careers dashboard" };
 
-const fmtN = (n: number | null) => (n === null ? "–" : n.toLocaleString("en-GB"));
+const NEED_LABEL: Record<string, string> = {
+  "No CV yet": "Signed up over 3 weeks ago, no CV reviewed",
+  "Not improving": "Score not moving after 3 comparable reviews",
+  "Deadline soon": "Tracked deadline in 7 days, score under 50",
+  Inactive: "Inactive for 30 days",
+};
+
+const num = (v: Figure) => (v === null ? HIDDEN : v.toLocaleString("en-GB"));
+
+function FigureCard({ f }: { f: PublishedFigure }) {
+  return (
+    <section aria-label={f.name} className="flex min-w-0 flex-[1_1_300px] flex-col gap-2 rounded-[20px] bg-white px-[18px] py-4">
+      <h3 className="m-0 text-[15px] font-medium">{f.name}</h3>
+      <p className="m-0 text-[28px] tracking-[-0.04em]">{showFigure(f.value)}</p>
+      <p className="m-0 text-[13px] text-muted">
+        {f.denominator !== null ? `out of about ${f.denominator.toLocaleString("en-GB")}` : f.denominatorLabel.startsWith("None") ? "No denominator" : "Denominator hidden"}
+        {f.percent !== null && `, roughly ${f.percent}%`}
+      </p>
+      <dl className="m-0 mt-1 flex flex-col gap-1.5 border-t border-line pt-2.5 text-[13px] leading-[1.45]">
+        {(
+          [
+            ["What it counts", f.definition],
+            ["Out of", f.denominatorLabel],
+            ["Dates", f.dateRange],
+            ["Left out", f.exclusions],
+          ] as const
+        ).map(([k, v]) => (
+          <div key={k}>
+            <dt className="inline font-medium">{k}: </dt>
+            <dd className="m-0 inline text-muted">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
 
 export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
   const { repo, profile } = await requireAdmin();
   const period = findPeriod((await searchParams).period);
-  const o = await repo.adminOverview({ from: period.from, to: period.to });
-  const k = o.kpis;
-  const kpis = [
-    { l: "Active students", v: fmtN(k.activeStudents), d: `+${k.newThisMonth} new ${period.key === "all" ? "this month" : "this period"}`, c: "text-brand" },
-    { l: "Average score", v: fmtN(k.avgScore), d: k.avgFirstScore !== null ? `Up from ${k.avgFirstScore}` : "No scores yet", c: "text-brand" },
-    { l: "Average improvement", v: k.avgImprovement !== null ? `${k.avgImprovement >= 0 ? "+" : ""}${k.avgImprovement}` : "–", d: "Per student", c: "text-muted" },
-    { l: "CVs reviewed", v: fmtN(k.cvsReviewed), d: `${k.perStudent} per student`, c: "text-muted" },
-    { l: "Applications tracked", v: fmtN(k.appsTracked), d: period.label, c: "text-muted" },
-    { l: "May need a hand", v: fmtN(k.needHand), d: "See list", c: "text-black" },
-  ];
-  const weekly = o.weekly.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
-  const vals = weekly.map((p) => p.v);
-  const lo = Math.floor((Math.min(...vals, 60) - 5) / 10) * 10;
-  const hi = Math.ceil(Math.max(...vals, 80) / 10) * 10;
-  const x = (i: number) => 60 + (i * 469) / Math.max(1, o.weekly.length - 1);
-  const y = (v: number) => 190 - ((v - lo) / (hi - lo)) * 170;
-  const pts = weekly.map((p) => `${x(p.i).toFixed(0)},${y(p.v).toFixed(0)}`);
-  const last = weekly[weekly.length - 1];
-  const ticks = [hi, hi - 10, hi - 20].filter((t) => t > lo);
+  const a = await repo.adminAnalytics(period.key);
+  const figures = publishedFigures(a);
+  const scores = a.scores;
+  const legend = bandLegend();
+  const dimensions = [...new Set(a.breakdowns.map((r) => r.dimension))].filter((d) => d !== "All students");
+  const statements = [STATEMENTS.population, STATEMENTS.employment, STATEMENTS.causal, STATEMENTS.privacy, STATEMENTS.rounding];
 
   return (
     <div className="flex min-h-screen flex-col bg-canvas text-black lg:flex-row">
-      <AdminNav active="dashboard" university={o.universityName} name={profile.fullName} title="Head of Careers" />
+      <AdminNav active="dashboard" university={a.universityName} name={profile.fullName} title="Head of Careers" />
       <main id="main" className="flex min-w-0 max-w-[1180px] flex-1 flex-col gap-5 px-4 pt-7 pb-14 sm:px-8">
+        {a.sample && (
+          <p className="m-0 rounded-2xl bg-black px-4 py-3 text-sm font-medium text-white">
+            <span className="font-mono">SAMPLE DATA.</span> {STATEMENTS.sample}
+          </p>
+        )}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            {o.sample && <p className="m-0 font-mono text-xs text-brand">SAMPLE DATA · FICTIONAL UNIVERSITY</p>}
-            <h1 className="mt-1.5 mb-0 text-[44px] font-normal leading-[1.1] tracking-[-1.98px]">Dashboard</h1>
+            <h1 className="m-0 text-[36px] font-normal leading-[1.1] tracking-[-1.6px] sm:text-[44px] sm:tracking-[-1.98px]">Dashboard</h1>
+            <p className="mt-1.5 mb-0 text-sm text-muted">{period.label}. {dateRangeLabel(a.period)}.</p>
           </div>
           <div className="flex flex-wrap gap-2.5">
             <PeriodSelect periods={listPeriods()} current={period.key} />
-            <a href="/admin/export" className="inline-flex min-h-11 items-center rounded-full bg-black px-[18px] text-sm font-medium text-white no-underline hover:bg-ink-2 hover:text-white">
-              Export CSV
+            <a href={`/admin/export?period=${encodeURIComponent(period.key)}`} className="inline-flex min-h-11 items-center rounded-full bg-black px-[18px] text-sm font-medium text-white no-underline hover:bg-ink-2 hover:text-white">
+              Download these figures
             </a>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3.5">
-          {kpis.map((kp) => (
-            <div key={kp.l} className="flex-[1_1_160px] rounded-[20px] bg-white px-[18px] py-4">
-              <p className="m-0 text-[13px] text-subtle">{kp.l}</p>
-              <p className="mt-1.5 mb-0 text-[32px] tracking-[-0.05em]">{kp.v}</p>
-              <p className={`mt-0.5 mb-0 text-xs ${kp.c}`}>{kp.d}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-stretch gap-5">
-          <section aria-labelledby="tr-h" className="min-w-0 flex-[999_1_460px] rounded-3xl bg-white px-6 py-[22px]">
-            <Eyebrow id="tr-h" className="mb-2.5">
-              AVERAGE READINESS SCORE BY WEEK
-            </Eyebrow>
-            {weekly.length < 2 ? (
-              <p className="m-0 text-sm text-muted">Not enough data yet. Weeks with fewer than five students are hidden.</p>
-            ) : (
-              <svg viewBox="0 0 560 220" width="100%" height="220" role="img" aria-label={`Average score rose from ${weekly[0].v} in week ${weekly[0].i + 1} to ${last.v} in week ${last.i + 1}`}>
-                {ticks.map((t) => (
-                  <g key={t}>
-                    <line x1="36" y1={y(t)} x2="550" y2={y(t)} stroke="#EEF2EF" />
-                    <text x="28" y={y(t) + 4} fontSize="11" fill="#5C6B66" textAnchor="end" fontFamily="var(--font-geist-mono)">
-                      {t}
-                    </text>
-                  </g>
-                ))}
-                <line x1="36" y1="190" x2="550" y2="190" stroke="#DCE3DE" />
-                <path d={`M${pts.join(" L")} L${x(last.i)} 190 L${x(weekly[0].i)} 190 Z`} fill="#DCE6DF" opacity="0.6" />
-                <polyline points={pts.join(" ")} fill="none" stroke="#36604E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx={x(last.i)} cy={y(last.v)} r="5" fill="#36604E" />
-                <text x={x(last.i)} y={y(last.v) - 14} fontSize="12" textAnchor="middle" fontFamily="var(--font-geist-mono)">
-                  {last.v}
-                </text>
-                {[0, Math.floor((o.weekly.length - 1) / 2), o.weekly.length - 1].map((i) => (
-                  <text key={i} x={x(i)} y="210" fontSize="11" fill="#5C6B66" textAnchor="middle">
-                    Wk {i + 1}
-                  </text>
-                ))}
-              </svg>
-            )}
-          </section>
-          <section aria-labelledby="bd-h" className="flex min-w-0 flex-[1_1_320px] flex-col gap-3.5 rounded-3xl bg-white px-6 py-[22px]">
-            <Eyebrow id="bd-h">STUDENTS BY SCORE BAND</Eyebrow>
-            {o.bands ? (
-              <>
-                <div role="img" aria-label={`Needs work ${o.bands.needs} percent, getting there ${o.bands.getting} percent, strong ${o.bands.strong} percent, interview-ready ${o.bands.ready} percent`} className="flex h-[18px] overflow-hidden rounded-full">
-                  <span className="bg-[#F4B8B1]" style={{ flex: o.bands.needs }} />
-                  <span className="bg-[#F2D27A]" style={{ flex: o.bands.getting }} />
-                  <span className="bg-[#9FD3AE]" style={{ flex: o.bands.strong }} />
-                  <span className="bg-brand" style={{ flex: o.bands.ready }} />
-                </div>
-                {[
-                  ["Needs work", o.bands.needs, "#F4B8B1"],
-                  ["Getting there", o.bands.getting, "#F2D27A"],
-                  ["Strong", o.bands.strong, "#9FD3AE"],
-                  ["Interview-ready", o.bands.ready, "#36604E"],
-                ].map(([n, p, c]) => (
-                  <div key={n as string} className="flex items-center gap-2.5 text-sm">
-                    <span className="h-3 w-3 rounded border border-edge" style={{ background: c as string }} />
-                    <span className="flex-1">{n}</span>
-                    <span className="font-mono text-[13px]">{p}%</span>
-                  </div>
-                ))}
-              </>
-            ) : (
-              <p className="m-0 text-sm text-muted">Shown once five or more students have a score.</p>
-            )}
-          </section>
-        </div>
-
-        <div className="flex flex-wrap items-stretch gap-5">
-          <section aria-labelledby="fac-h" className="flex min-w-0 flex-[1_1_360px] flex-col gap-3 rounded-3xl bg-white px-6 py-[22px]">
-            <Eyebrow id="fac-h" className="mb-1">
-              BY FACULTY · AVG SCORE AND IMPROVEMENT
-            </Eyebrow>
-            {o.faculties.length === 0 && <p className="m-0 text-sm text-muted">No faculty has five or more students with scores yet.</p>}
-            {o.faculties.map((f) => (
-              <div key={f.name} className="grid grid-cols-[120px_minmax(0,1fr)_30px_40px] items-center gap-2.5 text-sm">
-                <span className="text-muted">{f.name}</span>
-                <span className="h-2.5 rounded-full bg-line">
-                  <span className="block h-2.5 rounded-full bg-brand" style={{ width: `${f.avg}%` }} />
-                </span>
-                <span className="text-right font-mono text-[13px]">{f.avg}</span>
-                <span className="text-right font-mono text-xs text-brand">
-                  {f.improvement >= 0 ? "+" : ""}
-                  {f.improvement}
-                </span>
-              </div>
+        <section aria-labelledby="read-h" className="rounded-3xl bg-mist px-6 py-[22px]">
+          <h2 id="read-h" className="m-0 text-lg font-normal tracking-[-0.03em]">How to read these figures</h2>
+          <ul className="mt-2.5 mb-0 flex list-disc flex-col gap-1.5 pl-5 text-sm leading-[1.55] text-body">
+            {statements.map((s) => (
+              <li key={s}>{s}</li>
             ))}
-          </section>
-          <section aria-labelledby="hi-h" className="flex min-w-0 flex-[1_1_320px] flex-col gap-3.5 rounded-3xl bg-white px-6 py-[22px]">
-            <Eyebrow id="hi-h">HOME VS INTERNATIONAL</Eyebrow>
-            {o.homeIntl.length === 0 && <p className="m-0 text-sm text-muted">Shown once each group has five or more students.</p>}
-            {o.homeIntl.map((h) => {
-              const mx = Math.max(h.home, h.intl) * 1.15 || 1;
-              return (
-                <div key={h.metric}>
-                  <p className="mt-0 mb-1.5 text-sm">{h.metric}</p>
-                  {[
-                    ["Home", h.home, "#000000"],
-                    ["International", h.intl, "#8FB3A1"],
-                  ].map(([label, v, c]) => (
-                    <div key={label as string} className="mb-1 grid grid-cols-[96px_minmax(0,1fr)_40px] items-center gap-2 text-[13px] text-muted">
-                      <span>{label}</span>
-                      <span className="h-2 rounded-full bg-line">
-                        <span className="block h-2 rounded-full" style={{ width: `${Math.round(((v as number) / mx) * 100)}%`, background: c as string }} />
-                      </span>
-                      <span className="text-right font-mono">{v}</span>
-                    </div>
-                  ))}
+          </ul>
+        </section>
+
+        {a.withheld && (
+          <p className="m-0 rounded-2xl bg-white px-4 py-3 text-sm">
+            {STATEMENTS.withheld}{" "}
+            <Link href="/admin?period=all">Show all time</Link>
+          </p>
+        )}
+
+        <section aria-labelledby="use-h" className="flex flex-col gap-3.5">
+          <h2 id="use-h" className="m-0 text-[22px] font-normal tracking-[-0.04em]">How the service is being used</h2>
+          <div className="flex flex-wrap items-stretch gap-3.5">
+            {figures.slice(0, 8).map((f) => (
+              <FigureCard key={f.key} f={f} />
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="sc-h" className="flex flex-col gap-3.5">
+          <h2 id="sc-h" className="m-0 text-[22px] font-normal tracking-[-0.04em]">Scores, within one version set</h2>
+          <p className="m-0 text-sm leading-[1.55] text-muted">
+            {STATEMENTS.versions} {scores?.versionSet ? <>Version set shown: <span className="font-mono text-xs break-all">{scores.versionSet}</span>.</> : "Too few students are in any version set to show one."}
+          </p>
+          <div className="flex flex-wrap items-stretch gap-3.5">
+            {scoreFigures(a).map((f) => (
+              <FigureCard key={f.key} f={f} />
+            ))}
+            <section aria-labelledby="bd-h" className="flex min-w-0 flex-[1_1_300px] flex-col gap-2.5 rounded-[20px] bg-white px-[18px] py-4">
+              <Eyebrow id="bd-h">LATEST SCORE, BY BAND</Eyebrow>
+              {legend.map((b) => (
+                <div key={b.key} className="flex items-center justify-between gap-2.5 text-sm">
+                  <span>
+                    {b.label} <span className="text-subtle">{b.min}{b.max >= 100 ? "+" : `–${b.max}`}</span>
+                  </span>
+                  <span className="font-mono text-[13px]">{num(scores?.bands[b.key] ?? null)}</span>
                 </div>
-              );
-            })}
+              ))}
+              <p className="m-0 text-[13px] text-subtle">Students, rounded, in the version set above.</p>
+            </section>
+          </div>
+        </section>
+
+        <section aria-labelledby="tr-h" className="flex flex-col gap-3.5">
+          <h2 id="tr-h" className="m-0 text-[22px] font-normal tracking-[-0.04em]">What students say about their applications</h2>
+          <p className="m-0 text-sm leading-[1.55] text-muted">{STATEMENTS.employment}</p>
+          <div className="flex flex-wrap items-stretch gap-3.5">
+            {figures.slice(8).map((f) => (
+              <FigureCard key={f.key} f={f} />
+            ))}
+          </div>
+        </section>
+
+        {dimensions.map((d, i) => (
+          <section key={d} aria-labelledby={`dim-${i}`} className="rounded-3xl bg-white px-5 pt-4 pb-3">
+            <h2 id={`dim-${i}`} className="m-0 text-lg font-normal tracking-[-0.03em]">By {d.toLowerCase()}</h2>
+            <p className="mt-1 mb-2 text-[13px] text-muted">One breakdown at a time, never combined. Same dates, students and definitions as above. Rounded, so rows may not add up.</p>
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={`Figures by ${d.toLowerCase()}, scrollable`}>
+              <table className="w-full min-w-[760px] border-collapse text-sm">
+                <thead>
+                  <tr>
+                    {[d, "Students", "Reviews", "Useful edits", "Repeat use", "Referrals", "Tracking", "Average score"].map((t, c) => (
+                      <th key={t} scope="col" className={`border-b border-line px-2 py-2.5 font-mono text-[11px] font-normal text-subtle ${c === 0 ? "text-left" : "text-right"}`}>
+                        {t.toUpperCase()}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {a.breakdowns.filter((r) => r.dimension === d).map((r) =>
+                    r.hidden ? (
+                      <tr key="hidden">
+                        <th scope="row" colSpan={8} className="border-b border-line px-2 py-2.5 text-left font-normal text-muted">
+                          Other groups are combined, not named and hidden, because one or more is too small.
+                        </th>
+                      </tr>
+                    ) : (
+                      <tr key={r.group}>
+                        <th scope="row" className="border-b border-line px-2 py-2.5 text-left font-normal">{r.group}</th>
+                        {[r.students, r.completed, r.usefulEdits, r.repeatUse, r.referred, r.tracked, r.average].map((v, c) => (
+                          <td key={c} className={`border-b border-line px-2 py-2.5 text-right font-mono text-[13px] ${v === null ? "text-subtle" : ""}`}>{num(v)}</td>
+                        ))}
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
           </section>
-        </div>
+        ))}
 
         <div className="flex flex-wrap items-stretch gap-5">
           <section aria-labelledby="nh-h" className="flex min-w-0 flex-[999_1_460px] flex-col gap-2 rounded-3xl bg-white px-6 py-[22px]">
-            <div className="flex items-center justify-between">
-              <Eyebrow id="nh-h">MAY NEED A HAND · {k.needHand} STUDENTS</Eyebrow>
-              <Link href="/admin/students?f=needs" className="text-sm">
-                See all
-              </Link>
+            <div className="flex items-center justify-between gap-3">
+              <Eyebrow id="nh-h">MAY NEED A HAND, TODAY · {num(a.needs?.total ?? null)} STUDENTS</Eyebrow>
+              <Link href="/admin/students?f=needs" className="text-sm">See the list</Link>
             </div>
-            {o.needs.map((n) => (
-              <div key={n.why} className="flex items-center gap-3 border-t border-line py-3 text-sm">
-                <span className="w-8 text-right font-mono text-[13px]">{n.count}</span>
-                <span className="flex-1">{n.why}</span>
-                <span className="text-[13px] text-subtle">{n.hint}</span>
+            <p className="m-0 text-[13px] text-muted">Out of students sharing their progress. Today&apos;s position, not the chosen period. A prompt to offer help, based on activity, not a judgement of anyone.</p>
+            {a.needs?.rows.map((n) => (
+              <div key={n.flag} className="flex items-center gap-3 border-t border-line py-3 text-sm">
+                <span className="min-w-14 text-right font-mono text-[13px]">{num(n.count)}</span>
+                <span className="flex-1">{NEED_LABEL[n.flag] ?? n.flag}</span>
               </div>
             ))}
           </section>
-          <section className="flex min-w-0 flex-[1_1_300px] flex-col gap-2.5 rounded-3xl bg-mist px-6 py-[22px]">
-            <p className="m-0 text-lg tracking-[-0.03em]">Graduate Outcomes and TEF</p>
-            <p className="m-0 text-sm leading-[1.55] text-body">Download engagement and progress data formatted to support your Graduate Outcomes and TEF evidence.</p>
-            <a href={`/admin/export?pack=tef&period=${period.key}`} className="mt-auto inline-flex min-h-[42px] items-center self-start rounded-full bg-white px-4 text-sm text-black no-underline hover:text-black">
-              Build report
+          <section aria-labelledby="tef-h" className="flex min-w-0 flex-[1_1_300px] flex-col gap-2.5 rounded-3xl bg-mist px-6 py-[22px]">
+            <h2 id="tef-h" className="m-0 text-lg font-normal tracking-[-0.03em]">Graduate Outcomes and TEF</h2>
+            <p className="m-0 text-sm leading-[1.55] text-body">The same figures as this page, for this period, with their definitions. Context about how a service was used. It is not Graduate Outcomes data and not evidence of employment.</p>
+            <a href={`/admin/export?pack=tef&period=${encodeURIComponent(period.key)}`} className="mt-auto inline-flex min-h-[42px] items-center self-start rounded-full bg-white px-4 text-sm text-black no-underline hover:text-black">
+              Download the pack
             </a>
           </section>
         </div>
-        <p className="m-0 text-[13px] text-subtle">Groups with fewer than five students are hidden to protect privacy. Scores are AI-assisted guidance and can be overridden by advisers.</p>
-      <SiteFooter />
+        <p className="m-0 text-[13px] text-subtle">Scores are AI-assisted guidance. Advisers can add a note to a student&apos;s report or record that they disagree with it, and the student sees both alongside their score; the score itself can&apos;t be changed.</p>
+        <SiteFooter />
       </main>
     </div>
   );

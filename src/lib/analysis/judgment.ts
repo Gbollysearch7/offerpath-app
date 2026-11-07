@@ -22,6 +22,20 @@ export { RUBRIC_VERSION } from "./rubric";
 import { RUBRIC_VERSION } from "./rubric";
 export const AI_JUDGE_MODEL = "claude-haiku-5-5";
 
+/**
+ * Names JUDGE_SYSTEM in ai.ts. The prompt decides verdicts, and the cache key does not contain it, so a prompt change
+ * must bump this and RUBRIC_VERSION together: the rubric bump is what stops the new prompt reading verdicts cached
+ * under the old one. tests/scoring-contract.test.ts holds the prompt's hash and fails until both are bumped.
+ */
+export const JUDGE_PROMPT_VERSION = "judge-prompt-2026-11-06.1";
+
+/**
+ * The model configuration every first judgment is made under. Part of the scoring contract, so it is fixed here and
+ * not per deployment. A verdict is published only when at least `quorum` of `votes` came back: a degraded provider
+ * must not make one lone vote the permanent answer for a bullet, for every student.
+ */
+export const AI_JUDGE_CONFIG = { model: AI_JUDGE_MODEL, promptVersion: JUDGE_PROMPT_VERSION, votes: 3, quorum: 2, chunk: 25, maxTokens: 6000, effort: "medium" } as const;
+
 export type ScoringMethod = "ai" | "rules";
 
 /** The part of a judgment that is about the bullet alone, whatever sector the student targets. */
@@ -34,12 +48,12 @@ export type RelevanceJudgment = Pick<BulletJudgment, "relevance">;
  * who uploaded it, so the same bullet gets the same verdict for everyone. The core verdict ignores the
  * sector too, so changing sector can only change relevance.
  */
-export function coreKey(text: string): string {
-  return sha256([RUBRIC_VERSION, AI_JUDGE_MODEL, "core", bulletKey(text)].join("\u0000"));
+export function coreKey(text: string, rubric: string = RUBRIC_VERSION): string {
+  return sha256([rubric, AI_JUDGE_MODEL, "core", bulletKey(text)].join("\u0000"));
 }
 
-export function relevanceKey(text: string, sector: string): string {
-  return sha256([RUBRIC_VERSION, AI_JUDGE_MODEL, "relevance", sector.toLowerCase(), bulletKey(text)].join("\u0000"));
+export function relevanceKey(text: string, sector: string, rubric: string = RUBRIC_VERSION): string {
+  return sha256([rubric, AI_JUDGE_MODEL, "relevance", sector.toLowerCase(), bulletKey(text)].join("\u0000"));
 }
 
 const HARD_NUMBER_RE = /(\d|£|\$|€|%)/;

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createTailor } from "@/app/actions/tailor";
+import { announce } from "@/components/a11y";
 import { FormError } from "@/components/client";
 import { cx } from "@/components/ui";
 
@@ -16,6 +17,7 @@ export function TailorStartForm({ cvs }: { cvs: { id: string; label: string }[] 
   const submit = (fd: FormData) =>
     start(async () => {
       setError(null);
+      announce("Reading the job ad.");
       const res = await createTailor(fd);
       if (res.error || !res.id) setError(res.error ?? "Something went wrong.");
       else router.push(`/tailor/${res.id}?auto=1`);

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setShareProgress } from "@/app/actions/cv";
+import { announce } from "@/components/a11y";
 
 export function ShareButton({ shared }: { shared: boolean }) {
   const [on, setOn] = useState(shared);
@@ -16,6 +17,7 @@ export function ShareButton({ shared }: { shared: boolean }) {
           start(async () => {
             await setShareProgress(!on);
             setOn(!on);
+            announce(on ? "No longer shared with your adviser." : "Shared with your adviser.");
           })
         }
         className={on ? "inline-flex min-h-11 items-center gap-2 rounded-full border border-brand bg-okbg px-[18px] text-sm font-medium text-brand" : "inline-flex min-h-11 items-center gap-2 rounded-full border-0 bg-black px-[18px] text-sm font-medium text-white hover:bg-ink-2"}

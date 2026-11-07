@@ -1,5 +1,8 @@
+import type { ConfirmedFact } from "@/lib/types";
+import { allWordsIn, buildClaimInventory, stemsIn, withoutInstructions } from "./claims";
 import { SECTION_HEADERS, SECTOR_KEYWORDS, SECTORS, STRONG_VERBS } from "./lexicon";
 import { BULLET_RE, normaliseHeader, parseCv } from "./parse";
+import { checkProfile, checkRewrite, checkSkill, withPlaceholders, type RewriteCheck, type RewriteIssue } from "./rewrite-check";
 
 // Checks Claude's tailored version against the CV it came from, then writes the whole tailored CV out as text.
 
@@ -10,7 +13,8 @@ export interface TailorDraft {
   notEvidenced: string[];
 }
 
-const esc = (s: string) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+// "-" is left alone: it means nothing outside a character class, and `\-` is a syntax error in a /u pattern (spansOf).
+const esc = (s: string) => s.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
 // Placeholders such as [X%] or [£X] are allowed: they ask the student for a number rather than inventing one.
 const numbersIn = (s: string) => (s.replace(/\[[^\]]{0,40}\]/g, " ").match(/\d+(?:[.,]\d+)*/g) ?? []).map((n) => n.replace(/,/g, ""));
 
@@ -37,41 +41,175 @@ function uniqueTerms(terms: string[], max: number) {
     .slice(0, max);
 }
 
-/** Drops anything in the draft that doesn't hold up against the CV. */
-export function checkTailorDraft(draft: TailorDraft, lines: { text: string }[], cvText: string): TailorDraft {
-  const used = new Set<number>();
-  const bullets = draft.bullets
-    .map((b) => ({ ...b, after: b.after.replace(/\s+/g, " ").trim() }))
-    .filter((b) => {
-      const line = lines[b.id];
-      if (!Number.isInteger(b.id) || !line || used.has(b.id)) return false;
-      if (b.after.length < 12 || b.after.length > 400 || b.after === line.text) return false;
-      if (!keepsNumbers(b.after, line.text) || !changesEnough(b.after, line.text)) return false;
-      used.add(b.id);
-      return true;
-    })
-    .map((b) => ({ ...b, keywords: uniqueTerms(b.keywords, 4) }))
-    .slice(0, 10);
-  const summary = draft.summary.replace(/\s+/g, " ").trim();
-  const notEvidenced = uniqueTerms(draft.notEvidenced, 12);
-  const unproven = new Set(notEvidenced.map((t) => t.toLowerCase()));
-  return {
-    summary: summary.length <= 700 && keepsNumbers(summary, cvText) ? summary : "",
-    bullets,
-    // A skill can't be both shown by the CV and missing from it; when Claude says both, leave it out.
-    skills: uniqueTerms(draft.skills, 10).filter((s) => !inCv(cvText, s) && !unproven.has(s.toLowerCase())),
-    notEvidenced,
-  };
+/**
+ * What a model says the advert asks for is only shown if the advert says it: every word of the term, in any form. No
+ * advert, nothing. The student reads these as a statement about the advert, with no check of their own to fall back on.
+ */
+export function advertTerms(terms: string[], jobText: string): string[] {
+  const advert = stemsIn(jobText);
+  return terms.filter((t) => allWordsIn(t, advert));
 }
 
-/** The CV text with tailored bullets swapped in, the profile at the top and new skills in the skills section. */
-export function buildTailoredCv(cvText: string, change: { summary: string; replacements: { from: string; to: string }[]; skills: string[] }): string {
-  let text = cvText.replace(/\r/g, "");
-  for (const r of change.replacements) {
-    // Bullets are stored with wrapped lines joined up, so match the words across any line breaks.
-    const words = r.from.split(/\s+/).filter(Boolean).map(esc);
-    if (words.length) text = text.replace(new RegExp(words.join("\\s+")), () => r.to);
+export interface CheckedDraft extends TailorDraft {
+  bullets: (TailorDraft["bullets"][number] & { check: RewriteCheck; note: string | null })[];
+  summaryCheck: RewriteCheck | null;
+  skillChecks: { term: string; check: RewriteCheck }[];
+  /** Generated text that failed the check, and why. It isn't kept: only this description of it. */
+  withheld: { where: string; reason: string }[];
+}
+
+const named = (issues: RewriteIssue[]) => {
+  const found = issues.filter((i) => i.severity === "block" && i.found).map((i) => `"${i.found}"`).slice(0, 3);
+  return found.length ? found.join(", ") : "wording that isn't a CV line";
+};
+
+/**
+ * Keeps what holds up against the CV, by the same check as a line rewrite (OP-015). What fails is repaired with a
+ * placeholder if a placeholder is all it needs, and otherwise dropped with a reason. `lines[i].text` is what the draft was
+ * written from and `lines[i].locate` the line as first scored. Runs on whatever the provider returned, however it got here.
+ */
+export function checkTailorDraft(draft: TailorDraft, lines: { text: string; locate?: string; where?: string }[], cvText: string, facts: ConfirmedFact[] = [], jobText = ""): CheckedDraft {
+  const inv = buildClaimInventory(cvText, facts);
+  const used = new Set<number>();
+  const withheld: CheckedDraft["withheld"] = [];
+  const bullets: CheckedDraft["bullets"] = [];
+  for (const raw of draft.bullets) {
+    const after = raw.after.replace(/\s+/g, " ").trim();
+    const line = lines[raw.id];
+    if (!Number.isInteger(raw.id) || !line || used.has(raw.id)) continue;
+    if (after.length < 12 || after.length > 400 || after === line.text || !changesEnough(after, line.text)) continue;
+    const ref = { index: raw.id, text: line.text, locate: line.locate };
+    let text = after;
+    let check = checkRewrite(inv, ref, text);
+    let note: string | null = null;
+    if (check.verdict === "block") {
+      const repaired = withPlaceholders(text, check);
+      const again = repaired ? checkRewrite(inv, ref, repaired) : null;
+      if (!repaired || !again || again.verdict === "block") {
+        withheld.push({ where: line.where ?? "A line", reason: `The suggestion included ${named(check.issues)}, which your CV doesn't show for this entry.` });
+        continue;
+      }
+      note = `We replaced ${named(check.issues)} with a placeholder, because your CV doesn't give that for this entry. Add the real figure only if you have one.`;
+      text = repaired;
+      check = again;
+    }
+    used.add(raw.id);
+    const own = stemsIn(text);
+    // A keyword is only "matched" if the sentence says it and the advert does too: the page calls it the advert's wording.
+    const keywords = advertTerms(uniqueTerms(raw.keywords, 4), jobText).filter((k) => allWordsIn(k, own));
+    bullets.push({ ...raw, after: text, keywords, check, note });
   }
+  // The model's own list decides what it can't also claim as a skill; only what the advert asks and the CV lacks is shown.
+  const listed = uniqueTerms(draft.notEvidenced, 12);
+  const notEvidenced = advertTerms(listed, jobText).filter((t) => !inCv(cvText, t));
+  const unproven = new Set(listed.map((t) => t.toLowerCase()));
+
+  let summary = draft.summary.replace(/\s+/g, " ").trim();
+  let summaryCheck: RewriteCheck | null = null;
+  if (summary) {
+    // No placeholder repair here: with the figure gone the sentence still claims what the CV doesn't show.
+    const first = checkProfile(inv, summary);
+    if (first.verdict !== "block") summaryCheck = first;
+    else {
+      withheld.push({ where: "Profile", reason: `The suggested profile included ${named(first.issues)}, which your CV doesn't show.` });
+      summary = "";
+    }
+  }
+
+  const skillChecks: CheckedDraft["skillChecks"] = [];
+  // A skill can't be both shown by the CV and missing from it; when Claude says both, leave it out.
+  for (const term of uniqueTerms(draft.skills, 10).filter((s) => !inCv(cvText, s) && !unproven.has(s.toLowerCase()))) {
+    const check = checkSkill(inv, term);
+    if (check.verdict === "block") withheld.push({ where: "Skills", reason: `The suggestion listed ${named(check.issues)}, which your CV doesn't show.` });
+    else skillChecks.push({ term, check });
+  }
+  return { summary, bullets: bullets.slice(0, 10), skills: skillChecks.map((s) => s.term), notEvidenced, summaryCheck, skillChecks, withheld };
+}
+
+/* ---------- Putting edits into the document ---------- */
+
+export interface LineEdit {
+  /** The line's words, as the parser joined them. */
+  from: string;
+  /** Which appearance of those words, in document order: the same words can sit under two roles. */
+  occurrence?: number;
+  /** New words for the line. Omit to leave it as it is. */
+  to?: string;
+  /** New lines to add after it. */
+  add?: string[];
+}
+
+const edgeMark = "[^\\p{L}\\p{N}\\n]{0,4}";
+
+/** Where a line's words sit in the text. A whole line first, so a line can't match the start of a longer one. */
+function spansOf(text: string, from: string): [number, number][] {
+  const words = from.split(/\s+/).filter(Boolean).map(esc);
+  if (!words.length) return [];
+  const body = words.join("\\s+");
+  const whole = [...text.matchAll(new RegExp(`(^|\\n)([^\\S\\n]*${edgeMark}[^\\S\\n]*)(${body})(?=[^\\S\\n]*(?:\\n|$))`, "gu"))].map((m): [number, number] => {
+    const start = m.index + m[1].length + m[2].length;
+    return [start, start + m[3].length];
+  });
+  if (whole.length) return whole;
+  return [...text.matchAll(new RegExp(body, "gu"))].map((m): [number, number] => [m.index, m.index + m[0].length]);
+}
+
+/**
+ * Applies line edits at their own positions, all from the original text, so one edit can't move another. `missing` lists
+ * the edits that couldn't be placed: a caller must not tell the student they were made.
+ */
+export function applyLineEdits(cvText: string, edits: LineEdit[]): { text: string; missing: LineEdit[] } {
+  const text = cvText.replace(/\r/g, "");
+  const missing: LineEdit[] = [];
+  const placed: { span: [number, number]; edit: LineEdit }[] = [];
+  for (const edit of edits) {
+    const span = spansOf(text, edit.from)[edit.occurrence ?? 0];
+    if (span) placed.push({ span, edit });
+    else missing.push(edit);
+  }
+  let out = text;
+  for (const { span, edit } of placed.sort((a, b) => b.span[0] - a.span[0])) {
+    const words = edit.to ?? out.slice(span[0], span[1]);
+    out = out.slice(0, span[0]) + words + (edit.add ?? []).map((l) => `\n• ${l}`).join("") + out.slice(span[1]);
+  }
+  return { text: out, missing };
+}
+
+/** How many earlier lines have the same words: which appearance in the document this line is. */
+export const occurrenceOf = (texts: string[], index: number) => texts.slice(0, index).filter((t) => t === texts[index]).length;
+
+/** The CV as the student has it now: the uploaded text with the lines they saved in the review. */
+export function withSavedLines(cvText: string, lines: { text: string; accepted?: string }[]): string {
+  const originals = lines.map((l) => l.text);
+  const edits = lines.flatMap((l, i): LineEdit[] => (l.accepted ? [{ from: l.text, occurrence: occurrenceOf(originals, i), to: l.accepted }] : []));
+  return applyLineEdits(cvText, edits).text;
+}
+
+/** The existing profile's words, which an accepted new profile replaces. Empty if the CV has none. */
+export function existingProfile(cvText: string): string {
+  const lines = cvText.replace(/\r/g, "").split("\n");
+  const at = lines.findIndex((l) => normaliseHeader(l) === "summary");
+  if (at < 0) return "";
+  const out: string[] = [];
+  for (let i = at + 1; i < lines.length && normaliseHeader(lines[i]) === null; i++) if (lines[i].trim()) out.push(lines[i].trim());
+  return out.join(" ");
+}
+
+/** CV text for a prompt: sentences that read like instructions to software don't reach the model. */
+export const promptSafeCv = (cvText: string) => cvText.replace(/\r/g, "").split("\n").map((l) => (l.trim() ? withoutInstructions(l).text : "")).join("\n");
+
+/** The CV text with tailored bullets swapped in, the profile at the top and new skills in the skills section. */
+export function buildTailoredCv(cvText: string, change: { summary: string; replacements: LineEdit[] | { from: string; to: string }[]; skills: string[] }): string {
+  return buildTailoredDocument(cvText, change).text;
+}
+
+/** As buildTailoredCv, and says which line edits couldn't be placed. */
+export function buildTailoredDocument(cvText: string, change: { summary: string; replacements: LineEdit[]; skills: string[] }): { text: string; missing: LineEdit[] } {
+  const applied = applyLineEdits(cvText, change.replacements);
+  return { text: addProfileAndSkills(applied.text, change), missing: applied.missing };
+}
+
+function addProfileAndSkills(text: string, change: { summary: string; skills: string[] }): string {
   const lines = text.split("\n");
   const headerAt = (key: string | null, from = 0) => lines.findIndex((l, i) => i >= from && (key ? normaliseHeader(l) === key : normaliseHeader(l) !== null));
   const sectionEnd = (start: number) => {

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactNode } from "react";
-import { improveLetter } from "@/app/actions/letters";
+import { reviewDraft } from "@/app/actions/letters";
 import { FormError } from "@/components/client";
+import { onTabListKey } from "@/components/a11y";
 import { AlertDot, CheckDot, cx, ScoreRing, scoreColor } from "@/components/ui";
+import { bandLabel } from "@/lib/analysis/labels";
 import type { CoverLetterPayload } from "@/lib/types";
 
-const band = (s: number) => (s >= 90 ? "INTERVIEW-READY" : s >= 75 ? "STRONG" : s >= 50 ? "GETTING THERE" : "NEEDS WORK");
 const esc = (s: string) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
 
 function highlight(text: string, terms: string[], signoff: string | null): ReactNode[] {
@@ -33,10 +34,10 @@ function highlight(text: string, terms: string[], signoff: string | null): React
   });
 }
 
-export function LetterReviewView({ id, p, score, left, limit, ai }: { id: string; p: CoverLetterPayload; score: number; left: number; limit: number; ai: boolean }) {
+/** A review from before versioned letter scoring: its saved number and checks, unchanged. Anything further happens on a new copy. */
+export function LetterReviewView({ id, p, score, downloadable }: { id: string; p: CoverLetterPayload; score: number | null; downloadable: boolean }) {
   const router = useRouter();
   const [tab, setTab] = useState<"letter" | "ad">("letter");
-  const [consent, setConsent] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const signoffBad = p.checks.find((c) => c.t === "Sign-off matches the greeting" && !c.ok);
@@ -44,10 +45,10 @@ export function LetterReviewView({ id, p, score, left, limit, ai }: { id: string
   const blocks = p.letterText.split(/\n\s*\n/).filter((b) => b.trim());
   const convention = /faithfully/i.test(p.letterText) || /sincerely/i.test(p.letterText);
 
-  const improve = () =>
+  const recheck = () =>
     start(async () => {
       setError(null);
-      const res = await improveLetter(id);
+      const res = await reviewDraft(id);
       if (res.error || !res.id) setError(res.error ?? "Something went wrong.");
       else router.push(`/letters/${res.id}`);
     });
@@ -70,12 +71,12 @@ export function LetterReviewView({ id, p, score, left, limit, ai }: { id: string
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-5 lg:max-w-[480px]">
           <section aria-labelledby="os-h" className="flex items-center gap-5 rounded-3xl bg-white px-6 py-[22px]">
-            <ScoreRing value={score} size={88} stroke={7} color={scoreColor(score)} label={`Letter score ${score}`}>
-              <span className="text-[28px] tracking-[-0.04em]">{score}</span>
+            <ScoreRing value={score ?? 0} size={88} stroke={7} color={scoreColor(score ?? 0)} label={`Letter score ${score ?? "not recorded"}`}>
+              <span className="text-[28px] tracking-[-0.04em]">{score ?? "–"}</span>
             </ScoreRing>
             <div>
               <h2 id="os-h" className="m-0 font-mono text-xs font-normal tracking-[0.04em] text-subtle">
-                OVERALL · {band(score)}
+                OVERALL{score === null ? "" : ` · ${bandLabel(score).toUpperCase()}`} · EARLIER METHOD
               </h2>
               <p className="mt-2 mb-0 text-[15px] leading-normal">{p.summary}</p>
             </div>
@@ -98,32 +99,29 @@ export function LetterReviewView({ id, p, score, left, limit, ai }: { id: string
 
           <section aria-labelledby="rw-h" className="flex flex-col gap-3.5 rounded-3xl bg-white px-6 py-[22px]">
             <h2 id="rw-h" className="m-0 font-mono text-xs font-normal tracking-[0.04em] text-subtle">
-              {ai ? "AI REWRITE" : "IMPROVED VERSION"}
+              CHECK WITH THE CURRENT METHOD
             </h2>
-            <p className="m-0 text-[15px] leading-[1.55]">We&apos;ll weave in the missing keywords using only facts from your CV, and keep your voice. You review every change.</p>
-            <label className="flex items-start gap-2.5 text-[13px] leading-[1.45] text-body">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-px h-[18px] w-[18px] shrink-0 accent-brand" />
-              <span>
-                Use my CV and this job ad for the rewrite. <Link href="/privacy">How we use your data</Link>
-              </span>
-            </label>
+            <p className="m-0 text-[15px] leading-[1.55]">This makes a new report from the same letter, which you can then edit. This report and its score stay as they are.</p>
             <FormError message={error} />
-            <button type="button" disabled={!consent || pending || left <= 0} onClick={improve} className="min-h-12 rounded-full border-0 bg-black text-[15px] font-medium text-white hover:bg-ink-2 disabled:opacity-50">
-              {pending ? "Writing…" : "Write an improved version"}
+            <button type="button" disabled={pending} onClick={recheck} className="min-h-12 rounded-full border-0 bg-black text-[15px] font-medium text-white hover:bg-ink-2 disabled:opacity-50">
+              {pending ? "Checking…" : "Check as a new letter"}
             </button>
-            <p className="m-0 text-center text-xs text-subtle">
-              {Math.max(0, left)} of {limit} rewrites left today
-            </p>
+            {downloadable && (
+              <div className="flex flex-wrap justify-center gap-2.5">
+                <a href={`/api/letters/${id}?format=docx`} className="text-sm">Download Word</a>
+                <a href={`/api/letters/${id}?format=pdf`} className="text-sm">Download PDF</a>
+              </div>
+            )}
           </section>
         </div>
 
         <section aria-label="Your letter" className="flex min-w-0 flex-[999_1_560px] flex-col gap-[18px] rounded-3xl bg-white px-[26px] pt-[22px] pb-9">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div role="tablist" aria-label="View" className="flex gap-1 rounded-full bg-canvas p-1">
-              <button role="tab" aria-selected={tab === "letter"} onClick={() => setTab("letter")} className={cx("min-h-9 rounded-full border-0 px-4 text-sm", tab === "letter" ? "bg-white text-black" : "bg-transparent text-muted")}>
+            <div role="tablist" aria-label="View" onKeyDown={onTabListKey} className="flex gap-1 rounded-full bg-canvas p-1">
+              <button type="button" role="tab" id="view-tab-letter" aria-selected={tab === "letter"} tabIndex={tab === "letter" ? 0 : -1} onClick={() => setTab("letter")} className={cx("min-h-9 rounded-full border-0 px-4 text-sm", tab === "letter" ? "bg-white text-black" : "bg-transparent text-muted")}>
                 Cover letter
               </button>
-              <button role="tab" aria-selected={tab === "ad"} onClick={() => setTab("ad")} className={cx("min-h-9 rounded-full border-0 px-4 text-sm", tab === "ad" ? "bg-white text-black" : "bg-transparent text-muted")}>
+              <button type="button" role="tab" id="view-tab-ad" aria-selected={tab === "ad"} tabIndex={tab === "ad" ? 0 : -1} onClick={() => setTab("ad")} className={cx("min-h-9 rounded-full border-0 px-4 text-sm", tab === "ad" ? "bg-white text-black" : "bg-transparent text-muted")}>
                 Job ad
               </button>
             </div>

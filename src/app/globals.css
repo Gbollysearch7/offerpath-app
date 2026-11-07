@@ -67,6 +67,14 @@
   }
 }
 
+/* Outside the layers on purpose, to beat the border utilities: a field's edge needs 3:1 against the page and the card
+   (WCAG 1.4.11). #7D8A85 is 3.59:1 on white and 3.25:1 on the canvas colour. */
+input:not([type="checkbox"], [type="radio"], [type="file"]),
+select,
+textarea {
+  border-color: #7d8a85;
+}
+
 @utility sr-only-abs {
   position: absolute;
   left: -9999px;

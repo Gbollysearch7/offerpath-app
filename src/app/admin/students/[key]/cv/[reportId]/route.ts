@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { featureFlags } from "@/lib/env";
+import { isStaff } from "@/lib/institution/permissions";
 import { log } from "@/lib/log";
 import { getRepo } from "@/lib/session";
 
@@ -7,10 +8,11 @@ import { getRepo } from "@/lib/session";
 export async function GET(_req: Request, { params }: { params: Promise<{ key: string; reportId: string }> }) {
   if (!featureFlags.adviserCvAccess()) return NextResponse.json({ error: "Not available." }, { status: 404 });
   const repo = await getRepo();
-  if (!repo || (await repo.profile()).role !== "admin") return NextResponse.json({ error: "Admins only." }, { status: 403 });
-  const { key, reportId } = await params;
+  if (!repo || !isStaff((await repo.profile()).role)) return NextResponse.json({ error: "Careers staff only." }, { status: 403 });
+  const { reportId } = await params;
+  // Both the access and any refusal are recorded in the database, in staff_access_log, by the call that decides them.
   const link = await repo.adminCvLink(reportId);
   if (!link) return NextResponse.json({ error: "This student hasn't shared their CV." }, { status: 404 });
-  log("info", "adviser-cv-opened", { adviser: repo.userId, student: key, report: reportId });
+  log("info", "adviser-cv-opened", { adviser: repo.userId, report: reportId });
   return NextResponse.redirect(link);
 }

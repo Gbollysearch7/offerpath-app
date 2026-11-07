@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { onTabListKey } from "@/components/a11y";
 import { CopyButton } from "@/components/client";
 import { pill } from "@/components/ui";
 
@@ -8,9 +9,9 @@ export function ExampleTabs({ data }: { data: [string, [string, string[]][]][] }
   const [cat, setCat] = useState(0);
   return (
     <>
-      <div role="tablist" aria-label="Experience type" className="flex flex-wrap gap-2">
+      <div role="tablist" aria-label="Experience type" onKeyDown={onTabListKey} className="flex flex-wrap gap-2">
         {data.map(([t], i) => (
-          <button key={t} role="tab" id={`ex-tab-${i}`} aria-selected={cat === i} aria-controls="ex-panel" onClick={() => setCat(i)} className={pill(cat === i)}>
+          <button key={t} type="button" role="tab" id={`ex-tab-${i}`} aria-selected={cat === i} tabIndex={cat === i ? 0 : -1} aria-controls="ex-panel" onClick={() => setCat(i)} className={pill(cat === i)}>
             {t}
           </button>
         ))}

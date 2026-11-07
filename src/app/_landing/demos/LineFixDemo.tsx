@@ -170,7 +170,7 @@ function Note({ s }: { s: S }) {
               .
             </div>
             <div className="op-linefix-help">
-              Numbers come from you. We never add facts.
+              Numbers come from you: we leave [brackets] where only you know the figure.
             </div>
             <div className="op-linefix-actions">
               <span
@@ -226,7 +226,7 @@ function Quiet({ hide }: { hide: boolean }) {
           ["\u22123", "CLARITY · EXPERIENCE, LINE 5"],
           ["\u22122", "LENGTH · EXPERIENCE, LINE 4"],
           ["\u22122", "SECTOR FIT · SKILLS"],
-          ["\u22121", "SPELLING · EDUCATION, LINE 1"],
+          ["\u22121", "UK SPELLING · EDUCATION, LINE 1"],
         ].map(([n, t]) => (
           <div
             key={t}

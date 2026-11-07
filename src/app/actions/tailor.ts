@@ -2,15 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { aiEnabled, aiTailorCv } from "@/lib/ai";
-import { displayTerm, guessJobTitle, htmlToText, isToolTerm, jobKeywords, matchScores } from "@/lib/analysis/job";
-import { buildTailoredCv, checkTailorDraft } from "@/lib/analysis/tailor";
-import { AI_LIMITS } from "@/lib/repo/types";
+import { aiEnabled, aiExtractRequirements, aiTailorCv } from "@/lib/ai";
+import { runAnalysisJob } from "@/lib/analysis-job";
+import { linkNewReport } from "@/lib/applications/flow";
+import { sha256 } from "@/lib/analysis/fingerprint";
+import { JOB_POLICY } from "@/lib/analysis/job-state";
+import { guessJobTitle, htmlToText } from "@/lib/analysis/job";
+import { extractWithAdapter } from "@/lib/analysis/job-requirements";
+import type { Repo } from "@/lib/repo/types";
+import { acceptClearFlow, decideFlow, ownLineFlow, reopenFlow, rejectFlow, restoreFlow, retainPlaceholdersFlow, setInterpretationFlow, tailorFlow, toggleKeywordFlow, undoFlow, type Attempt, type FlowResult } from "@/lib/tailor-flow";
 import { buildTailorPayload } from "@/lib/services";
 import { fetchPublicText, UnsafeUrlError } from "@/lib/safe-fetch";
 import { hit, TOO_MANY } from "@/lib/rate-limit";
 import { getRepo } from "@/lib/session";
-import type { CvReviewPayload, TailorPayload } from "@/lib/types";
+import type { CvReviewPayload } from "@/lib/types";
 
 async function fetchJobAd(raw: string) {
   let html: string;
@@ -64,109 +69,94 @@ export async function createTailor(formData: FormData): Promise<{ id?: string; e
   title = (title || guessJobTitle(text)).slice(0, 120);
   employer = (employer || "the employer").slice(0, 80);
 
-  const payload = buildTailorPayload({ cvReportId: cv.row.id, cvFileName: cv.payload.fileName, cvText: cv.payload.text, jobTitle: title, employer, jobUrl: url || null, jobText: text, deadline });
-  const id = await repo.createReport({ type: "tailor", title: `${title} · ${employer}`, score: payload.matchNow, payload });
-  revalidatePath("/dashboard");
-  return { id };
+  // Rules first. The provider is only asked when they left the advert undecided, and whatever it returns is checked against the advert.
+  const adText = text;
+  // A second click on the same CV and advert, while the first runs or just after, finds the first.
+  return runAnalysisJob<{ id?: string; error?: string }>(
+    repo,
+    { workflow: "tailor_create", key: sha256(JSON.stringify([cv.row.id, title, employer, url, deadline, adText])), freshSeconds: JOB_POLICY.repeatWindowSeconds, replay: async (j) => (j.resultId ? { id: j.resultId } : null), refuse: (error) => ({ error }) },
+    async (run) => {
+      let asked = false;
+      const requirements = await extractWithAdapter(
+        adText,
+        aiEnabled()
+          ? async () => {
+              if (!(await run.charge("tailor")).allowed) return null;
+              asked = true;
+              return aiExtractRequirements(adText);
+            }
+          : undefined,
+      );
+      const payload = buildTailorPayload({ cvReportId: cv.row.id, cvFileName: cv.payload.fileName, cvText: cv.payload.text, jobTitle: title, employer, jobUrl: url || null, jobText: text, deadline, requirements });
+      const id = await repo.createReport({ type: "tailor", title: `${title} · ${employer}`, score: payload.matchNow, payload });
+      if (opportunityId) await linkNewReport(repo, opportunityId, id);
+      revalidatePath("/dashboard");
+      // The report is complete on the rules' reading. A provider that failed gives its use back; the report records "failed" as the adapter's status.
+      return requirements.status === "failed" ? { status: "partial", value: { id }, resultId: id, errorCode: asked ? "provider" : "quota", release: asked } : { status: "completed", value: { id }, resultId: id };
+    },
+  );
 }
 
-export async function toggleKeyword(reportId: string, word: string): Promise<{ error?: string }> {
-  const repo = await getRepo();
-  if (!repo) return { error: "Your session has expired. Sign in again." };
-  const r = await repo.getReport<TailorPayload>(reportId);
-  if (!r || !r.payload.keywords.some((k) => k.w === word)) return { error: "We couldn't find that keyword." };
-  const added = r.payload.added.includes(word) ? r.payload.added.filter((w) => w !== word) : [...r.payload.added, word];
-  r.payload.added = added;
-  r.payload.tailored = null;
-  r.payload.tailoredCv = null;
-  r.payload.matchTailored = matchScores(r.payload.keywords, added).tailored;
-  await repo.updateReport(reportId, { payload: r.payload });
-  revalidatePath(`/tailor/${reportId}`);
-  return {};
+const EXPIRED = "Your session has expired. Sign in again.";
+const Id = z.string().min(1).max(80);
+const AttemptInput = z.object({ key: z.string().regex(/^[\w-]{16,64}$/).optional(), revision: z.number().int().min(0).nullable().optional() }).catch({});
+const Confirmed = z.array(z.string().max(200)).max(50).catch([]);
+
+async function run(repo: Repo | null, reportId: string, fn: (repo: Repo, id: string) => Promise<FlowResult>): Promise<FlowResult> {
+  if (!repo) return { error: EXPIRED };
+  const id = Id.safeParse(reportId);
+  if (!id.success) return { error: "We couldn't find that report." };
+  const out = await fn(repo, id.data);
+  if (!out.error) revalidatePath(`/tailor/${id.data}`);
+  return out;
 }
 
-export async function createTailoredVersion(reportId: string): Promise<{ error?: string; ai?: boolean }> {
-  const repo = await getRepo();
-  if (!repo) return { error: "Your session has expired. Sign in again." };
-  const r = await repo.getReport<TailorPayload>(reportId);
-  if (!r) return { error: "We couldn't find that report." };
-  const cv = await repo.getReport<CvReviewPayload>(r.payload.cvReportId);
-  if (!cv) return { error: "The CV for this report has been deleted." };
-  const p = r.payload;
-  const lines = cv.payload.analysis.lines;
-  const current = (i: number) => lines[i].accepted ?? lines[i].text;
-
-  // Claude first, within the daily limit; the rule-based version below is the fallback.
-  if (aiEnabled() && (await repo.bumpAi("tailor")) <= AI_LIMITS.tailor) {
-    const draft = await aiTailorCv({
-      jobTitle: p.jobTitle,
-      employer: p.employer,
-      jobText: p.jobText,
-      cvText: cv.payload.text,
-      lines: lines.map((l, i) => ({ id: i, where: l.where, text: current(i) })),
-      keywords: p.added,
-    });
-    const checked = draft && checkTailorDraft(draft, lines.map((_, i) => ({ text: current(i) })), cv.payload.text);
-    if (checked && (checked.bullets.length || checked.summary)) {
-      const tailoredCv = buildTailoredCv(cv.payload.text, {
-        summary: checked.summary,
-        replacements: checked.bullets.map((b) => ({ from: lines[b.id].text, to: b.after })),
-        skills: checked.skills,
-      });
-      p.tailored = checked.bullets.sort((a, b) => a.id - b.id).map((b) => ({ where: lines[b.id].where, before: current(b.id), after: b.after, keywords: b.keywords }));
-      p.summary = checked.summary || null;
-      p.skillsToAdd = checked.skills;
-      p.notEvidenced = checked.notEvidenced;
-      p.tailoredCv = tailoredCv;
-      p.aiTailored = true;
-      // Measured, not estimated: the same keyword match, run on the tailored CV.
-      p.matchTailored = Math.max(p.matchNow, matchScores(jobKeywords(p.jobText, tailoredCv)).now);
-      await repo.updateReport(reportId, { payload: p });
-      revalidatePath(`/tailor/${reportId}`);
-      return { ai: true };
-    }
-  }
-
-  const targets = p.added.length ? p.keywords.filter((k) => p.added.includes(k.w)) : p.keywords.filter((k) => k.must && !k.inCv);
-  if (!targets.length) return { error: "Pick at least one keyword to add first." };
-  const used = new Set<number>();
-  const tailored: { where: string; before: string; after: string }[] = [];
-  const skills: string[] = [];
-  for (const k of targets) {
-    if (k.where === "Skills section") {
-      skills.push(k.w);
-      continue;
-    }
-    const roleWord = k.where.replace(/ role$/, "").toUpperCase().split(/\s+/)[0];
-    let i = lines.findIndex((l, idx) => !used.has(idx) && l.where.includes(roleWord));
-    if (i < 0) i = lines.findIndex((_, idx) => !used.has(idx));
-    if (i < 0) {
-      skills.push(k.w);
-      continue;
-    }
-    used.add(i);
-    const base = current(i).replace(/\.$/, "");
-    tailored.push({ where: lines[i].where, before: current(i), after: `${base}, ${weave(k.w)}.` });
-  }
-  if (skills.length) tailored.push({ where: "SKILLS", before: "Your current skills list", after: `Add to skills: ${skills.join(", ")}` });
-
-  p.tailored = tailored;
-  p.summary = null;
-  p.skillsToAdd = [];
-  p.notEvidenced = [];
-  p.tailoredCv = null;
-  p.aiTailored = false;
-  p.matchTailored = matchScores(p.keywords, p.added.length ? p.added : targets.map((t) => t.w)).tailored;
-  await repo.updateReport(reportId, { payload: p });
-  revalidatePath(`/tailor/${reportId}`);
-  return { ai: false };
+export async function toggleKeyword(reportId: string, word: string): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => toggleKeywordFlow(repo, id, z.string().max(200).catch("").parse(word)));
 }
 
-/** Phrase that works a keyword into the end of an existing bullet. */
-function weave(word: string): string {
-  if (/^stakeholder$/i.test(word)) return "working closely with stakeholders";
-  if (isToolTerm(word)) return `using ${word}`;
-  return `drawing on my ${displayTerm(word)} skills`;
+export async function createTailoredVersion(reportId: string, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => tailorFlow(repo, id, aiEnabled() ? (input) => aiTailorCv(input) : null, AttemptInput.parse(attempt ?? {})));
+}
+
+export async function decideSuggestion(reportId: string, input: { suggestionId: string; text: string | null; confirmed: string[] }, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) =>
+    decideFlow(repo, id, { suggestionId: z.string().max(80).catch("").parse(input?.suggestionId), text: z.string().max(4_000).nullable().catch(null).parse(input?.text), confirmed: Confirmed.parse(input?.confirmed) }, AttemptInput.parse(attempt ?? {})),
+  );
+}
+
+export async function acceptClearSuggestions(reportId: string, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => acceptClearFlow(repo, id, AttemptInput.parse(attempt ?? {})));
+}
+
+export async function rejectSuggestion(reportId: string, suggestionId: string, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => rejectFlow(repo, id, z.string().max(80).catch("").parse(suggestionId), AttemptInput.parse(attempt ?? {})));
+}
+
+export async function reopenSuggestion(reportId: string, suggestionId: string, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => reopenFlow(repo, id, z.string().max(80).catch("").parse(suggestionId), AttemptInput.parse(attempt ?? {})));
+}
+
+export async function saveOwnLine(reportId: string, input: { lineIndex: number; asNewLine: boolean; text: string; confirmed: string[] }, attempt?: Attempt): Promise<FlowResult> {
+  const parsed = z.object({ lineIndex: z.number().int().min(0).max(1_000), asNewLine: z.boolean(), text: z.string().max(4_000), confirmed: Confirmed }).safeParse(input);
+  if (!parsed.success) return { error: "That version is too short or too long to save." };
+  return run(await getRepo(), reportId, (repo, id) => ownLineFlow(repo, id, parsed.data, AttemptInput.parse(attempt ?? {})));
+}
+
+export async function undoTailorEdit(reportId: string, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => undoFlow(repo, id, AttemptInput.parse(attempt ?? {})));
+}
+
+export async function restoreTailorVersion(reportId: string, versionId: string, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => restoreFlow(repo, id, z.string().max(20).catch("").parse(versionId), AttemptInput.parse(attempt ?? {})));
+}
+
+export async function retainPlaceholders(reportId: string, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => retainPlaceholdersFlow(repo, id, AttemptInput.parse(attempt ?? {})));
+}
+
+export async function setRequirementInterpretation(reportId: string, requirementId: string, on: boolean, note: string | null, attempt?: Attempt): Promise<FlowResult> {
+  return run(await getRepo(), reportId, (repo, id) => setInterpretationFlow(repo, id, z.string().max(120).catch("").parse(requirementId), on === true, z.string().max(300).nullable().catch(null).parse(note), AttemptInput.parse(attempt ?? {})));
 }
 
 export async function trackOpportunity(opportunityId: string, on: boolean): Promise<{ error?: string }> {
@@ -187,5 +177,6 @@ export async function moveApplication(applicationId: string, status: string): Pr
   if (!s.success) return { error: "Unknown status." };
   await repo.setApplicationStatus(applicationId, s.data);
   revalidatePath("/opportunities");
+  revalidatePath("/dashboard");
   return {};
 }

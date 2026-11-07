@@ -138,7 +138,7 @@ try {
   const { error: scoreErr } = await asUser(s1.token).from("reports").update({ score: 100 }).eq("id", r1);
   const { data: r1after } = await admin.from("reports").select("score").eq("id", r1).single();
   check(r1after.score === a.score, "a student can't overwrite their own score through the API", scoreErr?.message ?? "no error");
-  const { error: adminRpc } = await c2.rpc("admin_overview");
+  const { error: adminRpc } = await c2.rpc("admin_analytics", { p_period: "all" });
   check(!!adminRpc, "a student can't call admin reporting functions");
   const anon = createClient(URL_, ANON, { auth: { persistSession: false } });
   const { data: anonUnis } = await anon.from("universities").select("id");
@@ -193,12 +193,12 @@ try {
   await page.goto(`${BASE}/privacy`, { waitUntil: "networkidle" });
   await page.locator("summary", { hasText: "Delete my account" }).click();
   await page.fill("input[name=confirm]", "delete");
-  await page.getByRole("button", { name: "Delete everything" }).click();
+  await page.getByRole("button", { name: "Delete my account and data" }).click();
   await page.waitForURL(/error=confirm/, { timeout: 15000 });
   const { data: still } = await admin.from("profiles").select("id").eq("id", users.s1.id);
   check((still ?? []).length === 1, "deleting needs DELETE typed exactly (lowercase is refused)");
   await page.fill("input[name=confirm]", "DELETE");
-  await page.getByRole("button", { name: "Delete everything" }).click();
+  await page.getByRole("button", { name: "Delete my account and data" }).click();
   await page.waitForURL(/sign-in\?deleted=1/, { timeout: 30000 });
   ok("after deleting, the student is signed out and sent to sign-in");
   const { data: gone } = await admin.from("profiles").select("id").eq("id", users.s1.id);

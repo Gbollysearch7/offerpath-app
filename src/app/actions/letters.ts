@@ -3,16 +3,39 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { aiDraftLetter, aiEnabled } from "@/lib/ai";
+import { runAnalysisJob } from "@/lib/analysis-job";
+import { sha256 } from "@/lib/analysis/fingerprint";
+import { JOB_POLICY } from "@/lib/analysis/job-state";
 import { extractText, ExtractError } from "@/lib/analysis/extract";
-import { paragraphsToText, reviewLetter } from "@/lib/analysis/letter";
-import { AI_LIMITS } from "@/lib/repo/types";
+import type { CheckedDraft } from "@/lib/analysis/letter-check";
+import { baseDocument } from "@/lib/analysis/tailor-edits";
+import { acceptClearLetterFlow, decideLetterFlow, deleteParagraphFlow, generateDraft, improveLetterFlow, ownParagraphFlow, recheckLetterFlow, rejectLetterFlow, reopenLetterFlow, restoreLetterFlow, retainLetterFlow, saveLetterFlow, undoLetterFlow, type LetterAttempt, type LetterFlowResult, type LetterProvider } from "@/lib/letter-flow";
 import type { Repo } from "@/lib/repo/types";
-import { buildLetterDraftPayload, buildLetterReviewPayload, letterHeader, stageLabel } from "@/lib/services";
+import { buildLetterDraftPayload, buildLetterReviewPayload, stageLabel } from "@/lib/services";
 import { hit, TOO_MANY } from "@/lib/rate-limit";
 import { getRepo } from "@/lib/session";
-import type { CoverLetterPayload, CvReviewPayload, TailorPayload } from "@/lib/types";
+import type { CvReviewPayload, TailorPayload } from "@/lib/types";
 
-type Result = { id?: string; error?: string };
+const letterProvider: LetterProvider = (input) => aiDraftLetter(input);
+
+/** Where the text is going, from the form. A word limit the advert states is read from the advert. */
+function contextFrom(formData: FormData): { format: "letter" | "statement"; wordLimit: number | null } {
+  const limit = Number(String(formData.get("wordLimit") ?? "").trim());
+  return { format: formData.get("format") === "statement" ? "statement" : "letter", wordLimit: Number.isInteger(limit) && limit >= 20 && limit <= 5000 ? limit : null };
+}
+
+/** `notice`: the report was made, but a part of it couldn't be, and the student should know why. */
+type Result = { id?: string; error?: string; notice?: "ai_unavailable" | "quota" };
+
+/** The client's key for one attempt, tied to what was sent. With none (an old tab), a repeat is what arrives soon after with the same content. */
+const ClientKey = z.string().regex(/^[\w-]{16,64}$/);
+function attemptKey(formData: FormData, content: unknown[]): { key: string; freshSeconds: number | null } {
+  const hash = sha256(JSON.stringify(content));
+  const client = ClientKey.safeParse(formData.get("key"));
+  return client.success ? { key: `${hash}:${client.data}`, freshSeconds: null } : { key: hash, freshSeconds: JOB_POLICY.repeatWindowSeconds };
+}
+const replayReport = async (job: { resultId: string | null }): Promise<Result | null> => (job.resultId ? { id: job.resultId } : null);
+const refuse = (error: string): Result => ({ error });
 
 /** Errors whose message is written for the student and safe to show. */
 class JobInputError extends Error {}
@@ -53,27 +76,45 @@ export async function createLetterDraft(formData: FormData): Promise<Result> {
   const notes = String(formData.get("notes") ?? "").trim().slice(0, 1000) || null;
   const profile = await repo.profile();
 
-  let paragraphs = null;
-  // Over the daily limit, the student still gets a rule-based draft; only AI use is capped.
-  if (aiEnabled() && (await repo.bumpAi("letter")) <= AI_LIMITS.letter) {
-    paragraphs = await aiDraftLetter({ name: signName(profile, cv), jobTitle: job.jobTitle, employer: job.employer, jobText: job.jobText, cvText: cv.payload.text, addressee, notes });
-  }
-  const { payload, score } = buildLetterDraftPayload({
-    paragraphs,
-    name: signName(profile, cv),
-    email: cv.payload.analysis.meta.email ?? profile.email,
-    phone: cv.payload.analysis.meta.phone,
-    ...job,
-    cvReportId: cv.row.id,
-    cvFileName: cv.payload.fileName,
-    cvPayload: cv.payload,
-    addressee,
-    notes,
-    stageLabel: stageLabel(profile.stage, profile.course),
-  });
-  const id = await repo.createReport({ type: "cover_letter", title: `${job.employer} cover letter`, score, payload });
-  revalidatePath("/dashboard");
-  return { id };
+  return runAnalysisJob<Result>(
+    repo,
+    { workflow: "letter_draft", ...attemptKey(formData, [job, cv.row.id, addressee, notes]), replay: replayReport, refuse },
+    async (run) => {
+      let checked: CheckedDraft | null = null;
+      let notice: Result["notice"];
+      const name = signName(profile, cv);
+      // Over the daily limit, the student still gets a rule-based draft; only AI use is capped.
+      if (aiEnabled()) {
+        const charge = await run.charge("letter");
+        if (charge.allowed) {
+          // Generated text is only ever used once it has been through the fact check.
+          checked = await generateDraft(letterProvider, { name, jobTitle: job.jobTitle, employer: job.employer, jobText: job.jobText, cvText: baseDocument(cv.payload).text, addressee, notes }, cv.payload);
+          if (!checked) notice = "ai_unavailable";
+        } else {
+          notice = "quota";
+        }
+      }
+      const { payload, score } = buildLetterDraftPayload({
+        paragraphs: checked?.paragraphs ?? null,
+        withheld: checked?.withheld,
+        claims: checked?.claims,
+        name,
+        email: cv.payload.analysis.meta.email ?? profile.email,
+        phone: cv.payload.analysis.meta.phone,
+        ...job,
+        cvReportId: cv.row.id,
+        cvFileName: cv.payload.fileName,
+        cvPayload: cv.payload,
+        addressee,
+        notes,
+        stageLabel: stageLabel(profile.stage, profile.course),
+      });
+      const id = await repo.createReport({ type: "cover_letter", title: `${job.employer} cover letter`, score, payload });
+      revalidatePath("/dashboard");
+      // The draft stands; the AI part of it wasn't delivered, so that use goes back.
+      return notice ? { status: "partial", value: { id, notice }, resultId: id, errorCode: notice === "quota" ? "quota" : "provider", release: notice === "ai_unavailable" } : { status: "completed", value: { id }, resultId: id };
+    },
+  );
 }
 
 export async function createLetterReview(formData: FormData): Promise<Result> {
@@ -97,104 +138,121 @@ export async function createLetterReview(formData: FormData): Promise<Result> {
   }
   if (text.split(/\s+/).length < 40) return { error: "Upload your letter or paste at least a paragraph." };
   const cv = job.cvReportId ? await repo.getReport<CvReviewPayload>(job.cvReportId) : await repo.latestReport<CvReviewPayload>("cv_review");
-  const { payload, score } = buildLetterReviewPayload({ letterText: text.slice(0, 12000), ...job, cvReportId: cv?.row.id ?? null, cvFileName: cv?.payload.fileName ?? null, cvText: cv?.payload.text ?? "" });
-  const id = await repo.createReport({ type: "cover_letter", title: `${job.employer} cover letter`, score, payload });
-  revalidatePath("/dashboard");
-  return { id };
+  const notes = String(formData.get("notes") ?? "").trim().slice(0, 1000) || null;
+  const context = contextFrom(formData);
+  return runAnalysisJob<Result>(repo, { workflow: "letter_review", ...attemptKey(formData, [job, text, notes, context]), replay: replayReport, refuse }, async () => {
+    const profile = await repo.profile();
+    const { payload, score } = buildLetterReviewPayload({ letterText: text.slice(0, 12000), ...job, cvReportId: cv?.row.id ?? null, cvFileName: cv?.payload.fileName ?? null, cvPayload: cv?.payload ?? null, notes, name: signName(profile, cv), ...context });
+    const id = await repo.createReport({ type: "cover_letter", title: `${job.employer} cover letter`, score, payload });
+    revalidatePath("/dashboard");
+    return { status: "completed", value: { id }, resultId: id };
+  });
 }
 
-/** "Write an improved version": drafts a new letter from the CV, the ad and the current letter. */
-export async function improveLetter(reportId: string): Promise<Result> {
+/** "Suggest improvements": suggestions on this report, paragraph by paragraph. Nothing changes until the student keeps one. */
+export async function improveLetter(reportId: string, attempt?: LetterAttempt): Promise<Result> {
   const repo = await getRepo();
   if (!repo) return { error: "Your session has expired. Sign in again." };
   if (!(await hit("aiWritePerUser", repo.userId))) return { error: TOO_MANY };
-  const r = await repo.getReport<CoverLetterPayload>(reportId);
-  if (!r) return { error: "We couldn't find that letter." };
-  if ((await repo.bumpAi("letter")) > AI_LIMITS.letter) return { error: "You've used all your letter rewrites for today. They reset at midnight." };
-  const cv = r.payload.cvReportId ? await repo.getReport<CvReviewPayload>(r.payload.cvReportId) : await repo.latestReport<CvReviewPayload>("cv_review");
-  if (!cv) return { error: "Upload a CV first. We only use facts from your CV." };
-  const profile = await repo.profile();
-  const greeting = r.payload.letterText.match(/^dear\s+(.+?),/im)?.[1] ?? null;
-  const addressee = greeting && !/hiring manager/i.test(greeting) ? greeting : null;
-  const why = r.payload.letterText.split(/\n\s*\n/).find((p) => /(drawn to|appeals|because|particularly)/i.test(p)) ?? null;
-  const paragraphs = await aiDraftLetter({ name: signName(profile, cv), jobTitle: r.payload.jobTitle, employer: r.payload.employer, jobText: r.payload.jobText, cvText: cv.payload.text, addressee, notes: null, existingLetter: r.payload.letterText });
-  const { payload, score } = buildLetterDraftPayload({
-    paragraphs,
-    name: signName(profile, cv),
-    email: cv.payload.analysis.meta.email ?? profile.email,
-    phone: cv.payload.analysis.meta.phone,
-    jobTitle: r.payload.jobTitle,
-    employer: r.payload.employer,
-    jobText: r.payload.jobText,
-    tailorReportId: r.payload.tailorReportId,
-    cvReportId: cv.row.id,
-    cvFileName: cv.payload.fileName,
-    cvPayload: cv.payload,
-    addressee,
-    notes: why,
-    stageLabel: stageLabel(profile.stage, profile.course),
-  });
-  const id = await repo.createReport({ type: "cover_letter", title: `${r.payload.employer} cover letter (improved)`, score, payload });
-  revalidatePath("/dashboard");
-  return { id };
-}
-
-const EditSchema = z.object({ index: z.number().int().min(0), text: z.string().trim().min(1).max(3000) });
-
-export async function editParagraph(reportId: string, index: number, text: string): Promise<{ error?: string }> {
-  const repo = await getRepo();
-  if (!repo) return { error: "Your session has expired. Sign in again." };
-  const v = EditSchema.safeParse({ index, text });
-  if (!v.success) return { error: "A paragraph can't be empty." };
-  const r = await repo.getReport<CoverLetterPayload>(reportId);
-  if (!r || !r.payload.paragraphs[index]) return { error: "We couldn't find that paragraph." };
-  const p = r.payload;
-  p.paragraphs[index] = { text: v.data.text, src: [...new Set([...p.paragraphs[index].src, "YOU EDITED"])] };
-  return saveRecomputed(repo, reportId, p);
-}
-
-export async function deleteParagraph(reportId: string, index: number): Promise<{ error?: string }> {
-  const repo = await getRepo();
-  if (!repo) return { error: "Your session has expired. Sign in again." };
-  const r = await repo.getReport<CoverLetterPayload>(reportId);
-  if (!r || !r.payload.paragraphs[index]) return { error: "We couldn't find that paragraph." };
-  r.payload.paragraphs.splice(index, 1);
-  return saveRecomputed(repo, reportId, r.payload);
-}
-
-async function saveRecomputed(repo: Repo, reportId: string, p: CoverLetterPayload) {
-  const profile = await repo.profile();
-  const cv = p.cvReportId ? await repo.getReport<CvReviewPayload>(p.cvReportId) : null;
-  const header = letterHeader(signName(profile, cv), cv?.payload.analysis.meta.email ?? profile.email, cv?.payload.analysis.meta.phone ?? null);
-  p.letterText = paragraphsToText(p.paragraphs, header);
-  const rv = reviewLetter(p.letterText, p.jobText, p.employer, cv?.payload.text ?? "");
-  Object.assign(p, { checks: rv.checks, keywordsUsed: rv.keywordsUsed, keywordsMissing: rv.keywordsMissing, words: rv.words, paras: rv.paras, summary: rv.summary });
-  await repo.updateReport(reportId, { payload: p, score: rv.score });
+  const parsed = Attempt_.safeParse(attempt ?? {});
+  const out = await improveLetterFlow(repo, reportId, aiEnabled() ? letterProvider : null, parsed.success ? parsed.data : {});
+  if (out.error) return { error: out.error };
   revalidatePath(`/letters/${reportId}`);
-  return {};
+  return { id: out.id ?? reportId };
+}
+
+type Done = { error?: string; conflict?: boolean; check?: { issues: { severity: string; key: string; message: string }[] } };
+
+const NO_SESSION: Done = { error: "Your session has expired. Sign in again." };
+const Attempt_ = z.object({ key: ClientKey.optional(), revision: z.number().int().nullable().optional() });
+
+/** Runs one change to a letter on the signed-in student's repository, which can only reach their reports. */
+async function change(reportId: string, attempt: unknown, run: (a: LetterAttempt) => Promise<LetterFlowResult>): Promise<Done> {
+  const parsed = Attempt_.safeParse(attempt ?? {});
+  if (!parsed.success) return { error: "Something went wrong. Reload and try again." };
+  const out = await run(parsed.data);
+  if (!out.error) {
+    revalidatePath(`/letters/${reportId}`);
+    revalidatePath("/dashboard");
+  }
+  return out.check ? { error: out.error, conflict: out.conflict, check: { issues: out.check.issues.map((i) => ({ severity: i.severity, key: i.key, message: i.message })) } } : { error: out.error, conflict: out.conflict };
+}
+
+const Keys = z.array(z.string().max(200)).max(30);
+
+export async function decideLetterSuggestion(reportId: string, input: { suggestionId: string; text: string | null; confirmed: string[] }, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  const v = z.object({ suggestionId: z.string().max(40), text: z.string().max(3000).nullable(), confirmed: Keys }).safeParse(input);
+  if (!v.success) return { error: "Something went wrong. Reload and try again." };
+  return change(reportId, attempt, (a) => decideLetterFlow(repo, reportId, v.data, a));
+}
+
+export async function acceptClearLetterSuggestions(reportId: string, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  return change(reportId, attempt, (a) => acceptClearLetterFlow(repo, reportId, a));
+}
+
+export async function rejectLetterSuggestion(reportId: string, suggestionId: string, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  return change(reportId, attempt, (a) => rejectLetterFlow(repo, reportId, String(suggestionId).slice(0, 40), a));
+}
+
+export async function reopenLetterSuggestion(reportId: string, suggestionId: string, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  return change(reportId, attempt, (a) => reopenLetterFlow(repo, reportId, String(suggestionId).slice(0, 40), a));
+}
+
+const EditSchema = z.object({ index: z.number().int().min(0), text: z.string().trim().min(1).max(3000), confirmed: Keys });
+
+export async function editParagraph(reportId: string, index: number, text: string, confirmed: string[] = [], attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  const v = EditSchema.safeParse({ index, text, confirmed });
+  if (!v.success) return { error: "A paragraph can't be empty." };
+  return change(reportId, attempt, (a) => ownParagraphFlow(repo, reportId, { paragraph: v.data.index, text: v.data.text, confirmed: v.data.confirmed }, a));
+}
+
+export async function deleteParagraph(reportId: string, index: number, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  if (!Number.isInteger(index) || index < 0) return { error: "We couldn't find that paragraph." };
+  return change(reportId, attempt, (a) => deleteParagraphFlow(repo, reportId, index, a));
+}
+
+export async function undoLetterEdit(reportId: string, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  return change(reportId, attempt, (a) => undoLetterFlow(repo, reportId, a));
+}
+
+export async function restoreLetterVersion(reportId: string, versionId: string, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  return change(reportId, attempt, (a) => restoreLetterFlow(repo, reportId, String(versionId).slice(0, 12), a));
+}
+
+export async function retainLetterGaps(reportId: string, attempt?: LetterAttempt): Promise<Done> {
+  const repo = await getRepo();
+  if (!repo) return NO_SESSION;
+  return change(reportId, attempt, (a) => retainLetterFlow(repo, reportId, a));
 }
 
 export async function saveLetter(reportId: string): Promise<{ error?: string }> {
   const repo = await getRepo();
-  if (!repo) return { error: "Your session has expired. Sign in again." };
-  const r = await repo.getReport<CoverLetterPayload>(reportId);
-  if (!r) return { error: "We couldn't find that letter." };
-  r.payload.saved = true;
-  await repo.updateReport(reportId, { payload: r.payload });
-  revalidatePath(`/letters/${reportId}`);
-  revalidatePath("/dashboard");
-  return {};
+  if (!repo) return NO_SESSION;
+  return change(reportId, {}, (a) => saveLetterFlow(repo, reportId, a));
 }
 
-/** Turns a draft into a full review so the student sees the core checks view. */
+/** The selected text as a new report, assessed today. How an old report gets edited, and how a letter is compared with a CV that has changed. */
 export async function reviewDraft(reportId: string): Promise<Result> {
   const repo = await getRepo();
   if (!repo) return { error: "Your session has expired. Sign in again." };
-  const r = await repo.getReport<CoverLetterPayload>(reportId);
-  if (!r) return { error: "We couldn't find that letter." };
-  const cv = r.payload.cvReportId ? await repo.getReport<CvReviewPayload>(r.payload.cvReportId) : null;
-  const { payload, score } = buildLetterReviewPayload({ letterText: r.payload.letterText, jobTitle: r.payload.jobTitle, employer: r.payload.employer, jobText: r.payload.jobText, tailorReportId: r.payload.tailorReportId, cvReportId: r.payload.cvReportId, cvFileName: r.payload.cvFileName, cvText: cv?.payload.text ?? "" });
-  const id = await repo.createReport({ type: "cover_letter", title: `${r.payload.employer} cover letter review`, score, payload });
+  const out = await recheckLetterFlow(repo, reportId);
+  if (out.error || !out.id) return { error: out.error ?? "Something went wrong. Try again." };
   revalidatePath("/dashboard");
-  return { id };
+  return { id: out.id };
 }

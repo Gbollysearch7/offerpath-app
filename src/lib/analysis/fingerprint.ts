@@ -4,6 +4,13 @@ import { createHash } from "node:crypto";
 // Formatting noise from re-exporting a CV (bullet glyphs, smart quotes, dashes, spacing,
 // line wrapping, letter case) must never change a score, so it is removed before hashing.
 
+/**
+ * The normalisation contract. Bump when `normaliseText` or `bulletKey` would return anything different for any
+ * input: both decide what counts as the same content, so a change can move a score. The golden vectors in
+ * tests/scoring-contract.test.ts fail until this is bumped. A bump starts a new scoring series (scoring-contract.ts).
+ */
+export const NORMALISER_VERSION = "normaliser-2026-11-06.1";
+
 /** Text as the scorer should see it: same words, consistent characters and spacing. */
 export function normaliseText(raw: string): string {
   return raw

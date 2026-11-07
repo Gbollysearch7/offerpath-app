@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { onTabListKey } from "@/components/a11y";
 import { pill, SearchIcon } from "@/components/ui";
 
 export function VerbBank({ data, weak }: { data: [string, string[]][]; weak: { from: string; to: string }[] }) {
@@ -33,7 +34,7 @@ export function VerbBank({ data, weak }: { data: [string, string[]][]; weak: { f
         <label className="flex min-h-[42px] min-w-[240px] items-center gap-2 rounded-full bg-white px-3.5">
           <SearchIcon />
           <span className="sr-only-abs">Search verbs</span>
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search verbs" className="flex-1 border-0 bg-transparent text-sm outline-none" />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search verbs" className="flex-1 border-0 bg-transparent text-sm" />
         </label>
       </div>
       {weak.length > 0 && (
@@ -51,15 +52,15 @@ export function VerbBank({ data, weak }: { data: [string, string[]][]; weak: { f
         </div>
       )}
       {!q.trim() && (
-        <div role="tablist" aria-label="Skill" className="flex flex-wrap gap-2">
+        <div role="tablist" aria-label="Skill" onKeyDown={onTabListKey} className="flex flex-wrap gap-2">
           {data.map(([t], i) => (
-            <button key={t} role="tab" aria-selected={cat === i} aria-controls="verb-panel" onClick={() => setCat(i)} className={pill(cat === i)}>
+            <button key={t} type="button" role="tab" aria-selected={cat === i} tabIndex={cat === i ? 0 : -1} aria-controls="verb-panel" onClick={() => setCat(i)} className={pill(cat === i)}>
               {t}
             </button>
           ))}
         </div>
       )}
-      <section id="verb-panel" aria-label="Verbs" className="grid grid-cols-2 gap-2.5 rounded-3xl bg-white p-[26px] sm:grid-cols-3 md:grid-cols-4">
+      <section id="verb-panel" role={q.trim() ? undefined : "tabpanel"} aria-label="Verbs" className="grid grid-cols-2 gap-2.5 rounded-3xl bg-white p-[26px] sm:grid-cols-3 md:grid-cols-4">
         {verbs.length === 0 && <p className="col-span-full m-0 text-sm text-muted">No verbs match “{q}”.</p>}
         {verbs.map((v) => (
           <button key={v} type="button" onClick={() => copy(v)} className="min-h-12 rounded-[14px] border-0 bg-canvas text-[15px] text-black hover:bg-mist" aria-label={`Copy ${v}`}>

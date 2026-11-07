@@ -1,18 +1,10 @@
 import Link from "next/link";
 import { signOut } from "@/app/actions/auth";
+import { navFor } from "@/lib/institution/permissions";
+import type { Role } from "@/lib/types";
 import { cx, Logo } from "./ui";
 
-const ITEMS: [string, string, string][] = [
-  ["dashboard", "Dashboard", "/admin"],
-  ["students", "Students", "/admin/students"],
-  ["import", "Import student records", "/admin/import"],
-  ["opportunities", "Opportunities", "/admin/opportunities"],
-  ["team", "Careers team", "/admin/team"],
-  ["settings", "Settings and SSO", "/admin/settings"],
-  ["reports", "Reports and exports", "/admin/students#export"],
-];
-
-export function AdminNav({ active, university, name, title }: { active: string; university: string; name: string; title: string }) {
+export function AdminNav({ active, university, name, title, role = "admin" }: { active: string; university: string; name: string; title: string; role?: Role }) {
   const initials = name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   return (
     <nav aria-label="Admin" className="flex w-full flex-col gap-1 bg-night px-4 py-6 text-white lg:min-h-screen lg:w-[260px]">
@@ -21,10 +13,10 @@ export function AdminNav({ active, university, name, title }: { active: string; 
         Offerpath
       </Link>
       <div className="mx-2 my-[18px] rounded-[14px] bg-night-2 px-3.5 py-3">
-        <p className="m-0 font-mono text-[10px] text-sage">CAREERS ADMIN</p>
+        <p className="m-0 font-mono text-[10px] text-sage">{role === "adviser" ? "CAREERS ADVISER" : "CAREERS ADMIN"}</p>
         <p className="mt-1 mb-0 text-sm">{university}</p>
       </div>
-      {ITEMS.map(([id, label, href]) => (
+      {navFor(role).map(({ id, label, href }) => (
         <Link
           key={id}
           href={href}

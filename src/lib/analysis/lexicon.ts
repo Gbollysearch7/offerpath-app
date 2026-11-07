@@ -1,5 +1,8 @@
 // Word lists used by the rule-based CV, job ad and cover letter checks.
 
+/** Bump when any list below changes: saved findings record which word lists they were checked against. */
+export const LEXICON_VERSION = "lexicon-2026-11-07.1";
+
 export const SECTORS = [
   "Finance and banking",
   "Consulting",
@@ -23,7 +26,7 @@ export const STAGES = [
 // Weak opening verbs and stronger replacements.
 export const WEAK_VERBS: Record<string, string[]> = {
   // Replacements keep the same level of involvement: "supported" never becomes "built" or "led".
-  helped: ["Contributed to", "Coordinated", "Organised"],
+  helped: ["Contributed to", "Coordinated", "Supported"],
   assisted: ["Coordinated", "Supported delivery of", "Contributed to"],
   supported: ["Contributed to", "Coordinated", "Enabled"],
   worked: ["Collaborated on", "Contributed to", "Delivered"],
@@ -106,6 +109,14 @@ export const SECTION_HEADERS: Record<string, string> = {
   "employment history": "experience",
   "work history": "experience",
   "career history": "experience",
+  "research experience": "experience",
+  research: "experience",
+  "academic experience": "experience",
+  "academic appointments": "experience",
+  "teaching experience": "experience",
+  teaching: "experience",
+  "research and teaching": "experience",
+  "teaching and research": "experience",
   projects: "projects",
   "academic projects": "projects",
   "selected projects": "projects",
@@ -117,6 +128,9 @@ export const SECTION_HEADERS: Record<string, string> = {
   interests: "interests",
   hobbies: "interests",
   "hobbies and interests": "interests",
+  activities: "activities",
+  "other activities": "activities",
+  "student activities": "activities",
   "extracurricular activities": "activities",
   extracurricular: "activities",
   "extra-curricular activities": "activities",
@@ -132,6 +146,20 @@ export const SECTION_HEADERS: Record<string, string> = {
   certifications: "achievements",
   publications: "achievements",
   "publication history": "achievements",
+  "publications and presentations": "achievements",
+  conferences: "achievements",
+  "conferences and talks": "achievements",
+  "conferences and presentations": "achievements",
+  presentations: "achievements",
+  talks: "achievements",
+  "talks and presentations": "achievements",
+  grants: "achievements",
+  "grants and funding": "achievements",
+  "funding and awards": "achievements",
+  funding: "achievements",
+  scholarships: "achievements",
+  "honours and awards": "achievements",
+  "awards and honours": "achievements",
   references: "references",
   summary: "summary",
   profile: "summary",
@@ -143,6 +171,12 @@ export const SECTION_HEADERS: Record<string, string> = {
   contact: "contact",
   languages: "skills",
 };
+
+/**
+ * One-word headings that are also ordinary items in a skills or interests list. Written normally on a line of their
+ * own inside such a list they are list items; in capitals they are headings, wherever they appear.
+ */
+export const LIST_ITEM_HEADINGS = new Set(["activities", "research", "teaching", "conferences", "presentations", "talks", "grants", "funding", "scholarships"]);
 
 export const SECTOR_KEYWORDS: Record<string, string[]> = {
   "Finance and banking": ["financial modelling", "excel", "valuation", "due diligence", "commercial awareness", "financial statements", "risk", "analysis", "sql", "python", "bloomberg", "stakeholder", "accounting", "markets", "investment", "forecasting"],

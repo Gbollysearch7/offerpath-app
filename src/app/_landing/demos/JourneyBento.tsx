@@ -93,9 +93,9 @@ function Tile({ area, title, children, picture, tone }: { area: string; title?: 
 const AREAS: [string, number][] = [
   ['Impact', 58],
   ['Clarity', 72],
-  ['Structure and ATS', 80],
+  ['Structure and readability', 80],
   ['Sector fit', 61],
-  ['Spelling and grammar', 92],
+  ['UK spelling and consistency', 92],
   ['Length and formatting', 74],
 ]
 const SCORE = 68

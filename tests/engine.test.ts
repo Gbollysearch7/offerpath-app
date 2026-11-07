@@ -14,10 +14,11 @@ const v6 = DEMO_CVS[3].text;
 const ad = SAMPLE_OPPORTUNITIES[0].description;
 
 test("score bands match the prototype thresholds", () => {
+  // Thresholds are the rubric's; the words are labels.ts (OP-003), and the top band describes the document, not an outcome.
   assert.equal(band(49), "Needs work");
   assert.equal(band(50), "Getting there");
   assert.equal(band(75), "Strong");
-  assert.equal(band(90), "Interview-ready");
+  assert.equal(band(90), "Very strong");
 });
 
 test("parser finds sections, bullets and contact details", () => {
@@ -234,10 +235,13 @@ test("tailoring never adds a number the CV doesn't have", () => {
     },
     lines,
     "Helped run 4 society events for students\nBuilt a budget tracker in Excel",
+    [],
+    "Run society events. Budgeting in Excel. SQL.",
   );
   assert.equal(out.summary, "", "the invented 5 years is dropped");
-  assert.deepEqual(out.bullets.map((b) => b.id), [1], "200 students is invented; duplicates, unknown ids and one-word swaps go");
-  assert.deepEqual(out.bullets[0].keywords, ["Excel", "Budgeting"]);
+  assert.deepEqual(out.bullets.map((b) => b.id), [0, 1], "duplicates, unknown ids and one-word swaps go");
+  assert.equal(out.bullets[0].after, "Coordinated 4 society events for [X] students", "200 students is invented: asked for, as a line rewrite does");
+  assert.deepEqual(out.bullets[1].keywords, ["Excel", "Budgeting"]);
   assert.deepEqual(out.skills, ["Budgeting"], "skills already named in the CV, or also listed as unproven, aren't added");
   assert.deepEqual(out.notEvidenced, ["SQL"]);
 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { areaLabel, checkLabel } from "@/lib/analysis/labels";
 import type { AreaResult } from "@/lib/types";
 import { checkBadge, cx } from "./ui";
 
@@ -7,11 +8,13 @@ export type SidebarActive = "overview" | "breakdown" | "lines" | "samples" | "ve
 const link = (on: boolean) =>
   cx("flex min-h-[38px] items-center gap-2.5 rounded-xl px-2.5 text-sm no-underline", on ? "bg-black font-medium text-white hover:text-white" : "text-ink-2 hover:bg-canvas hover:text-black");
 
+// Area and check names come from the key, not the saved report, so an older report shows today's names next to its own scores.
 function Items({ reviewId, areas, active }: { reviewId: string; areas: AreaResult[]; active: SidebarActive }) {
   const base = `/reviews/${reviewId}`;
   const top: [string, string, string][] = [
     ["overview", "Overview", base],
     ["breakdown", "Score breakdown", `${base}/breakdown`],
+    ["source", "Source document", `${base}/source`],
   ];
   const tools: [string, string, string][] = [
     ["lines", "Line by line", `${base}/lines`],
@@ -31,13 +34,13 @@ function Items({ reviewId, areas, active }: { reviewId: string; areas: AreaResul
       {areas.map((g) => (
         <div key={g.key} className="flex flex-col gap-0.5">
           <p className="mx-2.5 mt-4 mb-1.5 font-mono text-[11px] tracking-[0.04em] text-subtle">
-            {g.name.toUpperCase()} · <span className="text-black">{g.score}</span>
+            {areaLabel(g.key).toUpperCase()} · <span className="text-black">{g.score}</span>
           </p>
           {g.checks.map((c) => {
             const on = c.key === active;
             return (
               <Link key={c.key} href={`${base}/checks/${c.key}`} aria-current={on ? "page" : undefined} className={link(on)}>
-                <span className="flex-1">{c.name}</span>
+                <span className="flex-1">{checkLabel(c.key)}</span>
                 <span className={cx("inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-full px-1.5 font-mono text-xs", checkBadge(c.score))}>
                   <span className="sr-only-abs">Score </span>
                   {c.score}

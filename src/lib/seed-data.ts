@@ -101,29 +101,8 @@ Thank you for considering my application. I would welcome the chance to discuss 
 Yours faithfully,
 Jordan Reed`;
 
-// Admin sample figures, matching the prototype's fictional university.
+// The sample student list. The dashboard's sample figures are in src/lib/analytics/sample.ts.
 export const ADMIN_SAMPLE = {
-  kpis: { activeStudents: 1240, newThisMonth: 180, avgScore: 71, avgFirstScore: 57, avgImprovement: 14, cvsReviewed: 3580, perStudent: 2.9, appsTracked: 2115, needHand: 86 },
-  weekly: [57, 58, 60, 62, 64, 66, 68, 71],
-  bands: { needs: 14, getting: 41, strong: 33, ready: 12 },
-  faculties: [
-    { name: "Business", avg: 74, improvement: 15 },
-    { name: "Engineering", avg: 70, improvement: 12 },
-    { name: "Sciences", avg: 72, improvement: 13 },
-    { name: "Social sciences", avg: 69, improvement: 16 },
-    { name: "Arts and humanities", avg: 66, improvement: 11 },
-  ],
-  homeIntl: [
-    { metric: "Average score", home: 72, intl: 68 },
-    { metric: "CVs reviewed per student", home: 2.7, intl: 3.4 },
-    { metric: "Applications tracked per student", home: 1.6, intl: 1.9 },
-  ],
-  needs: [
-    { count: 34, why: "Signed up but no CV uploaded", hint: "Over 3 weeks" },
-    { count: 22, why: "Score not improving after 3 uploads", hint: "Mostly Impact" },
-    { count: 18, why: "Tracked deadline in 7 days, score under 50", hint: "Urgent" },
-    { count: 12, why: "Inactive for 30 days", hint: "Final years" },
-  ],
   students: [
     { id: "2104821", course: "Economics", year: "Year 3", status: "Home", faculty: "Social sciences", score: 68, change: 19, lastActive: "Today", flag: "" },
     { id: "2209134", course: "Law", year: "Year 3", status: "International", faculty: "Social sciences", score: null, change: null, lastActive: "24 days ago", flag: "No CV yet" },
