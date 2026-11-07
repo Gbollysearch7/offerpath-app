@@ -45,6 +45,9 @@ try {
   process.exit(1);
 }
 
+/** A saved CV payload that says which scoring series it belongs to, and nothing else the database reads. */
+const inSeries = (identity) => ({ analysis: { meta: { bullets: 8, scoring: { identity } } } });
+
 // Users: 1 admin + 7 students at Northfield, 1 student elsewhere.
 const ids = [];
 for (let i = 0; i < 7; i++) {
@@ -73,7 +76,7 @@ const unconfirmed = (await db.query(`insert into auth.users (email, email_confir
 await db.query(`update public.profiles set share_progress = true where id = $1`, [unconfirmed]);
 for (let i = 0; i < 7; i++) {
   await db.exec(`update public.profiles set faculty = 'Business', fee_status = '${i % 2 ? "international" : "home"}', course = 'Economics' where id = '${ids[i]}'`);
-  await db.query(`insert into public.reports (user_id, type, title, score) values ($1, 'cv_review', 'v1.pdf', $2), ($1, 'cv_review', 'v2.pdf', $3)`, [ids[i], 50 + i, 60 + i * 2]);
+  await db.query(`insert into public.reports (user_id, type, title, score, payload) values ($1, 'cv_review', 'v1.pdf', $2, $4), ($1, 'cv_review', 'v2.pdf', $3, $4)`, [ids[i], 50 + i, 60 + i * 2, inSeries("rules|v1")]);
 }
 await db.query(`insert into public.applications (user_id, opportunity_id, role, org, status, closes_on) values ($1, 'opp-northbank-analyst', 'Analyst', 'Northbank', 'saved', current_date + 3)`, [ids[0]]);
 
@@ -392,6 +395,83 @@ try {
 const keyed = (await as(admin, `select public.admin_students() as s`)).rows[0].s.rows;
 keyed.every((r) => /^[0-9a-f-]{36}$/.test(r.key)) ? ok("student list rows carry a key for the detail page") : fail("missing keys");
 
+// ---------- CV source versions (OP-006) ----------
+const sha = (t) => "0".repeat(63) + t; // a 64-hex stand-in for sha256(text)
+const owner = ids[1];
+const other = ids[2];
+const up = (await asService(`insert into public.cv_sources (user_id, kind, file_name, text, document_version, idempotency_key, storage_path) values ($1, 'upload', 'cv.pdf', 'Alex Example', $2, 'attempt-0001-aaaa', $3) returning id`, [owner, sha("1"), `${owner}/x/cv.pdf`])).rows[0].id;
+ok("server can save an uploaded version");
+try {
+  await asService(`insert into public.cv_sources (user_id, kind, file_name, text, document_version, idempotency_key) values ($1, 'upload', 'again.pdf', 'Alex Example', $2, 'attempt-0001-aaaa')`, [owner, sha("2")]);
+  fail("the same idempotency key saved a second version");
+} catch (e) {
+  /duplicate key/.test(e.message) ? ok("the same attempt key from the same user is a unique violation, not a second version") : fail(`idempotency: ${e.message}`);
+}
+await asService(`insert into public.cv_sources (user_id, kind, file_name, text, document_version, idempotency_key) values ($1, 'upload', 'cv.pdf', 'Alex Example', $2, 'attempt-0001-aaaa')`, [other, sha("1")]);
+ok("another user may use the same key: keys are scoped per user");
+const corr = (await asService(`insert into public.cv_sources (user_id, parent_id, kind, file_name, text, document_version) values ($1, $2, 'correction', 'cv.pdf (corrected)', 'Alex Example fixed', $3) returning id`, [owner, up, sha("3")])).rows[0].id;
+ok("server can save a correction that descends from the user's upload");
+try {
+  await asService(`insert into public.cv_sources (user_id, parent_id, kind, file_name, text, document_version) values ($1, $2, 'correction', 'x', 'Alex Example fixed again', $3)`, [owner, up, sha("3")]);
+  fail("the same corrected text from the same parent saved twice");
+} catch (e) {
+  /duplicate key/.test(e.message) ? ok("the same corrected text from the same parent is one version") : fail(`content dedup: ${e.message}`);
+}
+try {
+  await asService(`insert into public.cv_sources (user_id, parent_id, kind, file_name, text, document_version) values ($1, $2, 'correction', 'x', 'stolen', $3)`, [other, up, sha("4")]);
+  fail("a correction descended from another user's version");
+} catch (e) {
+  /own user/.test(e.message) ? ok("the database refuses a correction whose parent belongs to someone else, even from the server") : fail(`parent owner: ${e.message}`);
+}
+try {
+  await asService(`insert into public.cv_sources (user_id, kind, file_name, text, document_version) values ($1, 'correction', 'x', 'orphan', $2)`, [owner, sha("5")]);
+  fail("a correction without a parent was accepted");
+} catch {
+  ok("a correction must name the version it was made from");
+}
+try {
+  await asService(`update public.cv_sources set text = 'rewritten' where id = $1`, [up]);
+  fail("a version was rewritten");
+} catch (e) {
+  /immutable/.test(e.message) ? ok("versions are immutable: the original upload can't be overwritten, even by the server") : fail(`immutable: ${e.message}`);
+}
+const rep = (await asService(`insert into public.reports (user_id, type, title, score, source_id) values ($1, 'cv_review', 'cv.pdf (corrected)', 70, $2) returning id`, [owner, corr])).rows[0].id;
+ok("server can save a report that scores a version");
+try {
+  await asService(`insert into public.reports (user_id, type, title, score, source_id) values ($1, 'cv_review', 'again', 71, $2)`, [owner, corr]);
+  fail("a version was scored twice");
+} catch (e) {
+  /duplicate key/.test(e.message) ? ok("a version is scored at most once: a second report for it is a unique violation") : fail(`one report per version: ${e.message}`);
+}
+try {
+  await asService(`insert into public.reports (user_id, type, title, score, source_id) values ($1, 'cv_review', 'theirs', 99, $2)`, [other, up]);
+  fail("a report scored another user's version");
+} catch (e) {
+  /own user/.test(e.message) ? ok("the database refuses a report that scores someone else's version, even from the server") : fail(`report owner: ${e.message}`);
+}
+(await as(owner, `select count(*)::int as n from public.cv_sources`)).rows[0].n === 2 ? ok("student sees only their own versions") : fail("version visibility");
+(await as(other, `select count(*)::int as n from public.cv_sources where id in ($1, $2)`, [up, corr])).rows[0].n === 0 ? ok("another student can't read them by id") : fail("version leaked");
+(await as(owner, `select source_id from public.reports where id = $1`, [rep])).rows[0].source_id === corr ? ok("the student can see which version their report scored") : fail("report source link");
+// The original file behind a version lives at its storage_path under the owner's folder; the bucket policy decides who reads it.
+await db.query(`insert into storage.objects (bucket_id, name) values ('cvs', $1)`, [`${owner}/x/cv.pdf`]);
+const fileRows = async (who) => (await as(who, `select count(*)::int as n from storage.objects where bucket_id = 'cvs' and name = $1`, [`${owner}/x/cv.pdf`])).rows[0].n;
+(await fileRows(owner)) === 1 ? ok("the owner can read the original file behind their upload version") : fail("owner can't read their original file");
+(await fileRows(other)) === 0 ? ok("another student can't read that file, whatever path they ask for") : fail("original file leaked to another student");
+for (const [what, sql] of [
+  ["insert", `insert into public.cv_sources (user_id, kind, file_name, text, document_version) values ($1, 'upload', 'x', 'y', '${sha("9")}')`],
+  ["update", `update public.cv_sources set text = 'x' where id = '${up}'`],
+  ["delete", `delete from public.cv_sources where id = '${up}'`],
+]) {
+  try {
+    await as(owner, sql, what === "insert" ? [owner] : []);
+    fail(`student could ${what} a version directly`);
+  } catch {
+    ok(`students can't ${what} versions directly (server only)`);
+  }
+}
+const repSrc = (await db.query(`select count(*)::int as n from pg_policies where tablename = 'cv_sources' and cmd <> 'SELECT'`)).rows[0].n;
+repSrc === 0 ? ok("cv_sources has no write policy for signed-in users") : fail(`cv_sources write policies: ${repSrc}`);
+
 // Pilot requests: server-only.
 await asService(`insert into public.pilot_requests (name, university, role, email) values ('Ana', 'Uni', 'Head of Careers', 'ana@uni.ac.uk')`);
 ok("server can save a pilot request");
@@ -419,9 +499,80 @@ for (const owner of [ids[1], ids[0]]) {
 await as(ids[3], `select public.delete_my_account()`);
 const gone = await db.query(`select (select count(*)::int from public.profiles where id = $1) as p, (select count(*)::int from public.reports where user_id = $1) as r`, [ids[3]]);
 gone.rows[0].p === 0 && gone.rows[0].r === 0 ? ok("delete_my_account removes profile and reports") : fail(`delete: ${JSON.stringify(gone.rows[0])}`);
+await as(owner, `select public.delete_my_account()`);
+(await db.query(`select count(*)::int as n from public.cv_sources where user_id = $1`, [owner])).rows[0].n === 0 ? ok("delete_my_account removes every CV version too") : fail("versions survived account deletion");
 await as(ids[0], `select public.delete_my_account()`);
 const cacheCols = (await db.query(`select column_name from information_schema.columns where table_schema = 'public' and table_name = 'judgment_cache'`)).rows.map((r) => r.column_name).sort();
 JSON.stringify(cacheCols) === JSON.stringify(["created_at", "judge", "judgment", "key"]) ? ok("the shared judgment cache holds no student or CV text") : fail(`judgment_cache columns: ${cacheCols}`);
+
+/* ---------- scoring series (OP-010) ---------- */
+
+// The SQL rule gives the answers the TypeScript rule is tested against (tests/scoring-contract.test.ts).
+const { cases: seriesCases } = JSON.parse(readFileSync(fileURLToPath(new URL("../../tests/fixtures/score-series-cases.json", import.meta.url)), "utf8"));
+const seriesWrong = [];
+for (const c of seriesCases) {
+  const got = (await db.query(`select public.report_score_series($1::jsonb) as s`, [c.payload])).rows[0].s;
+  if (got !== c.series) seriesWrong.push(`${c.name}: ${got}`);
+}
+seriesWrong.length === 0 && seriesCases.length >= 9 ? ok(`report_score_series agrees on all ${seriesCases.length} shared cases`) : fail(`report_score_series: ${seriesWrong.join("; ")}`);
+
+try {
+  await as(ids[1], `select public.report_score_series('{}'::jsonb)`);
+  fail("student called report_score_series");
+} catch {
+  ok("report_score_series is only reachable through the admin functions");
+}
+
+// Fresh students so nothing above leaks in; one report each per day, oldest first. All at one fresh institution.
+const seriesUni = (await db.query(`insert into public.universities (name, domain) values ('Series University', 'series.ac.uk') returning id`)).rows[0].id;
+const seriesAdminId = (await db.query(`insert into auth.users (email, email_confirmed_at, raw_app_meta_data) values ('admin@series.ac.uk', now(), '{}') returning id`)).rows[0].id;
+await db.query(`update public.profiles set role = 'admin', university_id = $2 where id = $1`, [seriesAdminId, seriesUni]);
+const seriesStudent = async (reports) => {
+  const id = (await db.query(`insert into auth.users (email, email_confirmed_at) values ($1, now()) returning id`, [`s${crypto.randomUUID()}@series.ac.uk`])).rows[0].id;
+  await db.query(`update public.profiles set university_id = $2, role = 'student', share_progress = true, faculty = 'Science', last_active_at = now() where id = $1`, [id, seriesUni]);
+  for (const [i, [score, payload]] of reports.entries()) {
+    await db.query(`insert into public.reports (user_id, type, title, score, payload, created_at) values ($1, 'cv_review', 'cv.pdf', $2, $3, now() - make_interval(days => $4))`, [id, score, payload, reports.length - i]);
+  }
+  return id;
+};
+const V1 = inSeries("rules|v1");
+const V2 = inSeries("rules|v2");
+const sameSeries = await seriesStudent([[40, V1], [55, V1], [70, V1]]);
+const ruleChange = await seriesStudent([[40, V1], [45, V1], [90, V2]]);
+const twoAfter = await seriesStudent([[30, V1], [60, V2], [61, V2]]);
+const unknownOld = await seriesStudent([[20, {}], [80, V1]]);
+const onlyOne = await seriesStudent([[66, V1]]);
+const stalled = await seriesStudent([[70, V1], [71, V2], [71, V2], [71, V2]]);
+const noBullets = await seriesStudent([[50, V1], [10, { analysis: { meta: { bullets: 0, scoring: { identity: "rules|v1" } } } }]]);
+const facts = (await db.query(`select * from public.admin_student_facts($1)`, [seriesUni])).rows;
+const fact = (id) => facts.find((f) => f.user_id === id || f.id === id);
+const expectFact = (name, id, first, latest, comparable) => {
+  const f = fact(id);
+  f && f.first_score === first && f.latest_score === latest && f.comparable_cvs === comparable ? ok(`series: ${name}`) : fail(`series: ${name}: ${JSON.stringify(f)}`);
+};
+expectFact("one series: first and latest compare as they always did", sameSeries, 40, 70, 3);
+expectFact("a rule change: the jump from 45 to 90 isn't an improvement of 50", ruleChange, null, 90, 1);
+expectFact("two reports after a rule change compare with each other only", twoAfter, 60, 61, 2);
+expectFact("an old report that doesn't say how it was scored isn't compared", unknownOld, null, 80, 1);
+expectFact("a student's only report is first and latest, as before", onlyOne, 66, 66, 1);
+expectFact("a no-bullet report is in no series, so nothing is compared with it", noBullets, null, 10, 0);
+const flagOf = async (id) => (await db.query(`select public.student_flag(f) as flag from public.admin_student_facts($1) f where f.user_id = $2`, [seriesUni, id])).rows[0].flag;
+(await flagOf(stalled)) === "Not improving" ? ok("series: three comparable scores that didn't move still flag 'Not improving'") : fail(`stalled flag: ${await flagOf(stalled)}`);
+(await flagOf(ruleChange)) === "" ? ok("series: a rule change doesn't flag 'Not improving'") : fail(`rule-change flag: ${await flagOf(ruleChange)}`);
+const seriesRows = (await as(seriesAdminId, `select public.admin_students() as s`)).rows[0].s.rows;
+const changeOf = (id) => seriesRows.find((r) => r.key === id)?.change;
+changeOf(ruleChange) === null && changeOf(sameSeries) === 30 && changeOf(onlyOne) === 0 ? ok("series: the student list shows no change across series, and the same change as before within one") : fail(`admin_students change: ${JSON.stringify(seriesRows.map((r) => r.change))}`);
+const seriesPack = (await as(seriesAdminId, `select public.admin_outcomes_pack() as p`)).rows[0].p.rows.find((r) => r.dimension === "All students");
+seriesPack.improved10 === 1 ? ok("series: 'improved by 10+' counts only the student who improved within one series") : fail(`improved10: ${JSON.stringify(seriesPack)}`);
+const savedScores = (await db.query(`select array_agg(score order by created_at) as s from public.reports where user_id = $1`, [ruleChange])).rows[0].s;
+JSON.stringify(savedScores) === "[40,45,90]" ? ok("series: stored scores are untouched") : fail(`scores: ${savedScores}`);
+
+// Simultaneous first publications: both attempts race, one verdict stands, and both read the same one back.
+const raceKey = "e".repeat(64);
+const verdict = (result) => ({ result, verb: "ok", kind: "achievement" });
+await Promise.all(["measured", "none", "partial"].map((r) => asService(`insert into public.judgment_cache (key, judgment, judge) values ($1, $2, 'claude-haiku-5-5') on conflict (key) do nothing`, [raceKey, verdict(r)])));
+const raced = (await asService(`select judgment from public.judgment_cache where key = $1`, [raceKey])).rows;
+raced.length === 1 ? ok("simultaneous first publications of one key leave exactly one verdict") : fail(`raced rows: ${raced.length}`);
 
 // Signed-out visitors can't call any security definer function.
 const anonDefiners = await db.query(`

@@ -1,8 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Application, AppStatus, Opportunity, Profile, ReportRow, ReportType } from "@/lib/types";
+import { scoreContext } from "@/lib/analysis/coverage";
+import { sha256 } from "@/lib/analysis/fingerprint";
+import { checkDocument, fromStored, toStored } from "@/lib/report-schema";
+import type { Application, AppStatus, CvSource, Opportunity, Profile, ReportRow, ReportType } from "@/lib/types";
+import { removeUserFiles, sweepUserFiles } from "@/lib/account-deletion";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import type { AdminOverview, AiKind, AdminTeam, ImportResult, OutcomeRow, Repo, StudentDetail, StudentPage } from "./types";
+import { sameAttempt, SourceConflictError, type AdminOverview, type AiKind, type AdminTeam, type ImportResult, type OutcomeRow, type Repo, type SourceInput, type StudentDetail, type StudentPage } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows come back untyped from PostgREST */
 
@@ -32,16 +36,42 @@ function toProfile(r: any): Profile {
   };
 }
 
-const toRow = (r: any): ReportRow => ({ id: r.id, type: r.type, title: r.title, score: r.score, createdAt: r.created_at });
+const toRow = (r: any): ReportRow => ({ id: r.id, type: r.type, title: r.title, score: r.score, createdAt: r.created_at, sourceId: r.source_id ?? null });
+
+// A list reads only what `seriesFields` reads out of each payload, not the payloads themselves. Reads old rows as well
+// as new ones and needs no migration. A JSON path yields null when a report did not record it.
+const LIST_COLUMNS =
+  "id, type, title, score, created_at, source_id, s_identity:payload->analysis->meta->scoring->>identity, s_method:payload->analysis->meta->>method, s_rubric:payload->analysis->meta->>rubric, s_bullets:payload->analysis->meta->>bullets, s_parser:payload->assessment->versions->>parser, s_dictionary:payload->assessment->versions->>dictionary, s_model:payload->assessment->versions->>model, s_band:payload->document->extraction->confidence->>band";
+
+const toListRow = (r: any): ReportRow => ({
+  ...toRow(r),
+  ...(r.type === "cv_review"
+    ? { scoring: scoreContext({ identity: r.s_identity ?? null, method: r.s_method ?? null, rubric: r.s_rubric ?? null, parser: r.s_parser ?? null, dictionary: r.s_dictionary ?? null, model: r.s_model ?? null, bullets: r.s_bullets == null ? null : Number(r.s_bullets), band: r.s_band ?? null }) }
+    : {}),
+});
+const CONTENT_TYPES: Record<string, string> = { pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
+const contentTypeFor = (name: string) => CONTENT_TYPES[name.toLowerCase().split(".").pop() ?? ""] ?? "application/octet-stream";
+const safeName = (name: string) => name.replace(/[^\w.-]+/g, "_").slice(0, 100);
+
+/** A `cv_sources` row as the app reads it. The metadata is validated on read, like a report payload, so a damaged row fails loudly. */
+function toSource(r: any, reportId: string | null): CvSource {
+  const document = r.meta && typeof r.meta === "object" && Object.keys(r.meta).length ? checkDocument(r.meta, r.text) : null;
+  return { id: r.id, parentId: r.parent_id, kind: r.kind, fileName: r.file_name, text: r.text, documentVersion: r.document_version, document, outcome: r.outcome ?? null, storagePath: r.storage_path, hasFile: !!r.storage_path, reportId, createdAt: r.created_at };
+}
 const toOpp = (r: any): Opportunity => ({ id: r.id, role: r.role, org: r.org, location: r.location, type: r.type, sector: r.sector, sponsorsVisa: r.sponsors_visa, closesOn: r.closes_on, description: r.description, url: r.url, own: !!r.university_id });
 const toApp = (r: any): Application => ({ id: r.id, opportunityId: r.opportunity_id, role: r.role, org: r.org, status: r.status, closesOn: r.closes_on, updatedAt: r.updated_at });
 
-function check<T>(res: { data: T; error: { message: string } | null }): T {
-  if (res.error) throw new Error(res.error.message);
+function check<T>(res: { data: T; error: { message: string; code?: string } | null }): T {
+  if (res.error) throw Object.assign(new Error(res.error.message), { code: res.error.code });
   return res.data;
 }
+/** Postgres unique_violation: the row we tried to insert already exists under a unique index. */
+const isDuplicate = (e: unknown) => (e as { code?: string } | null)?.code === "23505";
 
-export function supabaseRepo(sb: SupabaseClient, userId: string): Repo {
+/** `admin` is the service-role client used for the writes students can't make themselves; tests pass a fake. */
+export function supabaseRepo(sb: SupabaseClient, userId: string, admin: () => SupabaseClient = supabaseAdmin): Repo {
+  /** The report that scored a version, if any, read with the student's session. */
+  const reportFor = async (sourceId: string): Promise<string | null> => (check(await sb.from("reports").select("id").eq("source_id", sourceId).eq("user_id", userId).maybeSingle()) as { id: string } | null)?.id ?? null;
   return {
     mode: "supabase",
     userId,
@@ -63,46 +93,122 @@ export function supabaseRepo(sb: SupabaseClient, userId: string): Repo {
       if (Object.keys(map).length) check(await sb.from("profiles").update(map).eq("id", userId));
     },
     async listReports({ type, q, offset = 0, limit = 50 }) {
-      let query = sb.from("reports").select("id, type, title, score, created_at", { count: "exact" }).eq("user_id", userId).order("created_at", { ascending: false });
+      let query = sb.from("reports").select(LIST_COLUMNS, { count: "exact" }).eq("user_id", userId).order("created_at", { ascending: false });
       if (type) query = query.eq("type", type);
       if (q) query = query.ilike("title", `%${q.replace(/[%_]/g, "")}%`);
       const res = await query.range(offset, offset + limit - 1);
-      return { rows: (check(res) ?? []).map(toRow), total: res.count ?? 0 };
+      return { rows: ((check(res) ?? []) as any[]).map(toListRow), total: res.count ?? 0 };
     },
     async getReport<P>(id: string) {
       if (!UUID_RE.test(id)) return null;
       const res = await sb.from("reports").select("*").eq("id", id).eq("user_id", userId).maybeSingle();
       const data = check(res);
-      return data ? { row: toRow(data), payload: data.payload as P } : null;
+      return data ? { row: toRow(data), payload: fromStored(data.type, data.payload) as P } : null;
     },
     async latestReport<P>(type: ReportType) {
       const res = await sb.from("reports").select("*").eq("user_id", userId).eq("type", type).order("created_at", { ascending: false }).limit(1).maybeSingle();
       const data = check(res);
-      return data ? { row: toRow(data), payload: data.payload as P } : null;
+      return data ? { row: toRow(data), payload: fromStored(data.type, data.payload) as P } : null;
     },
-    async createReport({ type, title, score, payload, file }) {
-      // Files and reports (with their scores) are written by the server only; students can't write them directly.
-      const admin = supabaseAdmin();
-      let storagePath: string | null = null;
-      if (file) {
-        storagePath = `${userId}/${crypto.randomUUID()}/${file.name.replace(/[^\w.-]+/g, "_").slice(0, 100)}`;
-        check(await admin.storage.from(BUCKET).upload(storagePath, file.bytes, { contentType: file.contentType, upsert: false }));
+    async createReport({ type, title, score, payload, source }) {
+      const stored = toStored(type, payload);
+      if (source) {
+        // The version must be this user's (checked with their own session, under RLS; the database trigger checks again).
+        const own = check(await sb.from("cv_sources").select("id").eq("id", source.id).eq("user_id", userId).maybeSingle());
+        if (!own) throw new Error("Document not found");
       }
-      const withPath = storagePath && payload && typeof payload === "object" ? { ...(payload as object), storagePath } : payload;
+      // Reports (with their scores) are written by the server only; students can't write them directly.
       try {
-        const data = check(await admin.from("reports").insert({ user_id: userId, type, title, score, payload: withPath, storage_path: storagePath }).select("id").single());
+        const data = check(await admin().from("reports").insert({ user_id: userId, type, title, score, payload: stored, storage_path: source?.storagePath ?? null, source_id: source?.id ?? null }).select("id").single());
         return data!.id as string;
       } catch (e) {
-        if (storagePath) await admin.storage.from(BUCKET).remove([storagePath]);
+        // One report per version: a retry or a parallel request finds the one already written.
+        if (source && isDuplicate(e)) {
+          const existing = check(await sb.from("reports").select("id").eq("source_id", source.id).eq("user_id", userId).maybeSingle()) as { id: string } | null;
+          if (existing) return existing.id;
+        }
         throw e;
       }
     },
+    async createSource(input: SourceInput) {
+      const text = input.text;
+      const documentVersion = sha256(text);
+      if (input.document) checkDocument(input.document, text);
+      const mine = (q: any) => q.eq("user_id", userId);
+      const found = async (q: any) => {
+        const row = check(await q.maybeSingle()) as any;
+        return row ? toSource(row, await reportFor(row.id)) : null;
+      };
+      // The same attempt again (a refresh, a double click, a retry after a failed save) gets the version it already made.
+      const attempt = { documentVersion, parentId: input.parentId, kind: input.kind };
+      const answer = (saved: CvSource) => {
+        if (!sameAttempt(saved, attempt)) throw new SourceConflictError();
+        return saved;
+      };
+      if (input.idempotencyKey) {
+        const same = await found(mine(sb.from("cv_sources").select("*").eq("idempotency_key", input.idempotencyKey)));
+        if (same) return answer(same);
+      }
+      if (input.parentId) {
+        if (!check(await mine(sb.from("cv_sources").select("id").eq("id", input.parentId)).maybeSingle())) throw new Error("Document not found");
+        const same = await found(mine(sb.from("cv_sources").select("*").eq("parent_id", input.parentId).eq("document_version", documentVersion)));
+        if (same) return same;
+      }
+      const db = admin();
+      let storagePath: string | null = null;
+      if (input.file) {
+        storagePath = `${userId}/${crypto.randomUUID()}/${safeName(input.file.name)}`;
+        check(await db.storage.from(BUCKET).upload(storagePath, input.file.bytes, { contentType: input.file.contentType, upsert: false }));
+      }
+      const row = { user_id: userId, parent_id: input.parentId, kind: input.kind, file_name: input.fileName, text, document_version: documentVersion, meta: input.document ?? {}, outcome: input.outcome, storage_path: storagePath, idempotency_key: input.idempotencyKey };
+      try {
+        const data = check(await db.from("cv_sources").insert(row).select("*").single());
+        return toSource(data, null);
+      } catch (e) {
+        if (storagePath) await db.storage.from(BUCKET).remove([storagePath]);
+        if (isDuplicate(e)) {
+          // Two requests raced past the checks above; the unique indexes let exactly one through. Return that one.
+          const byKey = input.idempotencyKey ? await found(mine(sb.from("cv_sources").select("*").eq("idempotency_key", input.idempotencyKey))) : null;
+          if (byKey) return answer(byKey);
+          const same = input.parentId ? await found(mine(sb.from("cv_sources").select("*").eq("parent_id", input.parentId).eq("document_version", documentVersion))) : null;
+          if (same) return same;
+        }
+        throw e;
+      }
+    },
+    async getSource(id) {
+      if (!UUID_RE.test(id)) return null;
+      const row = check(await sb.from("cv_sources").select("*").eq("id", id).eq("user_id", userId).maybeSingle());
+      return row ? toSource(row, await reportFor(id)) : null;
+    },
+    async listSources() {
+      const rows = check(await sb.from("cv_sources").select("*").eq("user_id", userId).order("created_at", { ascending: false })) ?? [];
+      if (!rows.length) return [];
+      const reports = check(await sb.from("reports").select("id, source_id").eq("user_id", userId).in("source_id", rows.map((r: any) => r.id))) ?? [];
+      const byVersion = new Map<string, string>(reports.map((r: any) => [r.source_id, r.id]));
+      return rows.map((r: any) => toSource(r, byVersion.get(r.id) ?? null));
+    },
+    async sourceFile(id) {
+      if (!UUID_RE.test(id)) return null;
+      const row = check(await sb.from("cv_sources").select("file_name, storage_path").eq("id", id).eq("user_id", userId).maybeSingle());
+      if (!row?.storage_path) return null;
+      // Downloaded with the student's own session: the bucket policy only lets them read their own folder.
+      const dl = await sb.storage.from(BUCKET).download(row.storage_path);
+      if (dl.error || !dl.data) throw new Error(dl.error?.message ?? "File not found");
+      return { name: row.file_name, bytes: new Uint8Array(await dl.data.arrayBuffer()), contentType: contentTypeFor(row.file_name) };
+    },
     async updateReport(id, patch) {
+      if (!UUID_RE.test(id)) throw new Error("Report not found");
       const map: Record<string, unknown> = {};
       if (patch.title !== undefined) map.title = patch.title;
       if (patch.score !== undefined) map.score = patch.score;
-      if (patch.payload !== undefined) map.payload = patch.payload;
-      check(await supabaseAdmin().from("reports").update(map).eq("id", id).eq("user_id", userId));
+      if (patch.payload !== undefined) {
+        // The payload is validated against the schema for the report's own type, read with the student's session.
+        const row = check(await sb.from("reports").select("type").eq("id", id).eq("user_id", userId).maybeSingle());
+        if (!row) throw new Error("Report not found");
+        map.payload = toStored(row.type, patch.payload);
+      }
+      check(await admin().from("reports").update(map).eq("id", id).eq("user_id", userId));
     },
     async opportunities() {
       return (check(await sb.from("opportunities").select("*").order("closes_on")) ?? []).map(toOpp);
@@ -139,36 +245,22 @@ export function supabaseRepo(sb: SupabaseClient, userId: string): Repo {
       return { cvs: cvs.count ?? 0, reports: reports.count ?? 0, letters: letters.count ?? 0, applications: apps.count ?? 0 };
     },
     async exportFiles() {
-      const rows = check(await sb.from("reports").select("storage_path").eq("user_id", userId).not("storage_path", "is", null));
+      // Every file the student uploaded: versions hold them now; older reports still point at theirs.
+      const [sources, reports] = await Promise.all([sb.from("cv_sources").select("storage_path").eq("user_id", userId).not("storage_path", "is", null), sb.from("reports").select("storage_path").eq("user_id", userId).not("storage_path", "is", null)]);
+      const paths = [...new Set([...(check(sources) ?? []), ...(check(reports) ?? [])].map((r: { storage_path: string }) => r.storage_path))];
       const files: { name: string; bytes: Uint8Array }[] = [];
-      for (const r of rows as { storage_path: string }[]) {
-        const dl = await sb.storage.from(BUCKET).download(r.storage_path);
-        if (dl.data) files.push({ name: r.storage_path.split("/").pop()!, bytes: new Uint8Array(await dl.data.arrayBuffer()) });
+      for (const path of paths) {
+        const dl = await sb.storage.from(BUCKET).download(path);
+        if (dl.data) files.push({ name: path.split("/").pop()!, bytes: new Uint8Array(await dl.data.arrayBuffer()) });
       }
       return files;
     },
     async deleteAccount() {
-      // Erase every file under the student's folder (not just ones a report points to), and stop if any removal fails.
-      const admin = supabaseAdmin();
-      const paths: string[] = [];
-      const walk = async (prefix: string): Promise<void> => {
-        for (let offset = 0; ; offset += 100) {
-          const { data, error } = await admin.storage.from(BUCKET).list(prefix, { limit: 100, offset });
-          if (error) throw new Error(error.message);
-          for (const item of data ?? []) {
-            const path = `${prefix}/${item.name}`;
-            if (item.id) paths.push(path);
-            else await walk(path);
-          }
-          if (!data || data.length < 100) break;
-        }
-      };
-      await walk(userId);
-      for (let i = 0; i < paths.length; i += 100) {
-        const { error } = await admin.storage.from(BUCKET).remove(paths.slice(i, i + 100));
-        if (error) throw new Error(`Couldn't delete your files: ${error.message}`);
-      }
+      // Files first, and all of them or nothing further: the rows are what tells a retry the account still exists.
+      await removeUserFiles(admin(), userId);
+      // Cascades to every row: reports, versions (with their text), applications, notes, usage, reminders.
       check(await sb.rpc("delete_my_account"));
+      await sweepUserFiles(admin(), userId);
     },
     async adminOverview(period) {
       return check(await sb.rpc("admin_overview", { p_from: period?.from ?? null, p_to: period?.to ?? null })) as AdminOverview;

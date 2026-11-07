@@ -1,4 +1,4 @@
-import type { AppStatus, Application, Opportunity, OpportunityInput, Profile, ReportRow, ReportType } from "@/lib/types";
+import type { AppStatus, Application, CvSource, DocumentMeta, Opportunity, OpportunityInput, Profile, ReportRow, ReportType, SourceKind, SourceOutcome } from "@/lib/types";
 
 export interface StudentRecordInput {
   email: string;
@@ -24,10 +24,48 @@ export type AiKind = "line_rewrite" | "letter" | "cv_score" | "tailor";
 /** Daily per-student limits on AI calls. Each call reserves its slot first (atomic count), then runs. */
 export const AI_LIMITS: Record<AiKind, number> = { line_rewrite: 25, letter: 10, cv_score: 20, tailor: 10 };
 
+/**
+ * A report as the app reads it. `payload` is always in the current shape (`PAYLOAD_VERSION` in
+ * `src/lib/types.ts`): `src/lib/report-schema.ts` validates every payload before a repository writes it
+ * and adapts older saved payloads when a repository reads them. Both repositories use the same two
+ * functions, so a payload that one accepts the other accepts, and a historical record reads the same way
+ * in both.
+ */
 export interface StoredReport<P = unknown> {
   row: ReportRow;
   payload: P;
 }
+
+/**
+ * A new version of a CV's text (OP-006). `idempotencyKey` is the client's key for one attempt: the same key from
+ * the same user returns the version already saved instead of a second one, however many times the request lands.
+ * The same key with different text or a different parent is refused with SourceConflictError rather than
+ * returning a version whose text the student did not send. A correction or paste whose text equals an existing
+ * child of the same parent also returns that child.
+ */
+export interface SourceInput {
+  kind: SourceKind;
+  /** The version this one was made from. Must be the same user's; null for an upload or a paste with no file. */
+  parentId: string | null;
+  fileName: string;
+  text: string;
+  /** Validated with `checkDocument` before anything is written. Null only for a retained file that could not be read. */
+  document: DocumentMeta | null;
+  outcome: SourceOutcome | null;
+  file?: { bytes: Uint8Array; name: string; contentType: string };
+  idempotencyKey: string | null;
+}
+
+/** An attempt key was reused for different content. Nothing was saved. */
+export class SourceConflictError extends Error {
+  constructor() {
+    super("idempotency key already used for a different version");
+  }
+}
+
+/** The saved version answers this attempt only if it is the same content from the same parent. */
+export const sameAttempt = (saved: { documentVersion: string; parentId: string | null; kind: string }, input: { documentVersion: string; parentId: string | null; kind: string }) =>
+  saved.documentVersion === input.documentVersion && saved.parentId === input.parentId && saved.kind === input.kind;
 
 export interface AdminOverview {
   universityName: string;
@@ -35,7 +73,7 @@ export interface AdminOverview {
   kpis: { activeStudents: number; newThisMonth: number; avgScore: number | null; avgFirstScore: number | null; avgImprovement: number | null; cvsReviewed: number; perStudent: number; appsTracked: number; needHand: number };
   weekly: (number | null)[];
   bands: { needs: number; getting: number; strong: number; ready: number } | null;
-  faculties: { name: string; avg: number; improvement: number }[];
+  faculties: { name: string; avg: number; improvement: number | null }[];
   homeIntl: { metric: string; home: number; intl: number }[];
   needs: { count: number; why: string; hint: string }[];
 }
@@ -104,9 +142,16 @@ export interface Repo {
   updateProfile(patch: Partial<Omit<Profile, "id" | "email" | "role">>): Promise<void>;
 
   listReports(opts: { type?: ReportType; q?: string; offset?: number; limit?: number }): Promise<{ rows: ReportRow[]; total: number }>;
+  /** The signed-in user's report, adapted to the current payload shape; null if it isn't theirs. Throws PayloadError if the saved record can't be read. */
   getReport<P>(id: string): Promise<StoredReport<P> | null>;
   latestReport<P>(type: ReportType): Promise<StoredReport<P> | null>;
-  createReport<P>(input: { type: ReportType; title: string; score: number | null; payload: P; file?: { bytes: Uint8Array; name: string; contentType: string } }): Promise<string>;
+  /**
+   * Validates the payload for `type` first and throws PayloadError instead of saving an invalid one. `source` names
+   * the CV version a review scored: it must be the user's, and a version is scored at most once, so a second call
+   * for the same source returns the report that already exists instead of making another.
+   */
+  createReport<P>(input: { type: ReportType; title: string; score: number | null; payload: P; source?: { id: string; storagePath: string | null } }): Promise<string>;
+  /** Same validation as createReport, against the stored report's own type. Throws if the report isn't the user's. */
   updateReport<P>(id: string, patch: { title?: string; score?: number | null; payload?: P }): Promise<void>;
 
   opportunities(): Promise<Opportunity[]>;
@@ -114,6 +159,15 @@ export interface Repo {
   track(opportunityId: string): Promise<void>;
   untrack(opportunityId: string): Promise<void>;
   setApplicationStatus(applicationId: string, status: AppStatus): Promise<void>;
+
+  /** Saves a document version (immutable once written) and the file it came from, if any. See SourceInput for idempotency. */
+  createSource(input: SourceInput): Promise<CvSource>;
+  /** The signed-in user's version, or null if it isn't theirs. */
+  getSource(id: string): Promise<CvSource | null>;
+  /** Every version the signed-in user has, newest first. */
+  listSources(): Promise<CvSource[]>;
+  /** The uploaded file behind one of the user's versions; null if it isn't theirs or has no file. */
+  sourceFile(id: string): Promise<{ name: string; bytes: Uint8Array; contentType: string } | null>;
 
   aiUsedToday(kind: AiKind): Promise<number>;
   /** Atomically adds one use for today and returns the new count. */

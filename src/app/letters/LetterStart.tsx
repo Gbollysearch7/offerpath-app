@@ -34,7 +34,7 @@ export function LetterStart({ initialMode, jobs, cvs }: { initialMode: number; j
     <main id="main" className="mx-auto flex max-w-[960px] flex-col gap-6 px-4 pt-12 pb-16 sm:px-7">
       <div>
         <h1 className="m-0 text-[34px] font-normal leading-[1.1] tracking-[-1.5px] sm:text-[44px] sm:tracking-[-1.98px]">Cover letters</h1>
-        <p className="mt-2.5 mb-0 text-base text-muted">Built from your CV and the job ad, following UK conventions. We never add facts you didn&apos;t give us.</p>
+        <p className="mt-2.5 mb-0 text-base text-muted">Drafted using your CV and the job ad, following UK conventions. Drafts can introduce mistakes, so check every claim and replace any placeholders before you send yours.</p>
       </div>
       <div role="radiogroup" aria-label="What do you want to do?" className="flex flex-wrap gap-4">
         {MODES.map(([t, d], i) => (
@@ -48,7 +48,7 @@ export function LetterStart({ initialMode, jobs, cvs }: { initialMode: number; j
       {cvs.length === 0 && mode === 0 ? (
         <section className="flex flex-col items-start gap-3 rounded-[28px] bg-white p-7">
           <p className="m-0 text-lg">Upload a CV first</p>
-          <p className="m-0 text-sm text-muted">We write your letter only from facts in your CV.</p>
+          <p className="m-0 text-sm text-muted">We write your letter from your CV and the job ad, so we need a CV to draw on.</p>
           <Link href="/upload" className="inline-flex min-h-11 items-center rounded-full bg-black px-[18px] text-sm font-medium text-white no-underline hover:text-white">
             Upload my CV
           </Link>

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { readDemoSession } from "@/lib/demo-session";
+import { demoLoginAllowed } from "@/lib/env";
 import { demoRepo } from "@/lib/repo/demo";
 import { supabaseRepo } from "@/lib/repo/supabase";
 import type { Repo } from "@/lib/repo/types";
@@ -18,6 +19,8 @@ export const isDemoMode = () => !supabaseConfigured();
 /** Returns the signed-in user's repo, or null when nobody is signed in. */
 export const getRepo = cache(async (): Promise<Repo | null> => {
   if (isDemoMode()) {
+    // A misconfigured production server has no demo: a demo cookie, even a validly signed one, opens nothing.
+    if (!demoLoginAllowed()) return null;
     const session = readDemoSession((await cookies()).get(DEMO_COOKIE)?.value);
     if (!session) return null;
     return demoRepo(`${session.role}-${session.id}`, session.role);

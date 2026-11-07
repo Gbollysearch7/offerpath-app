@@ -1,7 +1,8 @@
 import type { DocBlock } from "@/lib/documents-types";
 
 // CV designs. One theme drives the Word file, the PDF and the on-screen preview, so all three match.
-// Every design stays single column with real text, so applicant tracking systems can read it.
+// Every design stays single column with real text, which gives applicant tracking systems the best chance of
+// reading it. No layout can guarantee how a particular employer's system reads a file, and the UI says so.
 
 export type TemplateTag = "one" | "two" | "skills" | "serif" | "colour";
 
@@ -143,7 +144,7 @@ export const CV_THEMES: CvTheme[] = [
     ...base,
     slug: "creative-brief",
     name: "Creative brief",
-    best: "Marketing, media and the arts. A warm accent, still simple enough for screening software.",
+    best: "Marketing, media and the arts. A warm accent on the same one-column, real-text layout.",
     tags: ["one", "colour"],
     sample: "creative-brief",
     font: "arial",

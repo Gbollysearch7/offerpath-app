@@ -1,14 +1,31 @@
 // Pure builders that turn inputs into stored report payloads. Used by server actions and the demo seed.
 import { STAGE_OPTIONS } from "@/lib/stages";
 import { analyseCv } from "@/lib/analysis/cv";
-import { highlightJob, jobKeywords, matchScores } from "@/lib/analysis/job";
+import { highlightJob, placeInCv } from "@/lib/analysis/job";
+import { highlightTerms, jobMatchAssessment, keywordsFromMatch, matchRequirements } from "@/lib/analysis/job-match";
+import { type AdapterStatus, extractRequirements, type RequirementExtraction } from "@/lib/analysis/job-requirements";
+import { cvAssessment, letterAssessment } from "@/lib/analysis/findings";
 import { draftLetterRuleBased, paragraphsToText, reviewLetter } from "@/lib/analysis/letter";
-import type { CoverLetterPayload, CvAnalysis, CvReviewPayload, LetterParagraph, TailorPayload } from "@/lib/types";
+import { PAYLOAD_VERSION, type CoverLetterPayload, type CvAnalysis, type CvReviewPayload, type DocumentMeta, type LetterParagraph, type InstitutionalGuidance, type TailorPayload } from "@/lib/types";
 
-export function buildCvPayload(input: { fileName: string; text: string; sector: string; stage: string; storagePath?: string | null; analysis?: CvAnalysis }): CvReviewPayload {
-  const { analysis, ...rest } = input;
-  return { ...rest, storagePath: input.storagePath ?? null, analysis: analysis ?? analyseCv(input.text, input.sector) };
+export function buildCvPayload(input: { fileName: string; text: string; sector: string; stage: string; storagePath?: string | null; analysis?: CvAnalysis; document?: DocumentMeta }): CvReviewPayload {
+  const analysis = input.analysis ?? analyseCv(input.text, input.sector);
+  return {
+    payloadVersion: PAYLOAD_VERSION,
+    fileName: input.fileName,
+    sector: input.sector,
+    stage: input.stage,
+    text: input.text,
+    storagePath: input.storagePath ?? null,
+    analysis,
+    // Only when the text came from a file read by `extractDocument`; text-only builders (demo seeds, tests) leave it out.
+    ...(input.document ? { document: input.document } : {}),
+    assessment: cvAssessment(analysis, input.text),
+  };
 }
+
+/** Adds an institution's guidance beside a CV report. Only this field differs, so the common score cannot move. */
+export const withInstitutionalGuidance = (payload: CvReviewPayload, institutionalGuidance: InstitutionalGuidance): CvReviewPayload => ({ ...payload, institutionalGuidance });
 
 export function buildTailorPayload(input: {
   cvReportId: string;
@@ -19,10 +36,15 @@ export function buildTailorPayload(input: {
   jobUrl: string | null;
   jobText: string;
   deadline: string | null;
+  /** The advert's requirements, when the caller has already read them (with or without the semantic adapter). */
+  requirements?: { extraction: RequirementExtraction; status: AdapterStatus };
 }): TailorPayload {
-  const keywords = jobKeywords(input.jobText, input.cvText);
-  const m = matchScores(keywords);
+  const extraction = input.requirements?.extraction ?? extractRequirements(input.jobText);
+  const jobMatch = matchRequirements({ jobText: input.jobText, cvText: input.cvText, extraction, adapter: input.requirements?.status });
+  const keywords = keywordsFromMatch(jobMatch, (r) => placeInCv(r.terms[0], r.kind === "tool", input.jobText, input.cvText));
+  const highlight = highlightTerms(jobMatch);
   return {
+    payloadVersion: PAYLOAD_VERSION,
     cvReportId: input.cvReportId,
     cvFileName: input.cvFileName,
     jobTitle: input.jobTitle,
@@ -31,11 +53,14 @@ export function buildTailorPayload(input: {
     jobText: input.jobText,
     deadline: input.deadline,
     keywords,
-    matchNow: m.now,
-    matchTailored: m.tailored,
-    jd: highlightJob(input.jobText, keywords),
+    matchNow: jobMatch.coverage.score,
+    // Nothing has been revised yet, so there is nothing to measure. `createTailoredVersion` fills this from the real document.
+    matchTailored: null,
+    jd: highlightJob(input.jobText, highlight.hits, highlight.aliases),
     added: [],
     tailored: null,
+    jobMatch,
+    assessment: jobMatchAssessment(jobMatch),
   };
 }
 
@@ -53,6 +78,7 @@ export function buildLetterReviewPayload(input: {
   return {
     score: r.score,
     payload: {
+      payloadVersion: PAYLOAD_VERSION,
       mode: "review",
       jobTitle: input.jobTitle,
       employer: input.employer,
@@ -72,6 +98,7 @@ export function buildLetterReviewPayload(input: {
       summary: r.summary,
       saved: true,
       aiAssisted: false,
+      assessment: letterAssessment({ letterText: input.letterText, jobText: input.jobText, checks: r.checks, keywordsUsed: r.keywordsUsed, keywordsMissing: r.keywordsMissing }),
     },
   };
 }
@@ -117,6 +144,7 @@ export function buildLetterDraftPayload(input: {
   return {
     score: r.score,
     payload: {
+      payloadVersion: PAYLOAD_VERSION,
       mode: "draft",
       jobTitle: input.jobTitle,
       employer: input.employer,
@@ -136,6 +164,7 @@ export function buildLetterDraftPayload(input: {
       summary: r.summary,
       saved: false,
       aiAssisted: !!input.paragraphs,
+      assessment: letterAssessment({ letterText, jobText: input.jobText, checks: r.checks, keywordsUsed: r.keywordsUsed, keywordsMissing: r.keywordsMissing }),
     },
   };
 }

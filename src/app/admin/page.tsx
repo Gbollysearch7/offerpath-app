@@ -3,6 +3,8 @@ import Link from "next/link";
 import { AdminNav } from "@/components/AdminNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Eyebrow } from "@/components/ui";
+import { bandLegend } from "@/lib/analysis/labels";
+import type { BandKey } from "@/lib/analysis/rubric";
 import { findPeriod, listPeriods } from "@/lib/periods";
 import { requireAdmin } from "@/lib/session";
 import { PeriodSelect } from "./PeriodSelect";
@@ -18,12 +20,16 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   const k = o.kpis;
   const kpis = [
     { l: "Active students", v: fmtN(k.activeStudents), d: `+${k.newThisMonth} new ${period.key === "all" ? "this month" : "this period"}`, c: "text-brand" },
-    { l: "Average score", v: fmtN(k.avgScore), d: k.avgFirstScore !== null ? `Up from ${k.avgFirstScore}` : "No scores yet", c: "text-brand" },
-    { l: "Average improvement", v: k.avgImprovement !== null ? `${k.avgImprovement >= 0 ? "+" : ""}${k.avgImprovement}` : "–", d: "Per student", c: "text-muted" },
+    { l: "Average score", v: fmtN(k.avgScore), d: k.avgFirstScore !== null ? `First comparable score averaged ${k.avgFirstScore}` : "No comparable scores yet", c: "text-brand" },
+    { l: "Average improvement", v: k.avgImprovement !== null ? `${k.avgImprovement >= 0 ? "+" : ""}${k.avgImprovement}` : "–", d: "Comparable scores only", c: "text-muted" },
     { l: "CVs reviewed", v: fmtN(k.cvsReviewed), d: `${k.perStudent} per student`, c: "text-muted" },
     { l: "Applications tracked", v: fmtN(k.appsTracked), d: period.label, c: "text-muted" },
     { l: "May need a hand", v: fmtN(k.needHand), d: "See list", c: "text-black" },
   ];
+  // The RPC reports band shares under its own column names; the words shown for each band come from labels.ts.
+  const bandShare: Record<BandKey, number> | null = o.bands ? { low: o.bands.needs, mid: o.bands.getting, high: o.bands.strong, top: o.bands.ready } : null;
+  const bandColour: Record<BandKey, string> = { low: "#F4B8B1", mid: "#F2D27A", high: "#9FD3AE", top: "#36604E" };
+  const legend = bandLegend();
   const weekly = o.weekly.map((v, i) => ({ v, i })).filter((p): p is { v: number; i: number } => p.v !== null);
   const vals = weekly.map((p) => p.v);
   const lo = Math.floor((Math.min(...vals, 60) - 5) / 10) * 10;
@@ -95,24 +101,20 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           </section>
           <section aria-labelledby="bd-h" className="flex min-w-0 flex-[1_1_320px] flex-col gap-3.5 rounded-3xl bg-white px-6 py-[22px]">
             <Eyebrow id="bd-h">STUDENTS BY SCORE BAND</Eyebrow>
-            {o.bands ? (
+            {bandShare ? (
               <>
-                <div role="img" aria-label={`Needs work ${o.bands.needs} percent, getting there ${o.bands.getting} percent, strong ${o.bands.strong} percent, interview-ready ${o.bands.ready} percent`} className="flex h-[18px] overflow-hidden rounded-full">
-                  <span className="bg-[#F4B8B1]" style={{ flex: o.bands.needs }} />
-                  <span className="bg-[#F2D27A]" style={{ flex: o.bands.getting }} />
-                  <span className="bg-[#9FD3AE]" style={{ flex: o.bands.strong }} />
-                  <span className="bg-brand" style={{ flex: o.bands.ready }} />
+                <div role="img" aria-label={legend.map((b) => `${b.label} ${bandShare[b.key]} percent`).join(", ")} className="flex h-[18px] overflow-hidden rounded-full">
+                  {legend.map((b) => (
+                    <span key={b.key} style={{ flex: bandShare[b.key], background: bandColour[b.key] }} />
+                  ))}
                 </div>
-                {[
-                  ["Needs work", o.bands.needs, "#F4B8B1"],
-                  ["Getting there", o.bands.getting, "#F2D27A"],
-                  ["Strong", o.bands.strong, "#9FD3AE"],
-                  ["Interview-ready", o.bands.ready, "#36604E"],
-                ].map(([n, p, c]) => (
-                  <div key={n as string} className="flex items-center gap-2.5 text-sm">
-                    <span className="h-3 w-3 rounded border border-edge" style={{ background: c as string }} />
-                    <span className="flex-1">{n}</span>
-                    <span className="font-mono text-[13px]">{p}%</span>
+                {legend.map((b) => (
+                  <div key={b.key} className="flex items-center gap-2.5 text-sm">
+                    <span className="h-3 w-3 rounded border border-edge" style={{ background: bandColour[b.key] }} />
+                    <span className="flex-1">
+                      {b.label} <span className="text-subtle">{b.min}{b.max >= 100 ? "+" : `–${b.max}`}</span>
+                    </span>
+                    <span className="font-mono text-[13px]">{bandShare[b.key]}%</span>
                   </div>
                 ))}
               </>
@@ -136,8 +138,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                 </span>
                 <span className="text-right font-mono text-[13px]">{f.avg}</span>
                 <span className="text-right font-mono text-xs text-brand">
-                  {f.improvement >= 0 ? "+" : ""}
-                  {f.improvement}
+                  {f.improvement === null ? "–" : `${f.improvement >= 0 ? "+" : ""}${f.improvement}`}
                 </span>
               </div>
             ))}
@@ -192,7 +193,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
             </a>
           </section>
         </div>
-        <p className="m-0 text-[13px] text-subtle">Groups with fewer than five students are hidden to protect privacy. Scores are AI-assisted guidance and can be overridden by advisers.</p>
+        <p className="m-0 text-[13px] text-subtle">Groups with fewer than five students are hidden to protect privacy. Scores are AI-assisted guidance. Advisers can add a note to a student&apos;s report, which the student sees alongside their score; the score itself can&apos;t be changed.</p>
       <SiteFooter />
       </main>
     </div>

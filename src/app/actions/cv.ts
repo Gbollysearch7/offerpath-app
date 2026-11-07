@@ -3,78 +3,116 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { aiEnabled, aiRewriteLine } from "@/lib/ai";
-import { judgmentFromLine, ruleRewrite } from "@/lib/analysis/cv";
-import { extractText, ExtractError, MAX_UPLOAD_BYTES } from "@/lib/analysis/extract";
+import { MAX_BLOCK_CHARS, MAX_CONTENT_BLOCKS } from "@/lib/analysis/content";
+import type { ReadingSummary } from "@/lib/analysis/document";
+import { MAX_UPLOAD_BYTES, type ReadOutcome } from "@/lib/analysis/extract";
 import { SECTORS, STAGES } from "@/lib/analysis/lexicon";
-import { AI_LIMITS } from "@/lib/repo/types";
-import { scoreCv, ScoringUnavailableError } from "@/lib/scoring";
-import { buildCvPayload } from "@/lib/services";
+import { correctFlow, pasteFlow, scoreFlow, uploadFlow, type SourceReview } from "@/lib/cv-flow";
 import { featureFlags } from "@/lib/env";
 import { hit, TOO_MANY } from "@/lib/rate-limit";
 import { getRepo } from "@/lib/session";
-import type { CvReviewPayload } from "@/lib/types";
+import { acceptRewriteFlow, rewriteLineFlow, type RewriteResult } from "@/lib/rewrite-flow";
+import type { ContentBlock } from "@/lib/types";
 
-export type UploadResult = { id?: string; error?: string };
+export type { ContentBlock, ReadingSummary, ReadOutcome, SourceReview };
+
+const EXPIRED = "Your session has expired. Sign in again.";
+const PICK = "Pick a target sector and stage.";
+const Sector = z.enum(SECTORS);
+const Stage = z.enum(STAGES);
+/**
+ * The client's key for one attempt, reused on retry so the server can tell a repeat from a new request. At most 64
+ * characters: the paste flow keeps the unreadable original under `<key>:original`, and the column allows 80.
+ */
+const Key = z.string().regex(/^[\w-]{16,64}$/);
+const SourceId = z.string().min(1).max(80);
+const Blocks = z.array(z.strictObject({ id: z.string().regex(/^b\d{1,5}$/), text: z.string().max(MAX_BLOCK_CHARS) })).max(MAX_CONTENT_BLOCKS);
+
+/**
+ * `id` (with `sourceId`, `reading`): the CV was read and scored; `showReading` asks for the reading to be shown before
+ * the score. `review`: the CV was read but not scored, because the reading needs the student's eyes first. `outcome`:
+ * the file could not be read as text or is outside a processing limit; nothing was scored or saved. `error`: anything
+ * else that stopped the upload.
+ */
+export type UploadResult = { id?: string; sourceId?: string; reading?: ReadingSummary; showReading?: boolean; review?: SourceReview; outcome?: ReadOutcome; error?: string };
 
 export async function uploadCv(formData: FormData): Promise<UploadResult> {
   const repo = await getRepo();
-  if (!repo) return { error: "Your session has expired. Sign in again." };
+  if (!repo) return { error: EXPIRED };
   const file = formData.get("file");
-  const sector = z.enum(SECTORS).safeParse(formData.get("sector"));
-  const stage = z.enum(STAGES).safeParse(formData.get("stage"));
+  const sector = Sector.safeParse(formData.get("sector"));
+  const stage = Stage.safeParse(formData.get("stage"));
+  const key = Key.safeParse(formData.get("key"));
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a PDF or Word file to upload." };
   if (!(await hit("uploadPerUser", repo.userId))) return { error: TOO_MANY };
   if (file.size > MAX_UPLOAD_BYTES) return { error: "That file is over 2 MB. Try saving a smaller PDF." };
-  if (!sector.success || !stage.success) return { error: "Pick a target sector and stage." };
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  let text: string;
-  try {
-    text = await extractText(bytes, file.name);
-  } catch (e) {
-    return { error: e instanceof ExtractError ? e.message : "Something went wrong reading your file. Try again." };
-  }
-  const name = file.name.slice(0, 120);
-  if (aiEnabled() && (await repo.bumpAi("cv_score")) > AI_LIMITS.cv_score) {
-    return { error: `You've scored ${AI_LIMITS.cv_score} CVs today. You can score more tomorrow.` };
-  }
-  let scored;
-  try {
-    scored = await scoreCv(text, sector.data);
-  } catch (e) {
-    return { error: e instanceof ScoringUnavailableError ? e.message : "Something went wrong scoring your CV. Try again." };
-  }
-  const payload = buildCvPayload({ fileName: name, text, sector: sector.data, stage: stage.data, analysis: scored.analysis });
-  const id = await repo.createReport({ type: "cv_review", title: name, score: payload.analysis.score, payload, file: { bytes, name, contentType: file.type || "application/octet-stream" } });
+  if (!sector.success || !stage.success) return { error: PICK };
+  const r = await uploadFlow(repo, { bytes: new Uint8Array(await file.arrayBuffer()), fileName: file.name.slice(0, 120), sector: sector.data, stage: stage.data, key: key.success ? key.data : crypto.randomUUID() });
+  if (r.kind === "outcome") return { outcome: r.outcome };
+  if (r.kind === "error") return { error: r.error };
+  if (r.kind === "review") return { review: r.review };
   revalidatePath("/dashboard");
-  return { id };
+  return { id: r.id, sourceId: r.sourceId, reading: r.reading, showReading: r.showReading };
 }
 
-export async function rewriteLine(reportId: string, index: number, variant: number): Promise<{ rewrite?: string; ai?: boolean; left?: number; error?: string }> {
+export type ScoreResult = { id?: string; sourceId?: string; error?: string };
+
+/** Scores a version the student has reviewed, as it was read. */
+export async function scoreVersion(input: { sourceId: string; sector: string; stage: string }): Promise<ScoreResult> {
   const repo = await getRepo();
-  if (!repo) return { error: "Your session has expired. Sign in again." };
-  const report = await repo.getReport<CvReviewPayload>(reportId);
-  const line = report?.payload.analysis.lines[index];
-  if (!report || !line) return { error: "We couldn't find that line." };
-  // Reserve the use first so parallel requests can't go over the limit.
-  const used = await repo.bumpAi("line_rewrite");
-  if (used > AI_LIMITS.line_rewrite) return { error: "You've used all your rewrites for today. They reset at midnight.", left: 0 };
-  const previous = variant > 0 ? line.rewrite : undefined;
-  const ai = await aiRewriteLine(line.text, { role: line.where, sector: report.payload.sector, previous });
-  const rewrite = ai ?? ruleRewrite(line.text, variant, judgmentFromLine(line));
-  report.payload.analysis.lines[index] = { ...line, rewrite, aiRewrite: !!ai };
-  await repo.updateReport(reportId, { payload: report.payload });
-  return { rewrite, ai: !!ai, left: AI_LIMITS.line_rewrite - used };
+  if (!repo) return { error: EXPIRED };
+  const p = z.object({ sourceId: SourceId, sector: Sector, stage: Stage }).safeParse(input);
+  if (!p.success) return { error: PICK };
+  if (!(await hit("uploadPerUser", repo.userId))) return { error: TOO_MANY };
+  const r = await scoreFlow(repo, p.data.sourceId, p.data.sector, p.data.stage);
+  if ("error" in r) return { error: r.error };
+  revalidatePath("/dashboard");
+  return r;
 }
 
-export async function acceptRewrite(reportId: string, index: number, text: string | null): Promise<{ error?: string }> {
+/** Saves the student's corrections to a version's blocks as a new version with provenance, and scores that. */
+export async function correctVersion(input: { sourceId: string; blocks: { id: string; text: string }[]; sector: string; stage: string; key: string }): Promise<ScoreResult & { changed?: boolean }> {
+  const repo = await getRepo();
+  if (!repo) return { error: EXPIRED };
+  const p = z.object({ sourceId: SourceId, blocks: Blocks, sector: Sector, stage: Stage, key: Key }).safeParse(input);
+  if (!p.success) return { error: p.error.issues[0]?.path[0] === "blocks" ? `Check the text: a line is too long (over ${MAX_BLOCK_CHARS} characters) or the page is out of date.` : PICK };
+  if (!(await hit("uploadPerUser", repo.userId))) return { error: TOO_MANY };
+  const r = await correctFlow(repo, p.data);
+  if ("error" in r) return { error: r.error };
+  revalidatePath("/dashboard");
+  return r;
+}
+
+/** Text the student typed or pasted instead of an unreadable file; the file, if re-sent, is kept as the original. */
+export async function pasteCv(formData: FormData): Promise<ScoreResult> {
+  const repo = await getRepo();
+  if (!repo) return { error: EXPIRED };
+  const text = formData.get("text");
+  const sector = Sector.safeParse(formData.get("sector"));
+  const stage = Stage.safeParse(formData.get("stage"));
+  const key = Key.safeParse(formData.get("key"));
+  const file = formData.get("file");
+  if (typeof text !== "string" || !text.trim()) return { error: "Paste or type your CV text first." };
+  if (!sector.success || !stage.success) return { error: PICK };
+  if (!(await hit("uploadPerUser", repo.userId))) return { error: TOO_MANY };
+  const original = file instanceof File && file.size > 0 && file.size <= MAX_UPLOAD_BYTES ? { bytes: new Uint8Array(await file.arrayBuffer()), fileName: file.name.slice(0, 120) } : null;
+  const r = await pasteFlow(repo, { text: text.slice(0, 60_000), original, sector: sector.data, stage: stage.data, key: key.success ? key.data : crypto.randomUUID() });
+  if ("error" in r) return { error: r.error };
+  revalidatePath("/dashboard");
+  return r;
+}
+
+export async function rewriteLine(reportId: string, index: number, variant: number): Promise<RewriteResult> {
   const repo = await getRepo();
   if (!repo) return { error: "Your session has expired. Sign in again." };
-  const report = await repo.getReport<CvReviewPayload>(reportId);
-  const line = report?.payload.analysis.lines[index];
-  if (!report || !line) return { error: "We couldn't find that line." };
-  const clean = text ? z.string().trim().min(3).max(400).parse(text) : undefined;
-  report.payload.analysis.lines[index] = { ...line, accepted: clean };
-  await repo.updateReport(reportId, { payload: report.payload });
+  return rewriteLineFlow(repo, reportId, index, variant, aiEnabled() ? aiRewriteLine : null);
+}
+
+export async function acceptRewrite(reportId: string, index: number, text: string | null, confirmed: string[] = []): Promise<{ error?: string }> {
+  const repo = await getRepo();
+  if (!repo) return { error: "Your session has expired. Sign in again." };
+  const r = await acceptRewriteFlow(repo, reportId, index, text, z.array(z.string().max(200)).max(50).catch([]).parse(confirmed));
+  if (r.error) return { error: r.error };
   revalidatePath(`/reviews/${reportId}/lines`);
   return {};
 }

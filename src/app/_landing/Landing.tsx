@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { Logo } from "@/components/ui";
 import { PilotForm } from "./PilotForm";
 import { CohortDashboard } from "./demos/CohortDashboard";
-import { JourneyBento } from "./demos/JourneyBento";
 import { LineFixDemo } from "./demos/LineFixDemo";
 import { OfferpathHero } from "./demos/OfferpathHero";
 import { PrivacyCard } from "./demos/PrivacyCard";
@@ -14,22 +13,17 @@ import { TrackerDemo } from "./demos/TrackerDemo";
 // Public marketing page (design: Landing_v2). Claims here must match what the product actually does.
 
 const ICONS = {
-  score: "M12 3.5a8.5 8.5 0 1 0 8.5 8.5M12 3.5V12l5.5 3",
-  target: "M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
   letter: "M3.5 6.5h17v11h-17zM3.5 7l8.5 6 8.5-6",
-  cal: "M4.5 6h15v14h-15zM4.5 10h15M8.5 3.5V7M15.5 3.5V7",
   doc: "M7 3.5h7l4 4v13H7zM10 12h5M10 16h3.5",
   trend: "M4 17l5-5 4 4 7-8M15 8h5v5",
-  chat: "M4 5.5h16v10H9l-5 4z",
-  path: "M5 19V5M5 7h10l-2 3 2 3H5",
 };
 
 const MARQUEE = ["Graduate schemes", "Spring weeks", "Placements", "Internships", "Visa sponsorship filter", "Deadline reminders"];
 
 const PROBLEMS = [
-  ["Dozens", "of applications, no feedback", "Students send generic CVs to role after role and rarely learn why they were rejected."],
-  ["1:2,000", "advisers to students, at some universities", "Some services have one adviser for more than 2,000 students. Nobody can review every CV."],
-  ["US-first", "tools that stop at a score", "Most tools ignore UK grad schemes, spring weeks and placements, or give a number with no next step."],
+  ["One CV", "sent to every role", "Students send the same generic CV to role after role, and rarely learn why they were rejected."],
+  ["Every CV", "is more than a team can read", "Careers teams are small next to their student numbers, so many students apply without line-by-line feedback."],
+  ["US-first", "tools that stop at a score", "Many tools ignore UK grad schemes, spring weeks and placements, or give a number with no next step."],
 ];
 
 const JOURNEY: [string, string, string, boolean][] = [
@@ -50,16 +44,14 @@ const BANDS = [
   ["0–49", "Needs work", "bg-[#FDE4E1] text-black"],
   ["50–74", "Getting there", "bg-[#FBEFC9] text-black"],
   ["75–89", "Strong", "bg-[#D6F0DE] text-black"],
-  ["90+", "Interview-ready", "bg-brand text-white"],
+  ["90+", "Very strong", "bg-brand text-white"],
 ];
 
+// Only what the demos above don't already show.
 const FEATURES: [keyof typeof ICONS, string, string][] = [
-  ["score", "CV review and Readiness Score", "A score out of 100 across impact, clarity, structure and ATS, sector relevance, spelling and grammar, and length and formatting."],
+  ["doc", "One-column templates", "Plain, one-column CV layouts that give screening software the best chance of reading them, with PDF and Word export."],
   ["letter", "Cover letters", "Write or review a letter from your CV and the job ad, following UK conventions."],
-  ["doc", "ATS-friendly templates", "CV layouts that screening software can read, with PDF and Word export."],
   ["trend", "Reports and history", "Every review is saved, so students can watch their score improve."],
-  ["chat", "Interview practice", "Sector questions with instant feedback on structure, detail and length."],
-  ["path", "Tests and roadmaps", "Timed aptitude practice, and what to do when for each sector."],
 ];
 
 const UNI_POINTS = [
@@ -67,17 +59,29 @@ const UNI_POINTS = [
   ["02", "Breakdowns that matter", "By faculty, course, and home versus international students."],
   ["03", "Who needs a hand", "A list of students who may need support, so advisers can reach out early."],
   ["04", "Privacy-safe exports", "CSV exports, with any group of fewer than five students hidden."],
-  ["05", "Supports your reporting", "Data that feeds into Graduate Outcomes and TEF submissions."],
+  ["05", "Evidence for your reporting", "An export of engagement and progress to support your own TEF and outcomes evidence."],
   ["06", "Adviser access, with consent", "Advisers see a CV only when the student agrees. Switched on after legal review."],
 ];
 
-const TRUST = [
-  ["UK GDPR compliant", "Data is stored in the UK or EU."],
+const TRUST: [string, ReactNode][] = [
+  [
+    "Built for UK GDPR",
+    <>
+      Accounts, CVs and reports are stored in the UK or EU. For AI feedback, the relevant text is sent to Anthropic in the US under a data processing agreement and the UK transfer addendum, and isn&apos;t used to train their models.{" "}
+      <Link href="/legal/sub-processors">See our sub-processors</Link>
+    </>,
+  ],
   ["You control the data", "The university is the controller. Offerpath processes data on your behalf."],
   ["Students stay in charge", "Every student can export or delete their own data."],
-  ["Honest about AI", "Scores are labelled as AI-assisted guidance, and advisers can add their own advice."],
-  ["Accessible by design", "Built to meet WCAG 2.2 AA."],
+  ["Honest about AI", "Scores are labelled as AI-assisted guidance. Each report explains how its score was worked out, with the same formula for every student."],
+  ["Accessible by design", "Designed to meet WCAG 2.2 AA and checked with automated and keyboard testing. An independent audit is still to come."],
   ["Secure sign-in", "University single sign-on or a one-time email link. Only partner university emails can sign up."],
+];
+
+const PILOT_STEPS = [
+  ["We reply to arrange a call", "We read every request and email you to talk through your service, your students and what you'd want from a pilot."],
+  ["We set it up with you", "Sign-in for your university email domain, or single sign-on if you use it, optional student records for breakdowns, and some adviser time to check scoring against their judgement."],
+  ["Places are limited", "We're starting with a small number of UK universities so we can support each one closely."],
 ];
 
 const ROAD = [
@@ -106,23 +110,26 @@ const ArrowIcon = ({ size = 14 }: { size?: number }) => (
 
 export function Landing() {
   return (
-    <div className="op-root overflow-hidden bg-white text-black">
+    <div className="op-root overflow-x-clip bg-white text-black">
       <a href="#main" className="sr-only-abs focus:static focus:m-2 focus:inline-block focus:rounded-full focus:bg-black focus:px-4 focus:py-2 focus:text-white">
         Skip to content
       </a>
-      <header className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-8 gap-y-4 px-4 py-[22px] sm:px-8">
+      <header className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-3 gap-y-4 min-[380px]:gap-x-4 lg:gap-x-8 px-4 py-[22px] sm:px-8">
         <Link href="/" className="flex items-center gap-2.5 text-[19px] font-medium tracking-[-0.02em] text-black no-underline hover:text-black">
           <Logo size={30} />
           Offerpath
         </Link>
-        <nav aria-label="Main" className="order-3 flex w-full flex-wrap gap-x-7 gap-y-1 text-[15px] md:order-none md:ml-auto md:w-auto">
-          {[["#students", "Students"], ["#universities", "Universities"], ["#trust", "Trust"], ["#roadmap", "Roadmap"], ["/sign-in", "Sign in"]].map(([href, label]) => (
-            <a key={href} href={href} className="py-2.5 text-muted no-underline hover:text-black">
+        <nav aria-label="Main" className="ml-auto flex items-center gap-x-7 text-[15px]">
+          {[["#students", "Students"], ["#universities", "Universities"], ["#trust", "Trust"], ["#roadmap", "Roadmap"]].map(([href, label]) => (
+            <a key={href} href={href} className="hidden py-2.5 text-muted no-underline hover:text-black lg:inline">
               {label}
             </a>
           ))}
+          <a href="/sign-in" className="py-2.5 text-muted no-underline hover:text-black">
+            Sign in
+          </a>
         </nav>
-        <a href="#pilot" className="op-arrow ml-auto inline-flex min-h-[46px] items-center gap-2 rounded-full bg-black px-5 text-[15px] font-medium text-white no-underline hover:text-white md:ml-0">
+        <a href="#pilot" className="op-arrow inline-flex min-h-[46px] items-center gap-2 rounded-full bg-black px-4 text-sm font-medium max-[379px]:[&>svg]:hidden sm:px-5 sm:text-[15px] text-white no-underline hover:text-white">
           Apply for a pilot
           <ArrowIcon />
         </a>
@@ -183,9 +190,25 @@ export function Landing() {
           </div>
         </section>
 
-        <section aria-labelledby="journey-h" className="bg-canvas">
+        <section id="universities" aria-labelledby="uni-h" className="scroll-mt-4 bg-black text-white">
+          <div className="mx-auto flex max-w-[1240px] flex-col gap-12 px-4 py-20 sm:px-8 sm:py-[120px]">
+            <SectionHead n="02 · FOR UNIVERSITIES" id="uni-h" title="See how every cohort is getting on, and who needs a hand." dark />
+            <CohortDashboard />
+            <div className="flex flex-wrap gap-px overflow-clip rounded-[28px] bg-night-3">
+              {UNI_POINTS.map(([n, t, d]) => (
+                <div key={n} className="op-reveal min-w-0 flex-[1_1_340px] bg-night p-[30px]">
+                  <p className="m-0 font-mono text-xs text-sage">{n}</p>
+                  <p className="mt-3.5 mb-0 text-[22px] tracking-[-0.04em]">{t}</p>
+                  <p className="mt-2 mb-0 text-[15px] leading-[1.55] text-night-muted">{d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="students" aria-labelledby="stu-h" className="scroll-mt-4 bg-canvas">
           <div className="mx-auto flex max-w-[1240px] flex-col gap-14 px-4 py-20 sm:px-8 sm:py-28">
-            <SectionHead n="02 · THE WHOLE JOURNEY" id="journey-h" title="Not just a CV score. Support from first draft to signed offer." />
+            <SectionHead n="03 · FOR STUDENTS" id="stu-h" title="Not just a CV score. Support from first draft to signed offer." />
             <div className="relative">
               <div aria-hidden="true" className="absolute top-[18px] right-[18px] left-[18px] hidden h-0.5 bg-edge lg:block">
                 <div className="op-line h-0.5 w-[80%] bg-brand" />
@@ -201,71 +224,51 @@ export function Landing() {
                 ))}
               </ol>
             </div>
-            <JourneyBento />
-          </div>
-        </section>
-
-        <section id="students" aria-labelledby="stu-h" className="mx-auto flex max-w-[1240px] scroll-mt-4 flex-col gap-12 px-4 py-20 sm:px-8 sm:py-[120px]">
-          <div className="op-reveal flex flex-wrap items-end justify-between gap-6">
-            <div className="max-w-[720px]">
-              <p className="m-0 font-mono text-[13px] text-brand">03 · FOR STUDENTS</p>
-              <h2 id="stu-h" className="mt-3.5 mb-0 text-[36px] leading-[1.12] font-normal tracking-[-1.5px] sm:text-[56px] sm:tracking-[-2.52px]">
-                Know exactly what to fix, and why.
-              </h2>
-            </div>
-            <p className="m-0 max-w-[420px] text-[17px] leading-relaxed text-muted">Every point lost names the exact line and the reason. Scores are labelled as AI-assisted guidance.</p>
-          </div>
-          <div className="op-reveal flex flex-wrap overflow-hidden rounded-3xl">
-            {BANDS.map(([range, name, cls]) => (
-              <div key={name} className={`flex-[1_1_200px] px-6 py-[22px] ${cls}`}>
-                <p className="m-0 font-mono text-xs opacity-85">{range}</p>
-                <p className="mt-2 mb-0 text-2xl tracking-[-0.04em]">{name}</p>
+            <div className="flex flex-col gap-8">
+              <div className="op-reveal flex flex-wrap items-end justify-between gap-6">
+                <h3 className="m-0 max-w-[640px] text-[30px] leading-[1.15] font-normal tracking-[-1.2px] sm:text-[40px] sm:tracking-[-1.8px]">Know exactly what to fix, and why.</h3>
+                <p className="m-0 max-w-[420px] text-[17px] leading-relaxed text-muted">Every point lost names the exact line and the reason. Scores are labelled as AI-assisted guidance.</p>
               </div>
-            ))}
-          </div>
-          <LineFixDemo />
-          <div className="flex flex-wrap items-center gap-x-12 gap-y-6">
-            <div className="op-reveal min-w-0 flex-[1_1_300px]">
-              <h3 className="m-0 text-[28px] font-normal tracking-[-0.04em]">{SHOWCASE[0][0]}</h3>
-              <p className="mt-3 mb-0 text-[17px] leading-relaxed text-muted">{SHOWCASE[0][1]}</p>
-            </div>
-            <div className="min-w-0 flex-[1.4_1_358px]">
-              <TailorDemo />
-            </div>
-          </div>
-          <div className="flex flex-col gap-6">
-            <div className="op-reveal max-w-[640px]">
-              <h3 className="m-0 text-[28px] font-normal tracking-[-0.04em]">{SHOWCASE[1][0]}</h3>
-              <p className="mt-3 mb-0 text-[17px] leading-relaxed text-muted">{SHOWCASE[1][1]}</p>
-            </div>
-            <TrackerDemo />
-          </div>
-          <div className="flex flex-wrap gap-5">
-            {FEATURES.map(([icon, t, d]) => (
-              <article key={t} className="op-reveal op-card flex min-w-0 flex-[1_1_340px] flex-col gap-3 rounded-[28px] bg-canvas p-[30px]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white">
-                  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d={ICONS[icon]} fill="none" stroke="#36604E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <h3 className="mt-2 mb-0 text-[22px] font-normal tracking-[-0.04em]">{t}</h3>
-                <p className="m-0 text-base leading-[1.55] text-muted">{d}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="universities" aria-labelledby="uni-h" className="scroll-mt-4 bg-black text-white">
-          <div className="mx-auto flex max-w-[1240px] flex-col gap-12 px-4 py-20 sm:px-8 sm:py-[120px]">
-            <SectionHead n="04 · FOR UNIVERSITIES" id="uni-h" title="See how every cohort is getting on, and who needs a hand." dark />
-            <CohortDashboard />
-            <div className="flex flex-wrap gap-px overflow-hidden rounded-[28px] bg-night-3">
-              {UNI_POINTS.map(([n, t, d]) => (
-                <div key={n} className="op-reveal min-w-0 flex-[1_1_340px] bg-night p-[30px]">
-                  <p className="m-0 font-mono text-xs text-sage">{n}</p>
-                  <p className="mt-3.5 mb-0 text-[22px] tracking-[-0.04em]">{t}</p>
-                  <p className="mt-2 mb-0 text-[15px] leading-[1.55] text-night-muted">{d}</p>
+              <LineFixDemo />
+              <div className="op-reveal flex flex-col gap-3">
+                <p className="m-0 text-[15px] leading-normal text-muted">Each CV gets a Readiness Score out of 100, in one of four bands:</p>
+                <div className="flex flex-wrap overflow-hidden rounded-3xl">
+                  {BANDS.map(([range, name, cls]) => (
+                    <div key={name} className={`flex-[1_1_200px] px-6 py-[22px] ${cls}`}>
+                      <p className="m-0 font-mono text-xs opacity-85">{range}</p>
+                      <p className="mt-2 mb-0 text-2xl tracking-[-0.04em]">{name}</p>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-12 gap-y-6">
+              <div className="op-reveal min-w-0 flex-[1_1_300px]">
+                <h3 className="m-0 text-[28px] font-normal tracking-[-0.04em]">{SHOWCASE[0][0]}</h3>
+                <p className="mt-3 mb-0 text-[17px] leading-relaxed text-muted">{SHOWCASE[0][1]}</p>
+              </div>
+              <div className="min-w-0 flex-[1.4_1_358px]">
+                <TailorDemo />
+              </div>
+            </div>
+            <div className="flex flex-col gap-6">
+              <div className="op-reveal max-w-[640px]">
+                <h3 className="m-0 text-[28px] font-normal tracking-[-0.04em]">{SHOWCASE[1][0]}</h3>
+                <p className="mt-3 mb-0 text-[17px] leading-relaxed text-muted">{SHOWCASE[1][1]}</p>
+              </div>
+              <TrackerDemo />
+            </div>
+            <div className="flex flex-wrap gap-5">
+              {FEATURES.map(([icon, t, d]) => (
+                <article key={t} className="op-reveal op-card flex min-w-0 flex-[1_1_300px] flex-col gap-3 rounded-[28px] bg-white p-[30px]">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-canvas">
+                    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d={ICONS[icon]} fill="none" stroke="#36604E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <h3 className="mt-2 mb-0 text-[22px] font-normal tracking-[-0.04em]">{t}</h3>
+                  <p className="m-0 text-base leading-[1.55] text-muted">{d}</p>
+                </article>
               ))}
             </div>
           </div>
@@ -273,7 +276,7 @@ export function Landing() {
 
         <section id="trust" aria-labelledby="trust-h" className="mx-auto flex max-w-[1240px] scroll-mt-4 flex-wrap gap-12 px-4 py-20 sm:px-8 sm:py-[120px]">
           <div className="min-w-0 flex-[1_1_360px]">
-            <SectionHead n="05 · TRUST AND COMPLIANCE" id="trust-h" title="Your students' data stays yours." />
+            <SectionHead n="04 · TRUST AND COMPLIANCE" id="trust-h" title="Your students' data stays yours." />
             <div className="mt-10 max-w-[460px]">
               <PrivacyCard />
             </div>
@@ -290,7 +293,7 @@ export function Landing() {
 
         <section id="roadmap" aria-labelledby="road-h" className="scroll-mt-4 bg-canvas">
           <div className="mx-auto flex max-w-[1240px] flex-col gap-12 px-4 py-20 sm:px-8 sm:py-28">
-            <SectionHead n="06 · WHERE WE ARE" id="road-h" title="Built in the open, with our pilot universities." />
+            <SectionHead n="05 · WHERE WE ARE" id="road-h" title="Built in the open, ready for our first pilot universities." />
             <div className="flex flex-wrap gap-5">
               {ROAD.map(([when, t, d, cls]) => (
                 <div key={when} className={`op-reveal op-card flex min-w-0 flex-[1_1_320px] flex-col gap-3 rounded-[28px] p-[30px] ${cls}`}>
@@ -310,7 +313,19 @@ export function Landing() {
               <h2 id="pilot-h" className="mt-3.5 mb-0 text-[40px] leading-[1.08] font-normal tracking-[-1.8px] sm:text-[72px] sm:tracking-[-3.24px]">
                 Shape Offerpath with us, free for your first year.
               </h2>
-              <p className="mt-[22px] mb-0 max-w-[520px] text-lg leading-relaxed text-muted">We&apos;re working with a small number of UK universities. You get the full platform and a direct line to the team building it. No cost, no multi-year contract.</p>
+              <p className="mt-[22px] mb-0 max-w-[520px] text-lg leading-relaxed text-muted">You get the full platform and a direct line to the team building it. No cost, no multi-year contract.</p>
+              <h3 className="mt-10 mb-0 font-mono text-[13px] font-normal text-brand">WHAT HAPPENS NEXT</h3>
+              <ol className="mt-5 mb-0 flex max-w-[520px] list-none flex-col gap-5 p-0">
+                {PILOT_STEPS.map(([t, d], i) => (
+                  <li key={t} className="flex gap-4">
+                    <span className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full bg-mint font-mono text-xs text-brand">{i + 1}</span>
+                    <span className="flex flex-col gap-1">
+                      <span className="text-[19px] tracking-[-0.03em]">{t}</span>
+                      <span className="text-[15px] leading-[1.55] text-muted">{d}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </div>
             <PilotForm />
           </div>

@@ -4,6 +4,7 @@ import { StudentShell, WithSidebar } from "@/components/StudentShell";
 import { PageTitle } from "@/components/ui";
 import { aiEnabled } from "@/lib/ai";
 import { AI_LIMITS } from "@/lib/repo/types";
+import { presentLines } from "@/lib/rewrite-flow";
 import { loadCvReview } from "../../load";
 import { LineEditor } from "./LineEditor";
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = { title: "Line by line" };
 
 export default async function LinesPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ i?: string }> }) {
   const { id } = await params;
-  const { repo, profile, a } = await loadCvReview(id);
+  const { repo, profile, a, report } = await loadCvReview(id);
   const used = await repo.aiUsedToday("line_rewrite");
   const start = Math.min(Math.max(0, Number((await searchParams).i) || 0), Math.max(0, a.lines.length - 1));
   return (
@@ -26,7 +27,7 @@ export default async function LinesPage({ params, searchParams }: { params: Prom
             <p className="m-0 rounded-3xl bg-white p-6 text-[15px] text-muted">We couldn&apos;t find bullet points in your experience or projects. Use bullet points (•) under each role, then re-score your CV.</p>
           </>
         ) : (
-          <LineEditor reviewId={id} lines={a.lines} start={start} left={AI_LIMITS.line_rewrite - used} limit={AI_LIMITS.line_rewrite} ai={aiEnabled()} />
+          <LineEditor reviewId={id} lines={presentLines(report.payload)} start={start} left={AI_LIMITS.line_rewrite - used} limit={AI_LIMITS.line_rewrite} ai={aiEnabled()} />
         )}
       </WithSidebar>
     </StudentShell>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/ui";
 import { testSignIn } from "@/app/actions/auth";
-import { featureFlags } from "@/lib/env";
+import { demoLoginAllowed, featureFlags } from "@/lib/env";
 import { getProfile, isDemoMode } from "@/lib/session";
 import { SignInForms } from "./SignInForms";
 
@@ -39,12 +39,12 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
           <h1 className="m-0 text-[40px] font-normal leading-[1.1] tracking-[-1.8px]">{admin ? "Careers team sign in" : "Sign in"}</h1>
           {sp.deleted && <p role="status" className="m-0 rounded-2xl bg-mist px-4 py-3 text-sm">Your account and data have been deleted.</p>}
           {sp.error && <p role="alert" className="m-0 rounded-2xl border border-black px-4 py-3 text-sm">{sp.error}</p>}
-          {isDemoMode() && (
+          {isDemoMode() && demoLoginAllowed() && (
             <p className="m-0 rounded-2xl bg-mist px-4 py-3 text-[13px] leading-normal text-body">
               Demo mode: no database is connected, so sign-in opens a sample account with fictional data. Nothing leaves this server.
             </p>
           )}
-          {(featureFlags.testLogin() || isDemoMode()) && (
+          {(featureFlags.testLogin() || (isDemoMode() && demoLoginAllowed())) && (
             <div className="flex flex-col gap-3 rounded-3xl bg-mist p-5">
               <p className="m-0 text-[13px] leading-normal text-body">Testing phase: enter the app with a test account. No email needed.</p>
               <div className="flex flex-wrap gap-2.5">

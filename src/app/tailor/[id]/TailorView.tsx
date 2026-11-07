@@ -8,6 +8,7 @@ import { FormError } from "@/components/client";
 import { cx, ScoreRing } from "@/components/ui";
 import { CV_THEMES } from "@/lib/cv-themes";
 import type { TailorPayload } from "@/lib/types";
+import { JobMatchPanel, LegacyMatchNote } from "./JobMatchPanel";
 
 type Tab = "missing" | "found" | "soft";
 
@@ -26,6 +27,10 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
   const soft = p.keywords.filter((k) => k.soft);
   const rows = tab === "missing" ? missing : tab === "found" ? found : soft;
   const mustMissing = missing.filter((k) => k.must).length;
+  const keywordFor = (label: string) => p.keywords.find((k) => k.w === label);
+  // Only reports made before versioned job scoring reach the rings, and they always hold both numbers.
+  const legacyNow = p.matchNow ?? 0;
+  const legacyTailored = p.matchTailored ?? 0;
 
   const run = (fn: () => Promise<{ error?: string }>, after?: () => void) =>
     start(async () => {
@@ -94,17 +99,33 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
 
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
+          {p.jobMatch ? (
+            <JobMatchPanel
+              match={p.jobMatch}
+              tailoredScore={p.matchTailored}
+              requirementAction={(label) =>
+                keywordFor(label) && !keywordFor(label)!.inCv ? (
+                  <button type="button" disabled={pending} aria-pressed={p.added.includes(label)} onClick={() => run(() => toggleKeyword(id, label))} className={cx("min-h-[34px] rounded-full px-3 text-[13px]", p.added.includes(label) ? "border border-brand bg-okbg text-brand" : "border border-edge bg-white text-black hover:bg-paper")}>
+                    {p.added.includes(label) ? "Included" : "Include"}
+                    <span className="sr-only-abs"> {label} when tailoring</span>
+                  </button>
+                ) : null
+              }
+            />
+          ) : (
+            <>
+          <LegacyMatchNote />
           <section aria-labelledby="m-h" className="flex flex-wrap items-center gap-6 rounded-3xl bg-white px-[26px] py-6">
             <div className="flex items-center gap-[18px]">
-              <ScoreRing value={p.matchNow} size={104} stroke={8} color="#8FB3A1" label={`Match now ${p.matchNow}`}>
-                <span className="text-[32px] leading-none tracking-[-0.04em]">{p.matchNow}</span>
+              <ScoreRing value={legacyNow} size={104} stroke={8} color="#8FB3A1" label={`Match now ${legacyNow}`}>
+                <span className="text-[32px] leading-none tracking-[-0.04em]">{legacyNow}</span>
                 <span className="mt-[3px] font-mono text-[10px] text-subtle">NOW</span>
               </ScoreRing>
               <svg width="28" height="16" viewBox="0 0 28 16" aria-hidden="true">
                 <path d="M2 8h22M18 3l5 5-5 5" fill="none" stroke="#5C6B66" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <ScoreRing value={p.matchTailored} size={104} stroke={8} color="#36604E" label={`Estimated match after tailoring ${p.matchTailored}`}>
-                <span className="text-[32px] leading-none tracking-[-0.04em]">{p.matchTailored}</span>
+              <ScoreRing value={legacyTailored} size={104} stroke={8} color="#36604E" label={`Estimated match after tailoring ${legacyTailored}`}>
+                <span className="text-[32px] leading-none tracking-[-0.04em]">{legacyTailored}</span>
                 <span className="mt-[3px] font-mono text-[10px] text-subtle">TAILORED</span>
               </ScoreRing>
             </div>
@@ -114,12 +135,12 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
               </h2>
               <p className="mt-2.5 mb-0 text-base leading-[1.55]">
                 {p.aiTailored
-                  ? p.matchTailored > p.matchNow
-                    ? `The tailored version matches ${p.matchTailored}, up from ${p.matchNow}, using only what your CV already shows.`
+                  ? legacyTailored > legacyNow
+                    ? `The tailored version matches ${legacyTailored}, up from ${legacyNow}. It was written from what your CV already shows, but check each line: wording can overstate what you did.`
                     : `The tailored version speaks the employer's language without claiming keywords your CV can't back up.${p.notEvidenced?.length ? " To raise your match, add real examples of what's listed under “Left out”." : ""}`
                   : missing.length === 0
-                  ? "Your CV already covers the keywords this employer screens for."
-                  : `Your CV is missing ${missing.length} keyword${missing.length === 1 ? "" : "s"} this employer screens for.${mustMissing ? ` Adding the ${mustMissing} must-have${mustMissing === 1 ? "" : "s"} should lift you towards ${p.matchTailored}.` : ""}`}
+                  ? "Your CV already uses the keywords we found in this job ad."
+                  : `Your CV is missing ${missing.length} keyword${missing.length === 1 ? "" : "s"} from this job ad.${mustMissing ? ` Adding the ${mustMissing} must-have${mustMissing === 1 ? "" : "s"}, where ${mustMissing === 1 ? "it's" : "they're"} true of you, should lift the match towards ${legacyTailored}.` : ""}`}
               </p>
             </div>
           </section>
@@ -177,6 +198,8 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
               )}
             </div>
           </section>
+            </>
+          )}
         </div>
 
         <section aria-labelledby="jd-h" className="flex min-w-0 flex-[1_1_480px] flex-col gap-3.5 rounded-3xl bg-white px-[26px] py-[22px]">
@@ -197,7 +220,7 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
                 </li>
                 <li className="flex items-center gap-1.5">
                   <span className="h-0.5 w-3.5 bg-black" />
-                  Missing
+                  {p.jobMatch ? "No evidence named" : "Missing"}
                 </li>
               </ul>
             )}
@@ -224,7 +247,7 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
                       ) : (
                         <span key={j} className="border-b-2 border-black font-medium">
                           {s.t}
-                          <span className="sr-only-abs"> (missing from your CV)</span>
+                          <span className="sr-only-abs">{p.jobMatch ? " (not named in your CV)" : " (missing from your CV)"}</span>
                         </span>
                       ),
                     )}
@@ -235,12 +258,12 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
           ) : pending && !p.tailored ? (
             <div role="status" className="flex flex-col items-start gap-2 rounded-2xl bg-canvas p-5">
               <p className="m-0 text-[15px]">Tailoring your CV to {p.jobTitle}…</p>
-              <p className="m-0 text-sm text-muted">This takes up to half a minute. We only use what&apos;s already in your CV.</p>
+              <p className="m-0 text-sm text-muted">This takes up to half a minute. Suggestions use your CV as their source; check every claim before accepting them.</p>
             </div>
           ) : !p.tailored ? (
             <div className="flex flex-col items-start gap-3 rounded-2xl bg-canvas p-5">
               <p className="m-0 text-[15px]">Press “Tailor my CV” and we&apos;ll rewrite your profile and most relevant bullets for this role, using only what&apos;s in your CV.</p>
-              <p className="m-0 text-sm text-muted">Want particular keywords in? Pick them with “Add” first.</p>
+              <p className="m-0 text-sm text-muted">{p.jobMatch ? "Want particular requirements covered? Choose “Include” first, but only for what's true of you. Choosing one doesn't count as evidence." : "Want particular keywords in? Pick them with “Add” first."}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
@@ -316,6 +339,7 @@ export function TailorView({ id, p, subtitle, auto }: { id: string; p: TailorPay
                   <p className="m-0 text-sm text-muted">{p.notEvidenced.join(", ")}. If you have done them, add an example to your CV and tailor again.</p>
                 </div>
               )}
+              {p.jobMatch && !p.tailoredCv && <p className="m-0 rounded-2xl bg-canvas px-4 py-3.5 text-sm">These are hypothetical suggestions, not a revised CV, so your evidence coverage hasn&apos;t changed. Only a CV that really shows the requirement counts as evidence.</p>}
               <p className="m-0 text-sm text-muted">
                 {p.aiTailored ? "Fill in anything in [brackets] with your real numbers, or delete it. " : ""}Only keep a change if it&apos;s true. Edit the wording so it sounds like you, then re-score your CV.
               </p>

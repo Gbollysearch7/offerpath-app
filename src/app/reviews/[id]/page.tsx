@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ResultsSidebar } from "@/components/ResultsSidebar";
 import { StudentShell, WithSidebar } from "@/components/StudentShell";
-import { Bar, bandBadge, cx, Eyebrow, fmtShort, ScoreRing, scoreColor } from "@/components/ui";
-import { band } from "@/lib/analysis/cv";
-import type { CvReviewPayload } from "@/lib/types";
+import { Bar, bandBadge, cx, Eyebrow, fmtShort, ScoreRing, scoreColor, Tag } from "@/components/ui";
+import { AREA_META, checkContext } from "@/lib/analysis/cv";
+import { bandLabel, bandLegend, bandRangeText, nextBandLabel } from "@/lib/analysis/labels";
+import { proofreadingSummary } from "@/lib/analysis/proofreading/view";
+import { comparableHistory, scoreCoverage } from "@/lib/analysis/coverage";
+import type { BandKey } from "@/lib/analysis/rubric";
+import { scoreSeries, seriesFields } from "@/lib/analysis/scoring-contract";
 import { loadCvReview } from "../load";
 import { ShowAround } from "./ShowAround";
+import { SupplementalChecks } from "./SupplementalChecks";
 
 export const metadata: Metadata = { title: "Results overview" };
 
@@ -15,18 +20,21 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const { repo, profile, report, a } = await loadCvReview(id);
   const [history, opps, allNotes] = await Promise.all([repo.listReports({ type: "cv_review", limit: 50 }), repo.opportunities(), repo.myAdviserNotes()]);
   const notes = allNotes.filter((n) => n.reportId === id);
-  const ordered = [...history.rows].filter((r) => r.score != null).sort((x, y) => x.createdAt.localeCompare(y.createdAt));
-  const upTo = ordered.slice(0, ordered.findIndex((r) => r.id === id) + 1 || ordered.length).slice(-6);
+  // Only scores in this report's series are charted or compared (scoring-contract.ts). A rule change or a method
+  // change is the one thing besides an edit that can move a score, so it must never read as progress or decline.
+  const fields = seriesFields(report.payload);
+  const coverage = scoreCoverage(fields);
+  const withheld = coverage.status === "withheld";
+  const comparable = comparableHistory(history.rows, id, scoreSeries(fields));
+  const upTo = comparable.rows.slice(-6);
   const idx = upTo.findIndex((r) => r.id === id);
   const previous = idx > 0 ? upTo[idx - 1].score! : null;
   const highest = Math.max(...upTo.map((r) => r.score!));
   const first = upTo[0]?.score ?? a.score;
   const change = previous !== null ? a.score - previous : null;
   const sector = report.payload.sector;
-  // The score depends only on the CV and the rubric, so a change in rubric is the one thing besides an
-  // edit that can move it. Say so rather than showing it as progress.
-  const prevRubric = idx > 0 ? (await repo.getReport<CvReviewPayload>(upTo[idx - 1].id))?.payload.analysis.meta.rubric : undefined;
-  const newRubric = !!prevRubric && prevRubric !== a.meta.rubric;
+  const doc = report.payload.document;
+  const NOT_COMPARED = "Earlier reviews were scored under different rules, or weren't fully assessed, so they aren't compared with this one. ";
   const fit = a.areas.find((ar) => ar.key === "sector");
   const soon = opps.filter((o) => o.sector === sector && new Date(o.closesOn).getTime() - Date.now() < 30 * 864e5 && new Date(o.closesOn).getTime() > Date.now()).length;
 
@@ -34,6 +42,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const y = (s: number) => Math.max(20, Math.min(186, 20 + (90 - s) * 3));
   const pts = upTo.map((r, i) => `${xs[i].toFixed(0)},${y(r.score!).toFixed(0)}`);
   const top = a.steps[0];
+  // Band words come from the score at render time (labels.ts), so this report and every older one use the same ones.
+  const next = nextBandLabel(a.score);
+  const legend = bandLegend();
+  const stripColour: Record<BandKey, string> = { low: "bg-[#F4B8B1]", mid: "bg-[#F2D27A]", high: "bg-[#9FD3AE]", top: "bg-brand" };
 
   return (
     <StudentShell profile={profile} active="review">
@@ -47,6 +59,13 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
             <Link href={`/reviews/${id}/breakdown#how`} className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs text-muted no-underline hover:text-black">
               {a.meta.method === "ai" ? "Scored with Claude Haiku against a fixed rubric" : "Scored by the Offerpath rule engine"} · same CV, same score
             </Link>
+            {/* Which text was scored: a correction or typed text is said up front, and every report links to its source. */}
+            <p className="mt-2 mb-0 text-[13px] text-muted" data-scored-source={doc?.source.kind ?? "unrecorded"}>
+              {doc?.source.kind === "correction" ? "Scored your corrected text, not the text read from the file. " : doc?.source.kind === "paste" ? "Scored the text you typed or pasted. " : ""}
+              <Link href={`/reviews/${id}/source`} className="text-muted">
+                See the source document{report.row.sourceId ? " and its versions" : ""}
+              </Link>
+            </p>
           </div>
           <ShowAround />
         </div>
@@ -55,39 +74,55 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <section id="tour-score" aria-labelledby="sc-h" className="flex min-w-0 flex-[1_1_380px] flex-col gap-5 rounded-3xl bg-white px-[26px] py-6">
             <Eyebrow id="sc-h">READINESS SCORE</Eyebrow>
             <div className="flex flex-wrap items-center gap-6">
+              {withheld ? (
+                <div className="min-w-[180px] flex-1" data-score-coverage="withheld">
+                  <span className="inline-flex rounded-full bg-canvas px-3 py-1.5 text-[13px] font-medium text-black">No overall score</span>
+                  <p className="mt-3 mb-0 text-[15px] leading-normal text-body">
+                    We found no bullet points, so only about {Math.round(coverage.assessedShare * 100)}% of what makes up the score could be assessed. A total from that little wouldn&apos;t tell you much about your CV, so we don&apos;t give one. Add bullet points (•) under each role and project, then upload again.
+                  </p>
+                </div>
+              ) : (
+              <>
               <ScoreRing value={a.score} size={144} stroke={11} color={scoreColor(a.score)} label={`Readiness Score ${a.score} out of 100`}>
                 <span className="text-5xl leading-none tracking-[-0.05em]">{a.score}</span>
                 <span className="mt-1.5 font-mono text-[11px] text-subtle">OF 100</span>
               </ScoreRing>
               <div className="min-w-[180px] flex-1">
-                <span className={cx("inline-flex rounded-full px-3 py-1.5 text-[13px] font-medium", bandBadge(a.score))}>{band(a.score)}</span>
+                <span className={cx("inline-flex rounded-full px-3 py-1.5 text-[13px] font-medium", bandBadge(a.score))}>{bandLabel(a.score)}</span>
+                {coverage.status === "incomplete" && (
+                  <p className="mt-3 mb-0 text-sm leading-normal text-black" data-score-coverage="incomplete">
+                    <span className="font-medium">Incomplete score.</span> We weren&apos;t confident we read your whole file, so this may not reflect your full CV. Check how we read it from the link above.
+                  </p>
+                )}
                 <p className="mt-3 mb-0 text-[15px] leading-normal text-body">
-                  {change === null ? "Your first review. " : newRubric ? "We've updated how CVs are scored since your last upload, so the two scores don't compare directly. " : change > 0 ? `Up ${change} since your last upload. ` : change < 0 ? `Down ${-change} since your last upload. ` : "Same as your last upload. "}
-                  {top ? `${top.text} is the quickest way to ${a.score >= 75 ? "reach Interview-ready" : a.score >= 50 ? "reach Strong" : "reach Getting there"}.` : "Keep tailoring it to each role."}
+                  {change === null ? (comparable.setAside > 0 ? NOT_COMPARED : "Your first review. ") : change > 0 ? `Up ${change} since your last upload. ` : change < 0 ? `Down ${-change} since your last upload. ` : "Same as your last upload. "}
+                  {top ? `${top.text} is the quickest way to ${next ? `reach ${next}` : "add to your score"}.` : "Keep tailoring it to each role."}
                 </p>
               </div>
+              </>
+              )}
             </div>
+            {!withheld && (
             <div>
-              <div className="flex h-2 overflow-hidden rounded-full" role="img" aria-label={`Score bands: needs work 0 to 49, getting there 50 to 74, strong 75 to 89, interview-ready 90 and above. You are at ${a.score}.`}>
-                <span className="flex-[50] bg-[#F4B8B1]" />
-                <span className="flex-[25] bg-[#F2D27A]" />
-                <span className="flex-[15] bg-[#9FD3AE]" />
-                <span className="flex-[10] bg-brand" />
+              <div className="flex h-2 overflow-hidden rounded-full" role="img" aria-label={`Score bands: ${legend.map((b) => `${b.label.toLowerCase()} ${bandRangeText(b)}`).join(", ")}. You are at ${a.score}.`}>
+                {legend.map((b) => (
+                  <span key={b.key} className={stripColour[b.key]} style={{ flex: b.max - b.min + (b.max >= 100 ? 0 : 1) }} />
+                ))}
               </div>
               <div className="relative h-[18px]">
                 <span className="absolute top-0.5 h-3.5 w-0.5 bg-black" style={{ left: `${a.score}%` }} />
               </div>
               <div className="flex justify-between font-mono text-[11px] text-subtle">
-                <span>NEEDS WORK</span>
-                <span>GETTING THERE</span>
-                <span>STRONG</span>
-                <span>READY</span>
+                {legend.map((b) => (
+                  <span key={b.key}>{b.label.toUpperCase()}</span>
+                ))}
               </div>
             </div>
+            )}
             <div className="flex flex-col gap-3 border-t border-line pt-[18px]">
               {a.areas.filter((ar) => ar.key !== "sector").map((ar) => (
                 <Link key={ar.key} href={`/reviews/${id}/checks/${[...ar.checks].sort((p, q) => p.score - q.score)[0].key}`} className="grid grid-cols-[minmax(0,1fr)_100px_30px] items-center gap-3 text-sm text-black no-underline hover:text-brand sm:grid-cols-[minmax(0,1fr)_140px_30px]">
-                  <span>{ar.name}</span>
+                  <span>{AREA_META[ar.key].name}</span>
                   <Bar pct={ar.score} color={scoreColor(ar.score)} />
                   <span className="text-right font-mono text-[13px]">{ar.score}</span>
                 </Link>
@@ -107,6 +142,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
 
           <section id="tour-history" aria-labelledby="hist-h" className="flex min-w-0 flex-[1_1_380px] flex-col gap-4 rounded-3xl bg-white px-[26px] py-6">
             <Eyebrow id="hist-h">SCORE HISTORY</Eyebrow>
+            {withheld ? (
+              <p className="m-0 text-[15px] leading-normal text-body">This review has no overall score, so it isn&apos;t part of your score history.</p>
+            ) : (
+            <>
             <div className="flex flex-wrap gap-2.5">
               <span className="rounded-full bg-canvas px-3 py-1.5 text-[13px]">
                 Highest <span className="font-medium">{highest}</span>
@@ -119,7 +158,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
               {upTo.length > 1 && (
                 <span className="rounded-full bg-mint px-3 py-1.5 text-[13px] text-brand">
                   {a.score - first >= 0 ? "+" : ""}
-                  {a.score - first} since first upload
+                  {a.score - first} since {comparable.setAside > 0 ? "first comparable upload" : "first upload"}
                 </span>
               )}
             </div>
@@ -150,6 +189,13 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
                 );
               })}
             </svg>
+            {comparable.setAside > 0 && (
+              <p className="m-0 text-[13px] leading-normal text-muted" data-score-history="set-aside">
+                {comparable.setAside === 1 ? "1 earlier review isn't" : `${comparable.setAside} earlier reviews aren't`} shown here: scored under different rules or not fully assessed, so the scores don&apos;t compare. It&apos;s still in All reports with its original score.
+              </p>
+            )}
+            </>
+            )}
             <p className="m-0 rounded-2xl bg-canvas px-4 py-3.5 text-sm leading-normal text-body">You don&apos;t need 100. Take the advice that fits the roles you want and ignore what doesn&apos;t. Scores are guidance; if you disagree, talk to your careers adviser.</p>
             <div className="mt-auto flex flex-wrap gap-2.5">
               <Link href="/dashboard" className="rounded-full border border-edge px-3.5 py-[9px] text-sm text-black no-underline hover:bg-paper hover:text-black">
@@ -187,7 +233,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black font-mono text-xs text-white">{i + 1}</span>
                   <span className="flex-1">
                     <span className="block text-[15px]">{s.text}</span>
-                    <span className="mt-0.5 block text-[13px] text-subtle">{s.area}</span>
+                    <span className="mt-0.5 block text-[13px] text-subtle">{checkContext(s.check)}</span>
                   </span>
                   <span className="font-mono text-xs text-brand">{s.gain ? <><span className="sr-only-abs">Estimated gain </span>+{s.gain}</> : "Fit"}</span>
                 </Link>
@@ -204,13 +250,20 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
                   </svg>
                   <span className="flex-1">
                     <span className="block text-[15px]">{w.text}</span>
-                    <span className="mt-0.5 block text-[13px] text-subtle">{w.area}</span>
+                    <span className="mt-0.5 block text-[13px] text-subtle">{checkContext(w.check)}</span>
                   </span>
                 </div>
               ))}
             </div>
           </div>
         </section>
+
+        <Link href={`/reviews/${id}/checks/spell`} className="flex min-h-11 flex-wrap items-center gap-2.5 rounded-3xl bg-white px-[26px] py-4 text-[15px] text-black no-underline hover:bg-paper hover:text-black">
+          Dictionary check: {proofreadingSummary(report.payload)}
+          <Tag tone="grey">NOT PART OF YOUR SCORE</Tag>
+        </Link>
+
+        <SupplementalChecks assessment={report.payload.assessment} />
 
         <section aria-label="Next steps" className="flex flex-wrap gap-4">
           {[

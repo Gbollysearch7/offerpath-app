@@ -20,6 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     headers: {
       "Content-Type": format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": `attachment; filename="${name}"`,
+      "Cache-Control": "private, no-store",
     },
   });
 }

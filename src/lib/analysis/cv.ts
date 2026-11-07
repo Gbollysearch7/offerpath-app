@@ -3,44 +3,56 @@ import {
   BUZZWORDS, DUTY_PHRASES, FILLER_WORDS, PASSIVE_RE, SECTOR_KEYWORDS, STRONG_VERBS, US_SPELLINGS, WEAK_VERBS, PRESENT_STRONG_VERBS } from "./lexicon";
 import { normaliseText, sha256 } from "./fingerprint";
 import { AI_JUDGE_MODEL, ruleJudgment, type BulletJudgment, type ScoringMethod } from "./judgment";
-import { AREA_WEIGHTS, BANDS, LINE_PENALTIES as P, RUBRIC_VERSION, TARGETS as T } from "./rubric";
+import { AREA_LABELS, bandLabel, CHECK_LABELS } from "./labels";
+import { AREA_WEIGHTS, LINE_PENALTIES as P, RUBRIC_VERSION, TARGETS as T } from "./rubric";
 import { parseCv, roleLabel, wordCount, type ParsedBullet, type ParsedCv } from "./parse";
+import { scoringRecord } from "./scoring-contract";
 
+// Area and check names are presentation only: scores, keys and weights are unchanged by anything here.
+// The words come from labels.ts, and views look them up by key, so a report saved under an older name
+// renders with the current one while its stored wording stays as saved. The `what` lines describe what
+// the measurement actually covers, including what it cannot see.
 export const AREA_META: Record<AreaKey, { name: string; weight: number; what: (sector: string) => string }> = {
-  impact: { name: "Impact", weight: AREA_WEIGHTS.impact, what: () => "Do your bullets show results, not just duties?" },
-  clarity: { name: "Clarity", weight: AREA_WEIGHTS.clarity, what: () => "Is every line easy to read in one pass?" },
-  structure: { name: "Structure and ATS", weight: AREA_WEIGHTS.structure, what: () => "Can people and screening software find what matters?" },
-  sector: { name: "Sector fit", weight: AREA_WEIGHTS.sector, what: (s) => `Does it speak the language of ${s.toLowerCase()}? Shown next to your score, not counted in it.` },
-  spelling: { name: "Spelling and grammar", weight: AREA_WEIGHTS.spelling, what: () => "UK English, consistent and correct." },
-  length: { name: "Length and formatting", weight: AREA_WEIGHTS.length, what: () => "Right length, consistent bullets." },
+  impact: { name: AREA_LABELS.impact, weight: AREA_WEIGHTS.impact, what: () => "Do your bullets show results, not just duties?" },
+  clarity: { name: AREA_LABELS.clarity, weight: AREA_WEIGHTS.clarity, what: () => "Is every line easy to read in one pass?" },
+  structure: { name: AREA_LABELS.structure, weight: AREA_WEIGHTS.structure, what: () => "Can a reader find your key sections in the text we read from your file?" },
+  sector: { name: AREA_LABELS.sector, weight: AREA_WEIGHTS.sector, what: (s) => `Does it speak the language of ${s.toLowerCase()}? Shown next to your score, not counted in it.` },
+  spelling: { name: AREA_LABELS.spelling, weight: AREA_WEIGHTS.spelling, what: () => "A short UK/US variant list and basic bullet consistency. Not full proofreading." },
+  length: { name: AREA_LABELS.length, weight: AREA_WEIGHTS.length, what: () => "Right length and consistent bullets. Page counts are estimated from your word count." },
 };
 
 export const AREA_ORDER: AreaKey[] = ["impact", "clarity", "structure", "sector", "spelling", "length"];
 
-export const CHECK_META: Record<CheckKey, { area: AreaKey; name: string }> = {
-  quant: { area: "impact", name: "Quantifying impact" },
-  verbs: { area: "impact", name: "Action verbs" },
-  accomp: { area: "impact", name: "Accomplishments" },
-  repeat: { area: "impact", name: "Repetition" },
-  filler: { area: "clarity", name: "Filler words" },
-  buzz: { area: "clarity", name: "Buzzwords and clichés" },
-  passive: { area: "clarity", name: "Passive voice" },
-  sections: { area: "structure", name: "Sections" },
-  ats: { area: "structure", name: "ATS readability" },
-  contact: { area: "structure", name: "Contact details" },
-  sector: { area: "sector", name: "Sector keywords" },
-  spell: { area: "spelling", name: "Spelling" },
-  grammar: { area: "spelling", name: "Grammar" },
-  length: { area: "length", name: "Length" },
-  bulletlen: { area: "length", name: "Bullet length" },
-  bullets: { area: "length", name: "Bullet count" },
+const CHECK_AREA: Record<CheckKey, AreaKey> = {
+  quant: "impact",
+  verbs: "impact",
+  accomp: "impact",
+  repeat: "impact",
+  filler: "clarity",
+  buzz: "clarity",
+  passive: "clarity",
+  sections: "structure",
+  ats: "structure",
+  contact: "structure",
+  sector: "sector",
+  spell: "spelling",
+  grammar: "spelling",
+  length: "length",
+  bulletlen: "length",
+  bullets: "length",
 };
+
+export const CHECK_META: Record<CheckKey, { area: AreaKey; name: string }> = Object.fromEntries(
+  (Object.keys(CHECK_AREA) as CheckKey[]).map((key) => [key, { area: CHECK_AREA[key], name: CHECK_LABELS[key] }]),
+) as Record<CheckKey, { area: AreaKey; name: string }>;
 
 export const CHECK_ORDER: CheckKey[] = Object.keys(CHECK_META) as CheckKey[];
 
-export function band(score: number): string {
-  return BANDS.find((b) => score >= b.min)?.label ?? "Needs work";
-}
+/** The band a score falls in, in the words shown to students. Presentation only: see labels.ts. */
+export const band = bandLabel;
+
+/** "Area · Check" for a check key, as the overview lists steps and strengths. Derived from the key, so an older report shows today's names. */
+export const checkContext = (key: CheckKey): string => `${AREA_META[CHECK_META[key].area].name} · ${CHECK_META[key].name}`;
 
 const clamp = (n: number, lo = 0, hi = 10) => Math.max(lo, Math.min(hi, Math.round(n)));
 const plural = (n: number, one: string, many = one + "s") => `${n} ${n === 1 ? one : many}`;
@@ -333,10 +345,14 @@ export function analyseCv(rawText: string, sector: string, input: ScoringInput =
   });
   const odd = (cv.text.match(/[^\x00-\x7F£€–—’‘“”•●▪·›é]/g) ?? []).length;
   const atsScore = cv.words < 150 ? 3 : clamp(10 - Math.floor(odd / 15) - (cv.sections.length < 3 ? 2 : 0));
+  // A heuristic over the text we extracted, not a test of any employer's system. Say so either way.
+  const atsLimit = "We only see the text we extracted, so we can't check your columns, tables, images or fonts, and we can't test how any individual employer's system will read your file.";
   add("ats", {
     score: atsScore,
-    summary: atsScore >= 8 ? "Simple layout, readable text" : cv.words < 150 ? "Very little readable text" : "Some text may not read cleanly",
-    detail: atsScore >= 8 ? "Screening software can read your text and headings." : "Use a single-column layout with standard headings and no text in images or tables.",
+    summary: atsScore >= 8 ? "Text available for review" : cv.words < 150 ? "Very little readable text" : "Some text may not read cleanly",
+    detail: atsScore >= 8
+      ? `We read ${plural(cv.words, "word")} and recognised ${plural(cv.sections.length, "section heading")}. ${atsLimit}`
+      : `Use a single-column layout with standard headings, and keep text out of images and tables. ${atsLimit}`,
     stat: { value: `${cv.words}`, label: "words read" },
     affected: [],
   });
@@ -367,13 +383,20 @@ export function analyseCv(rawText: string, sector: string, input: ScoringInput =
     extras: missingKw,
   });
 
-  // Spelling and grammar
+  // Spelling variants and writing consistency.
+  //
+  // Neither of these is proofreading, and the messages must not imply otherwise: `spell` compares the
+  // CV against the US_SPELLINGS list and nothing else, and `grammar` looks at three observable
+  // patterns. A CV full of ordinary misspellings still scores 10 here (reproduce it with
+  // `npm run diagnose:audit`); real proofreading is OP-007.
   const usFound = Object.keys(US_SPELLINGS).filter((w) => new RegExp(`\\b${w}\\b`, "i").test(cv.text));
   add("spell", {
     score: clamp(10 - usFound.length * 2),
-    summary: usFound.length ? `${plural(usFound.length, "US spelling")}: "${usFound[0]}"` : "UK spelling throughout",
-    detail: usFound.length ? `Use UK spelling for UK employers: ${usFound.slice(0, 4).map((w) => `${w} → ${US_SPELLINGS[w]}`).join(", ")}.` : "No US spellings found.",
-    stat: { value: String(usFound.length), label: "US spellings" },
+    summary: usFound.length ? `${plural(usFound.length, "US spelling variant")}: "${usFound[0]}"` : "No US spelling variants found",
+    detail: usFound.length
+      ? `UK employers usually expect UK spelling: ${usFound.slice(0, 4).map((w) => `${w} → ${US_SPELLINGS[w]}`).join(", ")}. A US variant is a regional preference rather than a mistake, and it's correct inside an official name or a quotation. We compare against a short list of common variants only, so other spelling mistakes aren't detected.`
+      : "We compared your CV against a short list of common US spellings and found none. That list is all this check covers, so other spelling mistakes aren't detected. Proofread your CV yourself as well.",
+    stat: { value: String(usFound.length), label: "US spelling variants" },
     affected: idx((_, b) => usFound.some((w) => new RegExp(`\\b${w}\\b`, "i").test(b.text))),
     extras: usFound.map((w) => `${w} → ${US_SPELLINGS[w]}`),
   });
@@ -382,22 +405,27 @@ export function analyseCv(rawText: string, sector: string, input: ScoringInput =
   const endings = bullets.map((b) => /\.$/.test(b.text));
   const mixed = endings.length > 2 && endings.some(Boolean) && endings.some((e) => !e) ? 1 : 0;
   const grammarIssues = doubles.length + (lowerStarts.length ? 1 : 0) + mixed;
+  const consistencyFound = [doubles.length ? `Repeated word: "${doubles[0]}".` : "", lowerStarts.length ? "Some bullets start with a lowercase letter." : "", mixed ? "Some bullets end with a full stop and some don't. Pick one." : ""].filter(Boolean).join(" ");
+  const patterns = "repeated words, bullets starting with a lowercase letter, and mixed bullet endings";
+  const consistencyLimit = "Grammar, tense and sentence structure aren't assessed.";
   add("grammar", {
     score: clamp(10 - grammarIssues * 2),
-    summary: grammarIssues ? `${plural(grammarIssues, "issue")} to fix` : "No issues",
-    detail: [doubles.length ? `Repeated word: "${doubles[0]}".` : "", lowerStarts.length ? "Some bullets start with a lowercase letter." : "", mixed ? "Some bullets end with a full stop and some don't. Pick one." : ""].filter(Boolean).join(" ") || "No grammar issues found.",
-    stat: { value: String(grammarIssues), label: "grammar issues" },
+    summary: grammarIssues ? `${plural(grammarIssues, "consistency issue")} to fix` : "Consistent bullet style",
+    detail: consistencyFound ? `${consistencyFound} We check three patterns: ${patterns}. ${consistencyLimit}` : `We looked for ${patterns}, and found none of them. ${consistencyLimit}`,
+    stat: { value: String(grammarIssues), label: "consistency issues" },
     affected: lowerStarts,
   });
 
   // Length and formatting
+  // Estimated from the word count, not measured from the file. Label it as an estimate everywhere it
+  // is shown; real page provenance is OP-005.
   const pages = Math.max(1, Math.round(cv.words / 450));
   const lenScore = cv.words >= T.cvWords.min && cv.words <= T.cvWords.max ? 10 : cv.words < T.cvWords.min ? clamp((cv.words / T.cvWords.min) * 10) : clamp(10 - (cv.words - T.cvWords.max) / 100);
   add("length", {
     score: lenScore,
-    summary: `${plural(pages, "page")}`,
-    detail: lenScore >= 9 ? "Two pages or fewer is right for UK graduate roles." : cv.words < 300 ? "Your CV is short. Add detail about what you achieved." : "Trim your CV to two pages at most.",
-    stat: { value: String(pages), label: pages === 1 ? "page" : "pages" },
+    summary: `About ${plural(pages, "page")} (estimated)`,
+    detail: `${plural(cv.words, "word")}, which is about ${plural(pages, "page")} at 450 words a page. That's an estimate from your word count, not a measured page count. ${lenScore >= 9 ? "Two pages or fewer is right for UK graduate roles." : cv.words < 300 ? "Your CV is short. Add detail about what you achieved." : "Trim your CV to two pages at most."}`,
+    stat: { value: String(pages), label: pages === 1 ? "estimated page" : "estimated pages" },
     affected: [],
   });
   const badLen = idx((f) => f.words < T.bulletWords.min || f.words > T.bulletWords.max);
@@ -416,13 +444,14 @@ export function analyseCv(rawText: string, sector: string, input: ScoringInput =
     affected: [],
   });
 
-  // With no bullet points there is nothing to judge, so line-based checks can't pass by default.
+  // With no bullet points there is nothing to judge, so line-based checks can't pass by default. Say
+  // that the check wasn't performed rather than leaving a 0 that reads like a judgment on the writing.
   if (n === 0) {
     for (const c of checks) {
       if (["accomp", "repeat", "filler", "buzz", "passive", "grammar", "bulletlen"].includes(c.key)) {
         c.score = 0;
         c.summary = "No bullet points found";
-        c.detail = "Add bullet points (•) under each role and project so we can check them.";
+        c.detail = "We found no bullet points, so this check scored 0 rather than passing: nothing was assessed. Add bullet points (•) under each role and project, then upload again.";
       }
     }
   }
@@ -474,12 +503,13 @@ export function analyseCv(rawText: string, sector: string, input: ScoringInput =
       judge: method === "ai" ? AI_JUDGE_MODEL : "rules",
       rubric: RUBRIC_VERSION,
       fingerprint: sha256([RUBRIC_VERSION, method, sector.toLowerCase(), text].join("\u0000")),
+      scoring: scoringRecord(method, text),
       judgments,
     },
   };
 }
 
-function stepText(c: CheckResult): string {
+export function stepText(c: CheckResult): string {
   switch (c.key) {
     case "quant": return `Add numbers to ${plural(c.affected.length, "bullet point")}`;
     case "verbs": return `Swap ${plural(c.affected.length, "weak action verb")}`;
@@ -489,24 +519,29 @@ function stepText(c: CheckResult): string {
     case "buzz": return `Replace ${plural(c.extras?.length ?? 1, "buzzword")} with evidence`;
     case "passive": return "Rewrite passive lines in the active voice";
     case "sections": return c.extras?.length ? `Add a ${c.extras[0]} section` : "Remove the references line";
-    case "ats": return "Simplify your layout for screening software";
+    case "ats": return "Make your CV text easier to read";
     case "contact": return "Complete your contact details";
     case "sector": return `Add ${Math.min(4, c.extras?.length ?? 4)} keywords recruiters look for`;
-    case "spell": return "Switch to UK spelling";
-    case "grammar": return "Fix grammar and punctuation";
+    case "spell": return "Switch US spellings to UK spelling";
+    case "grammar": return "Fix repeated words and bullet style";
     case "length": return "Adjust your CV length";
     case "bulletlen": return c.affected.length ? `Resize ${plural(c.affected.length, "bullet")}` : "Add bullet points under each role";
     case "bullets": return "Adjust your number of bullets";
   }
 }
 
+/**
+ * What a high-scoring check is credited with. Each line has to be true of what was actually measured:
+ * `spell` and `grammar` state the narrow finding, because a 10 there is not evidence of correct
+ * spelling or grammar.
+ */
 function wellText(c: CheckResult): string {
   const m: Partial<Record<CheckKey, string>> = {
     quant: "Results backed by numbers", verbs: "Strong, clear action verbs", accomp: "Achievements, not duties",
     repeat: "Strong, varied action words", filler: "Tight, filler-free writing", buzz: "No clichés",
-    passive: "Active voice throughout", sections: "All the sections recruiters expect", ats: "Clean layout screening software can read",
-    contact: "Complete contact details", sector: "Speaks the language of your sector", spell: "Consistent UK spelling",
-    grammar: "Clean grammar", length: "The right length", bulletlen: "Scannable bullet lengths", bullets: "A good number of bullets",
+    passive: "Active voice throughout", sections: "All the sections recruiters expect", ats: "Readable text and recognised headings",
+    contact: "Complete contact details", sector: "Speaks the language of your sector", spell: "No US spelling variants found",
+    grammar: "Consistent bullet style", length: "The right length", bulletlen: "Scannable bullet lengths", bullets: "A good number of bullets",
   };
   return m[c.key] ?? c.name;
 }

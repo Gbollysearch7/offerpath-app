@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { BAND_LABELS } from "@/lib/analysis/labels";
+import { BAND_THRESHOLDS } from "@/lib/analysis/rubric";
 import { toCsv } from "@/lib/csv";
 import { findPeriod } from "@/lib/periods";
 import { getRepo } from "@/lib/session";
@@ -11,13 +13,15 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const date = new Date().toISOString().slice(0, 10);
 
-  const csv = (rows: unknown[][], name: string) => new NextResponse(toCsv(rows), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}-${date}.csv"` } });
+  const csv = (rows: unknown[][], name: string) => new NextResponse(toCsv(rows), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}-${date}.csv"`, "Cache-Control": "private, no-store" } });
 
   if (sp.get("pack") === "tef") {
     // Graduate Outcomes / TEF evidence: engagement funnel overall and by faculty, year and fee status.
     const period = findPeriod(sp.get("period") ?? "all");
     const [o, pack] = await Promise.all([repo.adminOverview({ from: period.from, to: period.to }), repo.adminOutcomesPack({ from: period.from, to: period.to })]);
-    const head = ["Breakdown", "Group", "Students", "Uploaded a CV", "Re-scored a CV", "Improved by 10+ points", "Strong or better (75+)", "Tracked applications", "Reached interview", "Received an offer", "Average score", "Average improvement"];
+    // The band column names the "high" band from the shared label table, so it can't drift from what students see.
+    const high = BAND_THRESHOLDS.find((b) => b.key === "high")!;
+    const head = ["Breakdown", "Group", "Students", "Uploaded a CV", "Re-scored a CV", "Improved by 10+ points", `${BAND_LABELS.high} or better (${high.min}+)`, "Tracked applications", "Reached interview", "Received an offer", "Average score", "Average improvement"];
     const rows = pack.map((r) =>
       r.suppressed
         ? [r.dimension, r.group, "Fewer than 5 students (hidden)", "", "", "", "", "", "", "", "", ""]

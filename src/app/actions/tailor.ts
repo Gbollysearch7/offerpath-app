@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { aiEnabled, aiTailorCv } from "@/lib/ai";
+import { aiEnabled, aiExtractRequirements, aiTailorCv } from "@/lib/ai";
 import { displayTerm, guessJobTitle, htmlToText, isToolTerm, jobKeywords, matchScores } from "@/lib/analysis/job";
+import { remeasure } from "@/lib/analysis/job-match";
+import { extractWithAdapter } from "@/lib/analysis/job-requirements";
 import { buildTailoredCv, checkTailorDraft } from "@/lib/analysis/tailor";
 import { AI_LIMITS } from "@/lib/repo/types";
 import { buildTailorPayload } from "@/lib/services";
@@ -64,7 +66,10 @@ export async function createTailor(formData: FormData): Promise<{ id?: string; e
   title = (title || guessJobTitle(text)).slice(0, 120);
   employer = (employer || "the employer").slice(0, 80);
 
-  const payload = buildTailorPayload({ cvReportId: cv.row.id, cvFileName: cv.payload.fileName, cvText: cv.payload.text, jobTitle: title, employer, jobUrl: url || null, jobText: text, deadline });
+  // Rules first. The provider is only asked when they left the advert undecided, and whatever it returns is checked against the advert.
+  const adText = text;
+  const requirements = await extractWithAdapter(adText, aiEnabled() ? async () => ((await repo.bumpAi("tailor")) <= AI_LIMITS.tailor ? aiExtractRequirements(adText) : null) : undefined);
+  const payload = buildTailorPayload({ cvReportId: cv.row.id, cvFileName: cv.payload.fileName, cvText: cv.payload.text, jobTitle: title, employer, jobUrl: url || null, jobText: text, deadline, requirements });
   const id = await repo.createReport({ type: "tailor", title: `${title} · ${employer}`, score: payload.matchNow, payload });
   revalidatePath("/dashboard");
   return { id };
@@ -79,7 +84,7 @@ export async function toggleKeyword(reportId: string, word: string): Promise<{ e
   r.payload.added = added;
   r.payload.tailored = null;
   r.payload.tailoredCv = null;
-  r.payload.matchTailored = matchScores(r.payload.keywords, added).tailored;
+  // A choice about what to work on, not evidence: no score moves until an actual revised CV is measured.
   await repo.updateReport(reportId, { payload: r.payload });
   revalidatePath(`/tailor/${reportId}`);
   return {};
@@ -119,8 +124,8 @@ export async function createTailoredVersion(reportId: string): Promise<{ error?:
       p.notEvidenced = checked.notEvidenced;
       p.tailoredCv = tailoredCv;
       p.aiTailored = true;
-      // Measured, not estimated: the same keyword match, run on the tailored CV.
-      p.matchTailored = Math.max(p.matchNow, matchScores(jobKeywords(p.jobText, tailoredCv)).now);
+      // Measured, not estimated. An older report stays on its own scale, so it still compares with its saved number.
+      p.matchTailored = p.jobMatch ? remeasure(p.jobMatch, p.jobText, tailoredCv).coverage.score : Math.max(p.matchNow ?? 0, matchScores(jobKeywords(p.jobText, tailoredCv)).now);
       await repo.updateReport(reportId, { payload: p });
       revalidatePath(`/tailor/${reportId}`);
       return { ai: true };
@@ -128,7 +133,7 @@ export async function createTailoredVersion(reportId: string): Promise<{ error?:
   }
 
   const targets = p.added.length ? p.keywords.filter((k) => p.added.includes(k.w)) : p.keywords.filter((k) => k.must && !k.inCv);
-  if (!targets.length) return { error: "Pick at least one keyword to add first." };
+  if (!targets.length) return { error: p.jobMatch ? "Pick at least one requirement to include first." : "Pick at least one keyword to add first." };
   const used = new Set<number>();
   const tailored: { where: string; before: string; after: string }[] = [];
   const skills: string[] = [];
@@ -146,7 +151,7 @@ export async function createTailoredVersion(reportId: string): Promise<{ error?:
     }
     used.add(i);
     const base = current(i).replace(/\.$/, "");
-    tailored.push({ where: lines[i].where, before: current(i), after: `${base}, ${weave(k.w)}.` });
+    tailored.push({ where: lines[i].where, before: current(i), after: `${base}, ${weave(k.w, p.jobMatch?.requirements.find((q) => q.label === k.w)?.kind === "tool")}.` });
   }
   if (skills.length) tailored.push({ where: "SKILLS", before: "Your current skills list", after: `Add to skills: ${skills.join(", ")}` });
 
@@ -156,16 +161,16 @@ export async function createTailoredVersion(reportId: string): Promise<{ error?:
   p.notEvidenced = [];
   p.tailoredCv = null;
   p.aiTailored = false;
-  p.matchTailored = matchScores(p.keywords, p.added.length ? p.added : targets.map((t) => t.w)).tailored;
+  // These are suggestions, not a revised document, so there is nothing new to measure and no score changes.
   await repo.updateReport(reportId, { payload: p });
   revalidatePath(`/tailor/${reportId}`);
   return { ai: false };
 }
 
 /** Phrase that works a keyword into the end of an existing bullet. */
-function weave(word: string): string {
+function weave(word: string, namedTool = false): string {
   if (/^stakeholder$/i.test(word)) return "working closely with stakeholders";
-  if (isToolTerm(word)) return `using ${word}`;
+  if (namedTool || isToolTerm(word)) return `using ${word}`;
   return `drawing on my ${displayTerm(word)} skills`;
 }
 

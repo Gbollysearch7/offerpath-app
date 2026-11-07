@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   // CV uploads go through server actions; allow the 2 MB file plus form overhead.
   experimental: { serverActions: { bodySizeLimit: "3mb" } },
-  serverExternalPackages: ["unpdf", "mammoth"],
+  // The dictionary packages read their .aff/.dic files relative to themselves, so they stay unbundled.
+  serverExternalPackages: ["unpdf", "mammoth", "nspell", "dictionary-en-gb", "dictionary-en"],
   async headers() {
     return [
       {

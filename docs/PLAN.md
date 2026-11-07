@@ -75,6 +75,33 @@ CV files live in the private `cvs` bucket under `<user_id>/…`.
 Route handlers: `GET /api/templates/[slug]?format=docx|pdf`, `GET /api/letters/[id]?format=docx|pdf`,
 `GET /api/export` (ZIP), `GET /admin/export` (CSV, `?pack=tef` for the summary pack).
 
+## Report payload contract (`reports.payload`)
+
+Update this section before changing a payload shape. The schemas live in `src/lib/report-schema.ts`; the
+TypeScript types in `src/lib/types.ts` are checked against them at compile time.
+
+- **Version.** Every payload carries `payloadVersion` (currently `1`, `PAYLOAD_VERSION`). A payload with no
+  version is v0: the same fields, saved before 5 November 2026, with no findings.
+- **Write path.** Both repositories call `toStored(type, payload)` from `createReport` and `updateReport`. It
+  validates against the strict schema for the report's type (unknown keys, out-of-range scores and malformed
+  provider output all fail), then checks every evidence reference against the saved text. Failure throws
+  `PayloadError` and nothing is saved. Server actions keep enforcing ownership before they reach the repository.
+- **Read path.** Both repositories call `fromStored(type, raw)` from `getReport` and `latestReport`. v1 is
+  validated and returned; v0 is adapted in memory to v1 (scores untouched, `assessment.origin = "legacy"`) and
+  is only rewritten in storage if the student later edits that report. A version this build does not know
+  throws `PayloadError` rather than rendering a guess.
+- **Findings.** `CvReviewPayload.assessment` and `CoverLetterPayload.assessment` hold one `Assessment`:
+  `documentVersion` (sha256 of the assessed text), `versions` (`parser`, `rubric`, `model`, `dictionary`; null
+  means not recorded), `origin` (`engine` | `legacy`), `limits` (what it cannot say) and `findings[]`. A
+  `Finding` has `id`, `check`, `status` (`passed` | `needs_attention` | `not_applicable` | `unavailable` |
+  `uncertain`), `severity` (`high` | `medium` | `low` | `info`), `confidence` (0 to 1 or null), `method`
+  (`rules` | `ai` | null), `explanation`, `action` and `evidence[]`. Each `EvidenceRef` names a
+  `documentVersion`, a stable `block` (`doc`, or `line:<n>` for `analysis.lines[n]`), an optional `range`
+  (character offsets valid only in that document version) and the `quote` found there.
+- **What stays fixed.** `analysis` (every score, `meta.fingerprint`, `meta.rubric`) is produced by
+  `analyseCv` and is never changed by the schema, the adapters or the findings. `TailorPayload` carries the
+  version only; its findings arrive with the requirement-extraction work (OP-012/013).
+
 ## Tasks
 
 - [x] Role skills (`.claude/skills`)
@@ -85,6 +112,7 @@ Route handlers: `GET /api/templates/[slug]?format=docx|pdf`, `GET /api/letters/[
 - [x] Supabase schema, RLS, storage, admin RPCs + tests in PGlite (`npm run test:db`)
 - [x] Supabase repo implementation
 - [x] Consistent AI scoring with Claude Haiku: rubric, voting, judgment cache, guarantee tests, live-tested
+- [x] Versioned report payloads: findings schema, write-time validation, legacy adapters (OP-004; locally verified only)
 - [ ] Create the `offerpath` Supabase project in supabase-new, apply migration + seed, set env vars (needs user approval)
 - [ ] Enable SAML SSO per partner university (Supabase Pro feature)
 - [ ] Deadline reminder emails (preference is stored; sending job not built)

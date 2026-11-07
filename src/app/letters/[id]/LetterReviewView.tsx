@@ -6,9 +6,9 @@ import { useState, useTransition, type ReactNode } from "react";
 import { improveLetter } from "@/app/actions/letters";
 import { FormError } from "@/components/client";
 import { AlertDot, CheckDot, cx, ScoreRing, scoreColor } from "@/components/ui";
+import { bandLabel } from "@/lib/analysis/labels";
 import type { CoverLetterPayload } from "@/lib/types";
 
-const band = (s: number) => (s >= 90 ? "INTERVIEW-READY" : s >= 75 ? "STRONG" : s >= 50 ? "GETTING THERE" : "NEEDS WORK");
 const esc = (s: string) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
 
 function highlight(text: string, terms: string[], signoff: string | null): ReactNode[] {
@@ -75,7 +75,7 @@ export function LetterReviewView({ id, p, score, left, limit, ai }: { id: string
             </ScoreRing>
             <div>
               <h2 id="os-h" className="m-0 font-mono text-xs font-normal tracking-[0.04em] text-subtle">
-                OVERALL · {band(score)}
+                OVERALL · {bandLabel(score).toUpperCase()}
               </h2>
               <p className="mt-2 mb-0 text-[15px] leading-normal">{p.summary}</p>
             </div>
@@ -100,7 +100,7 @@ export function LetterReviewView({ id, p, score, left, limit, ai }: { id: string
             <h2 id="rw-h" className="m-0 font-mono text-xs font-normal tracking-[0.04em] text-subtle">
               {ai ? "AI REWRITE" : "IMPROVED VERSION"}
             </h2>
-            <p className="m-0 text-[15px] leading-[1.55]">We&apos;ll weave in the missing keywords using only facts from your CV, and keep your voice. You review every change.</p>
+            <p className="m-0 text-[15px] leading-[1.55]">We&apos;ll work the missing keywords into your letter, drawing on your CV, and keep your voice. The rewrite can introduce mistakes, so read every change and check each claim against your CV before you use it.</p>
             <label className="flex items-start gap-2.5 text-[13px] leading-[1.45] text-body">
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-px h-[18px] w-[18px] shrink-0 accent-brand" />
               <span>

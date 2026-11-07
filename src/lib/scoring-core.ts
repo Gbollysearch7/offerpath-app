@@ -10,8 +10,15 @@ import type { CvAnalysis } from "@/lib/types";
 //     strong verb or reads like a duty is judged once per bullet, for every sector.
 //  3. Editing a CV only re-judges the bullets that changed; everything else keeps its judgment.
 //  4. A score never mixes AI and rule judgments: if the AI judge fails, scoring fails cleanly.
-//  5. The first judgment stored for a key is permanent, and every judgment passes deterministic
-//     guardrails, so text inside a CV can't inflate a score or be re-rolled for a better one.
+//  5. The first judgment stored for a key is permanent under that key, and every judgment passes deterministic
+//     guardrails, so text inside a CV can't inflate a score or be re-rolled for a better one. A wrong verdict is
+//     corrected by a RUBRIC_VERSION bump, which changes every key and leaves the old rows and reports as they are.
+//
+// Publication and retries. `putIfAbsent` is the one publication point and must be atomic per key (the primary key
+// and `on conflict do nothing` in Supabase). Everyone re-reads after writing, so simultaneous first analyses that
+// judged differently all score from whichever verdict landed first. An attempt is all or nothing: if any bullet
+// lacks a quorum of valid votes, or the store fails, it throws before publishing anything of its own, no report is
+// saved, and a retry starts again from whatever is published by then. No score is ever produced from a partial set.
 
 export type StoredJudgment = CoreJudgment | RelevanceJudgment;
 
@@ -31,15 +38,27 @@ export interface ScoreResult {
   reused: number; // bullets whose judgment came from the cache
 }
 
-export async function scoreCvWith(text: string, sector: string, deps: { method: ScoringMethod; store: JudgmentStore; judge?: JudgeFn; judgeName: string }): Promise<ScoreResult> {
+export interface ScoreDeps {
+  method: ScoringMethod;
+  store: JudgmentStore;
+  judge?: JudgeFn;
+  judgeName: string;
+  /** Valid votes a bullet needs before its verdict can be published. Production passes AI_JUDGE_CONFIG.quorum. */
+  quorum?: number;
+  /** The rubric version the cache keys are computed under. Only tests of the version path pass this. */
+  rubric?: string;
+}
+
+export async function scoreCvWith(text: string, sector: string, deps: ScoreDeps): Promise<ScoreResult> {
   const bullets = cvBullets(text);
   if (deps.method === "rules" || bullets.length === 0) {
-    return { analysis: analyseCv(text, sector), method: deps.method === "rules" ? "rules" : "ai", judgedNow: 0, reused: 0 };
+    // No bullets means no judge ran, whatever was asked for: the result says "rules", as the report does.
+    return { analysis: analyseCv(text, sector), method: "rules", judgedNow: 0, reused: 0 };
   }
   if (!deps.judge) throw new Error("AI scoring needs a judge");
 
-  const core = bullets.map((b) => coreKey(b.text));
-  const rel = bullets.map((b) => relevanceKey(b.text, sector));
+  const core = bullets.map((b) => coreKey(b.text, deps.rubric));
+  const rel = bullets.map((b) => relevanceKey(b.text, sector, deps.rubric));
   const keys = [...new Set([...core, ...rel])];
   const cached = await deps.store.get(keys);
   // A bullet goes to the judge if either half is missing, once per distinct bullet; only the missing half is stored.
@@ -53,7 +72,7 @@ export async function scoreCvWith(text: string, sector: string, deps: { method: 
     const votes = await deps.judge(idx.map((i, id) => ({ id, text: bullets[i].text })), sector);
     const fresh = idx.flatMap((i, id) => {
       const v = (votes.get(id) ?? []).filter(isJudgment);
-      if (!v.length) throw new Error(`No valid judgment for bullet ${id}`);
+      if (v.length < Math.max(1, deps.quorum ?? 1)) throw new Error(`Only ${v.length} valid judgments for bullet ${id}`);
       const { result, verb, kind, relevance } = majority(v);
       return [
         ...(cached.has(core[i]) ? [] : [{ key: core[i], judgment: { result, verb, kind }, judge: deps.judgeName }]),

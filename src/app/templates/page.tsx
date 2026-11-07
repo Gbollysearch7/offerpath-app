@@ -40,7 +40,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
         <div className="flex flex-wrap items-end justify-between gap-4 px-1 pt-2 pb-1">
           <div>
             <h1 className="m-0 text-[34px] font-normal leading-[1.1] tracking-[-1.5px] sm:text-[44px] sm:tracking-[-1.98px]">CV templates</h1>
-            <p className="mt-2 mb-0 text-[15px] text-muted">{CV_THEMES.length} designs, all single column so applicant tracking systems can read them. Download as Word or PDF.</p>
+            <p className="mt-2 mb-0 text-[15px] text-muted">{CV_THEMES.length} designs. All use one column and real text, which gives screening software the best chance of reading your CV, though no layout can guarantee how a particular employer&apos;s system will read it. Download as Word or PDF.</p>
           </div>
           <div role="group" aria-label="Fill templates with" className="flex gap-1 rounded-full bg-white p-1">
             <Link href={link(f, false)} aria-current={!mine ? "true" : undefined} className={cx("inline-flex min-h-10 items-center rounded-full px-4 text-sm no-underline", !mine ? "bg-black text-white hover:text-white" : "text-muted hover:text-black")}>
@@ -77,7 +77,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
                     <span className="sr-only-abs"> template preview</span>
                   </Link>
                 </h2>
-                <span className="rounded-full bg-mint px-[9px] py-1 font-mono text-[11px] text-brand">ATS-SAFE</span>
+                <span className="rounded-full bg-mint px-[9px] py-1 font-mono text-[11px] text-brand">ONE COLUMN</span>
               </div>
               <p className="m-0 text-sm leading-normal text-muted">{t.best}</p>
               <div className="mt-auto flex gap-2">

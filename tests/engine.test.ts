@@ -14,10 +14,11 @@ const v6 = DEMO_CVS[3].text;
 const ad = SAMPLE_OPPORTUNITIES[0].description;
 
 test("score bands match the prototype thresholds", () => {
+  // Thresholds are the rubric's; the words are labels.ts (OP-003), and the top band describes the document, not an outcome.
   assert.equal(band(49), "Needs work");
   assert.equal(band(50), "Getting there");
   assert.equal(band(75), "Strong");
-  assert.equal(band(90), "Interview-ready");
+  assert.equal(band(90), "Very strong");
 });
 
 test("parser finds sections, bullets and contact details", () => {

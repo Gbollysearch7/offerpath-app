@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { log } from "@/lib/log";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -24,7 +25,8 @@ const g = globalThis as unknown as { __offerpathRate?: Map<string, number> };
 /** Records a hit; returns true if still within the limit. Fails open only if the limiter itself errors. */
 export async function hit(name: LimitName, subject: string): Promise<boolean> {
   const { window, max } = LIMITS[name];
-  const key = `${name}:${subject.toLowerCase()}`;
+  // Hashed: an email address or IP address sitting in this table would outlive the account it belongs to.
+  const key = `${name}:${createHash("sha256").update(subject.toLowerCase()).digest("hex")}`;
   if (supabaseConfigured()) {
     try {
       const { data, error } = await supabaseAdmin().rpc("rate_limit_hit", { p_key: key, p_window_seconds: window, p_max: max });

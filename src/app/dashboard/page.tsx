@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { StudentShell } from "@/components/StudentShell";
 import { btn, cx, fmtDate, pill, SearchIcon } from "@/components/ui";
-import { band } from "@/lib/analysis/cv";
+import { presentedScore } from "@/lib/analysis/coverage";
+import { bandLabel } from "@/lib/analysis/labels";
+import { comparableScores } from "@/lib/analysis/scoring-contract";
 import { requireStudent } from "@/lib/session";
 import { REPORT_TYPE_LABEL, type ReportRow, type ReportType } from "@/lib/types";
 import { ShareButton } from "./ShareButton";
@@ -41,7 +43,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ]);
   const latest = cvHistory.rows[0];
   const prev = cvHistory.rows[1];
-  const delta = latest?.score != null && prev?.score != null ? latest.score - prev.score : null;
+  // A change is only a change within one scoring series; a rule change or incomplete reading is not progress.
+  const latestScore = latest ? presentedScore(latest) : null;
+  const delta = latestScore != null && prev?.score != null && comparableScores(latest?.scoring?.series, prev.scoring?.series) ? latestScore - prev.score : null;
 
   const now = new Date();
   const weekAhead = new Date(now.getTime() + 7 * 864e5);
@@ -117,10 +121,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="flex-[1_1_220px] rounded-[22px] bg-white px-5 py-[18px]">
               <p className="m-0 text-[13px] text-subtle">Latest CV score</p>
               <p className="mt-1.5 mb-0 text-[34px] tracking-[-0.05em]">
-                {latest?.score ?? "–"}{" "}
-                {latest?.score != null && (
+                {latestScore ?? "–"}{" "}
+                {latestScore != null && (
                   <span className="text-sm tracking-normal text-brand">
-                    {band(latest.score)}
+                    {bandLabel(latestScore)}
                     {delta !== null && delta !== 0 && ` · ${delta > 0 ? "+" : ""}${delta}`}
                   </span>
                 )}
@@ -193,8 +197,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         </td>
                         <td className="border-b border-line px-2 py-3.5 text-muted">{fmtDate(r.createdAt)}</td>
                         <td className="border-b border-line px-2 py-3.5 text-right">
-                          <span className="font-mono">{r.score ?? "–"}</span>
-                          {r.score != null && <span className="ml-1.5 text-xs text-subtle">{band(r.score)}</span>}
+                          <span className="font-mono">{presentedScore(r) ?? "–"}</span>
+                          {presentedScore(r) != null && r.type !== "tailor" && <span className="ml-1.5 text-xs text-subtle">{bandLabel(r.score!)}</span>}
+                          {r.scoring?.coverage === "incomplete" && <span className="ml-1.5 text-xs text-subtle">Incomplete</span>}
                         </td>
                         <td className="border-b border-line px-2 py-3.5 text-right">
                           <Link href={hrefFor(r)} className="inline-flex min-h-[34px] items-center rounded-full border border-edge px-3.5 text-[13px] text-black no-underline hover:bg-paper hover:text-black" aria-label={`Open ${r.title}`}>

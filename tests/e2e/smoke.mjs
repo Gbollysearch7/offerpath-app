@@ -13,7 +13,7 @@ const BASE = (process.env.E2E_BASE_URL || "http://localhost:3100").replace(/\/+$
 const MAX_PAGES = 120;
 
 // Links we don't crawl: downloads, API routes and anything that changes state on GET.
-const SKIP = [/^\/api\//, /^\/admin\/export/, /\/cv\/[^/]+$/, /^\/auth\//];
+const SKIP = [/^\/api\//, /^\/admin\/export/, /\/cv\/[^/]+$/, /\/source\/file$/, /^\/auth\//];
 // One visit per route shape (ids collapsed), so 40 checks pages don't mean 40 visits.
 const shape = (path) => path.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ":id").replace(/\/checks\/[^/]+$/, "/checks/:check").replace(/\/students\/\d+$/, "/students/:key");
 

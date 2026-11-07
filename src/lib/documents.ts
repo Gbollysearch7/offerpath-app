@@ -5,7 +5,8 @@ import { CV_EXAMPLES } from "@/lib/cv-examples";
 import { contactLine, FONTS, LETTER_THEME, taglineColour, tint, withRoles, type CvTheme } from "@/lib/cv-themes";
 import type { DocBlock } from "@/lib/documents-types";
 
-// Builds ATS-safe Word and PDF files from blocks and a theme: one column, standard fonts, real text.
+// Builds Word and PDF files from blocks and a theme: one column, standard fonts, real text, no tables or
+// text boxes. That is the layout screening software reads most reliably, not a guarantee about any system.
 
 export type { DocBlock } from "@/lib/documents-types";
 

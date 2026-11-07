@@ -1,0 +1,50 @@
+{
+  "_comment": "Expected series for saved payloads. tests/scoring-contract.test.ts checks scoreSeries against these; supabase/tests/schema.test.mjs checks public.report_score_series against the same file. Literal on purpose: these describe reports already saved, so they must not follow the current version constants.",
+  "cases": [
+    {
+      "name": "recorded identity is used as recorded",
+      "payload": { "analysis": { "meta": { "bullets": 12, "method": "ai", "rubric": "rubric-old", "scoring": { "identity": "ai|rubric-x|parser-x|lexicon-x|normaliser-x|judge-x|model-x" } } } },
+      "series": "ai|rubric-x|parser-x|lexicon-x|normaliser-x|judge-x|model-x"
+    },
+    {
+      "name": "rules report from OP-004 to OP-010, parts recorded",
+      "payload": { "analysis": { "meta": { "bullets": 12, "method": "rules", "rubric": "rubric-2026-10-30.1" } }, "assessment": { "versions": { "parser": "parser-2026-11-05.1", "rubric": "rubric-2026-10-30.1", "model": null, "dictionary": "lexicon-2026-11-05.1" } } },
+      "series": "rules|rubric-2026-10-30.1|parser-2026-11-05.1|lexicon-2026-11-05.1|normaliser-2026-11-06.1|-|-"
+    },
+    {
+      "name": "AI report from OP-004 to OP-010, parts recorded",
+      "payload": { "analysis": { "meta": { "bullets": 12, "method": "ai", "rubric": "rubric-2026-10-30.1" } }, "assessment": { "versions": { "parser": "parser-2026-11-05.1", "rubric": "rubric-2026-10-30.1", "model": "claude-haiku-5-5", "dictionary": "lexicon-2026-11-05.1" } } },
+      "series": "ai|rubric-2026-10-30.1|parser-2026-11-05.1|lexicon-2026-11-05.1|normaliser-2026-11-06.1|judge-prompt-2026-11-06.1|claude-haiku-5-5"
+    },
+    {
+      "name": "before OP-004: same rubric but no parser recorded, so unknown",
+      "payload": { "analysis": { "meta": { "bullets": 12, "method": "rules", "rubric": "rubric-2026-10-30.1" } } },
+      "series": null
+    },
+    {
+      "name": "older still: no version at all",
+      "payload": { "analysis": { "meta": { "bullets": 12 } } },
+      "series": null
+    },
+    {
+      "name": "no bullets were assessed",
+      "payload": { "analysis": { "meta": { "bullets": 0, "scoring": { "identity": "rules|a|b|c|d|-|-" } } } },
+      "series": null
+    },
+    {
+      "name": "a low-confidence reading was scored",
+      "payload": { "analysis": { "meta": { "bullets": 4, "scoring": { "identity": "rules|a|b|c|d|-|-" } } }, "document": { "extraction": { "confidence": { "band": "low", "score": 0.4 } } } },
+      "series": null
+    },
+    {
+      "name": "a medium-confidence reading stays comparable",
+      "payload": { "analysis": { "meta": { "bullets": 4, "scoring": { "identity": "rules|a|b|c|d|-|-" } } }, "document": { "extraction": { "confidence": { "band": "medium", "score": 0.7 } } } },
+      "series": "rules|a|b|c|d|-|-"
+    },
+    {
+      "name": "an empty payload",
+      "payload": {},
+      "series": null
+    }
+  ]
+}

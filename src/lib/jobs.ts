@@ -1,4 +1,6 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { removeUserFiles, sweepUserFiles } from "@/lib/account-deletion";
 import { deadlineReminderEmail, retentionWarningEmail, sendEmail, type Email } from "@/lib/email";
 import { legal } from "@/lib/legal";
 import { alert, log } from "@/lib/log";
@@ -51,37 +53,22 @@ export async function runDeadlineReminders(send: (e: Email) => Promise<{ sent: b
   return { emails, failed };
 }
 
-async function deleteUserCompletely(userId: string) {
-  const db = supabaseAdmin();
-  // Same full-folder erasure as self-service deletion, then remove the auth user (cascades to all rows).
-  const paths: string[] = [];
-  const walk = async (prefix: string): Promise<void> => {
-    for (let offset = 0; ; offset += 100) {
-      const { data, error } = await db.storage.from("cvs").list(prefix, { limit: 100, offset });
-      if (error) throw new Error(error.message);
-      for (const item of data ?? []) {
-        if (item.id) paths.push(`${prefix}/${item.name}`);
-        else await walk(`${prefix}/${item.name}`);
-      }
-      if (!data || data.length < 100) break;
-    }
-  };
-  await walk(userId);
-  for (let i = 0; i < paths.length; i += 100) {
-    const { error } = await db.storage.from("cvs").remove(paths.slice(i, i + 100));
-    if (error) throw new Error(error.message);
-  }
+/** Same erasure as self-service deletion, then the auth user, which cascades to every row. */
+async function deleteUserCompletely(db: SupabaseClient, userId: string) {
+  await removeUserFiles(db, userId);
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) throw new Error(error.message);
+  await sweepUserFiles(db, userId);
 }
 
-export async function runRetention(send: (e: Email) => Promise<{ sent: boolean }> = sendEmail) {
+export async function runRetention(send: (e: Email) => Promise<{ sent: boolean }> = sendEmail, admin: () => SupabaseClient = supabaseAdmin) {
   if (!supabaseConfigured()) return { skipped: "demo mode" };
-  const db = supabaseAdmin();
+  const db = admin();
   const { data, error } = await db.rpc("retention_candidates", { p_months: legal.retentionInactiveMonths() });
   if (error) throw new Error(error.message);
   let warned = 0;
   let deleted = 0;
+  let failed = 0;
   for (const c of (data ?? []) as { user_id: string; email: string; full_name: string; action: "warn" | "delete" }[]) {
     if (c.action === "warn") {
       const res = await send({ to: c.email, ...retentionWarningEmail(c.full_name) });
@@ -90,10 +77,20 @@ export async function runRetention(send: (e: Email) => Promise<{ sent: boolean }
         warned++;
       }
     } else {
-      await deleteUserCompletely(c.user_id);
-      deleted++;
+      // One account that can't be deleted must not stop the rest; it is retried on the next run.
+      try {
+        await deleteUserCompletely(db, c.user_id);
+        deleted++;
+      } catch (e) {
+        failed++;
+        log("error", "job-retention-delete-failed", { user: c.user_id, error: e });
+      }
     }
   }
-  log("info", "job-retention", { warned, deleted });
-  return { warned, deleted };
+  // Rate-limit windows hold only hashes and counts, and are useless after a day. The limiter's own clean-up is occasional.
+  const purge = await db.from("rate_limits").delete().lt("window_start", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  if (purge.error) log("warn", "job-retention-purge-failed", { error: purge.error.message });
+  if (failed) await alert("retention-delete-failed", `${failed} inactive accounts could not be deleted; they will be retried on the next run.`);
+  log("info", "job-retention", { warned, deleted, failed });
+  return { warned, deleted, failed };
 }

@@ -19,7 +19,7 @@ const ALIASES: Record<string, string[]> = {
 const inText = (text: string, term: string) => [term, ...(ALIASES[term] ?? [])].some((t) => countIn(text, t) > 0);
 const countAll = (text: string, term: string) => [term, ...(ALIASES[term] ?? [])].reduce((s, t) => s + countIn(text, t), 0);
 
-const DICTIONARY = (() => {
+export const DICTIONARY = (() => {
   const all = new Set<string>([...EXTRA_HARD_TERMS, ...Object.values(SECTOR_KEYWORDS).flat()]);
   // Single generic words that are too noisy on their own.
   ["data", "case", "public", "report", "design", "project", "technical", "care", "client", "r"].forEach((w) => all.delete(w));
@@ -27,28 +27,34 @@ const DICTIONARY = (() => {
   return [...all].sort((a, b) => b.length - a.length);
 })();
 
-const TOOL_TERMS = new Set(["excel", "sql", "python", "power bi", "tableau", "vba", "bloomberg", "powerpoint", "javascript", "typescript", "react", "java", "git", "aws", "matlab", "cad", "solidworks", "seo"]);
+export const TOOL_TERMS = new Set(["excel", "sql", "python", "power bi", "tableau", "vba", "bloomberg", "powerpoint", "javascript", "typescript", "react", "java", "git", "aws", "matlab", "cad", "solidworks", "seo"]);
 
+/** Where in this CV a term from the advert would best go. */
+export function placeInCv(term: string, isTool: boolean, jobText: string, cvText: string): string {
+  if (isTool || TOOL_TERMS.has(term.toLowerCase())) return "Skills section";
+  const parsed = parseCv(cvText);
+  const sentences = jobText.split(/(?<=[.!?])\s+|\n+/).filter(Boolean);
+  const sentence = sentences.find((s) => inText(s.toLowerCase(), term.toLowerCase())) ?? term;
+  const words = new Set(sentence.toLowerCase().match(/[a-z]{4,}/g) ?? []);
+  let best: { score: number; label: string } = { score: 0, label: parsed.sections.includes("summary") ? "Summary" : "Skills section" };
+  for (const b of parsed.bullets) {
+    const overlap = (b.text.toLowerCase().match(/[a-z]{4,}/g) ?? []).filter((w) => words.has(w)).length;
+    if (overlap > best.score) {
+      const role = b.role ? cleanRole(b.role) : null;
+      best = { score: overlap, label: role ? `${role.split(/[,|–—-]/)[0].trim()} role` : b.section === "projects" ? "Projects" : "Experience" };
+    }
+  }
+  return best.label;
+}
+
+/**
+ * The dictionary keyword match that letter reviews still use, and the reading behind reports saved
+ * before versioned job scoring. New tailor reports read requirements with `extractRequirements`.
+ */
 export function jobKeywords(jobText: string, cvText: string): KeywordHit[] {
   const ad = jobText.toLowerCase();
   const cv = cvText.toLowerCase();
-  const parsed = parseCv(cvText);
-  const sentences = jobText.split(/(?<=[.!?])\s+|\n+/).filter(Boolean);
-
-  const bestPlace = (term: string): string => {
-    if (TOOL_TERMS.has(term)) return "Skills section";
-    const sentence = sentences.find((s) => inText(s.toLowerCase(), term)) ?? term;
-    const words = new Set(sentence.toLowerCase().match(/[a-z]{4,}/g) ?? []);
-    let best: { score: number; label: string } = { score: 0, label: parsed.sections.includes("summary") ? "Summary" : "Skills section" };
-    for (const b of parsed.bullets) {
-      const overlap = (b.text.toLowerCase().match(/[a-z]{4,}/g) ?? []).filter((w) => words.has(w)).length;
-      if (overlap > best.score) {
-        const role = b.role ? cleanRole(b.role) : null;
-        best = { score: overlap, label: role ? `${role.split(/[,|–—-]/)[0].trim()} role` : b.section === "projects" ? "Projects" : "Experience" };
-      }
-    }
-    return best.label;
-  };
+  const bestPlace = (term: string) => placeInCv(term, false, jobText, cvText);
 
   const seen = new Set<string>();
   const hits: KeywordHit[] = [];
@@ -67,6 +73,10 @@ export function jobKeywords(jobText: string, cvText: string): KeywordHit[] {
   return hits.sort((a, b) => Number(b.must) - Number(a.must) || b.n - a.n);
 }
 
+/**
+ * The scale of reports saved before versioned job scoring, starting every CV at 30. Kept only so that
+ * tailoring such a report stays comparable with its own saved number. New reports use `matchRequirements`.
+ */
 export function matchScores(hits: KeywordHit[], added: string[] = []) {
   const weight = (k: KeywordHit) => (k.soft ? 0.5 : k.must ? 2 : 1);
   const total = hits.reduce((s, k) => s + weight(k), 0) || 1;
@@ -78,7 +88,7 @@ export function matchScores(hits: KeywordHit[], added: string[] = []) {
   return { now: toScore(have), withAdded: toScore(withAdded), tailored: Math.max(toScore(tailoredSet), toScore(withAdded)) };
 }
 
-export function highlightJob(jobText: string, hits: KeywordHit[]): JdBlock[] {
+export function highlightJob(jobText: string, hits: { w: string; inCv: boolean }[], aliases: Record<string, string[]> = ALIASES): JdBlock[] {
   const terms = hits.map((h) => ({ t: h.w.toLowerCase(), kind: h.inCv ? ("found" as const) : ("missing" as const) }));
   const blocks: JdBlock[] = [];
   for (const raw of jobText.split(/\n+/)) {
@@ -96,7 +106,7 @@ export function highlightJob(jobText: string, hits: KeywordHit[]): JdBlock[] {
       let match: { len: number; kind: "found" | "missing" } | null = null;
       if (i === 0 || !/[a-z0-9]/i.test(line[i - 1])) {
         for (const term of terms) {
-          for (const v of [term.t, ...(ALIASES[term.t] ?? [])]) {
+          for (const v of [term.t, ...(aliases[term.t] ?? [])]) {
             if (lower.startsWith(v, i) && !/[a-z0-9]/i.test(line[i + v.length] ?? " ")) {
               if (!match || v.length > match.len) match = { len: v.length, kind: term.kind };
             }

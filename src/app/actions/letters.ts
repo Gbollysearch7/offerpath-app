@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { aiDraftLetter, aiEnabled } from "@/lib/ai";
 import { extractText, ExtractError } from "@/lib/analysis/extract";
+import { letterAssessment } from "@/lib/analysis/findings";
 import { paragraphsToText, reviewLetter } from "@/lib/analysis/letter";
 import { AI_LIMITS } from "@/lib/repo/types";
 import type { Repo } from "@/lib/repo/types";
@@ -168,7 +169,8 @@ async function saveRecomputed(repo: Repo, reportId: string, p: CoverLetterPayloa
   const header = letterHeader(signName(profile, cv), cv?.payload.analysis.meta.email ?? profile.email, cv?.payload.analysis.meta.phone ?? null);
   p.letterText = paragraphsToText(p.paragraphs, header);
   const rv = reviewLetter(p.letterText, p.jobText, p.employer, cv?.payload.text ?? "");
-  Object.assign(p, { checks: rv.checks, keywordsUsed: rv.keywordsUsed, keywordsMissing: rv.keywordsMissing, words: rv.words, paras: rv.paras, summary: rv.summary });
+  const assessment = letterAssessment({ letterText: p.letterText, jobText: p.jobText, checks: rv.checks, keywordsUsed: rv.keywordsUsed, keywordsMissing: rv.keywordsMissing });
+  Object.assign(p, { checks: rv.checks, keywordsUsed: rv.keywordsUsed, keywordsMissing: rv.keywordsMissing, words: rv.words, paras: rv.paras, summary: rv.summary, assessment });
   await repo.updateReport(reportId, { payload: p, score: rv.score });
   revalidatePath(`/letters/${reportId}`);
   return {};

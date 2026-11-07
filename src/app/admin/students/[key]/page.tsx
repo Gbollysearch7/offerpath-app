@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
 import { Bar, Eyebrow, fmtDate } from "@/components/ui";
-import { band } from "@/lib/analysis/cv";
+import { AREA_LABELS, bandLabel } from "@/lib/analysis/labels";
 import { featureFlags } from "@/lib/env";
 import { requireAdmin } from "@/lib/session";
 import { NoteForm } from "./NoteForm";
@@ -28,14 +28,15 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
           {latest ? (
             <>
               <p className="m-0 text-[44px] leading-none tracking-[-0.05em]">
-                {latest.score ?? "–"} <span className="text-base tracking-normal text-brand">{latest.score != null && band(latest.score)}</span>
+                {latest.score ?? "–"} <span className="text-base tracking-normal text-brand">{latest.score != null && bandLabel(latest.score)}</span>
               </p>
               <p className="m-0 text-sm text-muted">
                 {latest.title} · {fmtDate(latest.createdAt)}
               </p>
               {latest.areas?.map((a) => (
                 <div key={a.key} className="grid grid-cols-[minmax(0,1fr)_120px_30px] items-center gap-3 text-sm">
-                  <span>{a.name}</span>
+                  {/* Current area name by key; the saved name is the fallback for a key this build doesn't know. */}
+                  <span>{a.key in AREA_LABELS ? AREA_LABELS[a.key as keyof typeof AREA_LABELS] : a.name}</span>
                   <Bar pct={a.score} color={a.score >= 75 ? "#36604E" : "#8FB3A1"} />
                   <span className="text-right font-mono">{a.score}</span>
                 </div>

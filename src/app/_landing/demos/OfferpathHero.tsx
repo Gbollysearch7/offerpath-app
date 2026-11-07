@@ -51,13 +51,15 @@ const initial: S = {
 const POSTER: S = { ...initial, page: 'results', scored: true, flagged: true, rewrite: true, n1: '12', n2: '400+', applied: true }
 
 const FILE = 'Jordan_Reed_CV.pdf'
+// Matches the upload page's checklist (src/app/upload/page.tsx).
+const GUIDES = ['PDF or Word, up to 2 MB', 'Selectable text, not a scan', 'Just your CV, no extra pages', 'Written in English']
 const STEPS = ['Reading your file', 'Finding your sections', 'Scoring 16 bullet points', 'Ranking your fixes']
 const AREAS: [string, number][] = [
   ['Impact', 58],
   ['Clarity', 72],
-  ['Structure and ATS', 80],
-  ['Sector relevance', 61],
-  ['Spelling and grammar', 92],
+  ['Structure and readability', 80],
+  ['Sector fit', 61],
+  ['UK spelling and consistency', 92],
   ['Length and formatting', 74],
 ]
 
@@ -317,17 +319,16 @@ function Upload({ s, compact }: { s: S; compact: boolean }) {
           <div className="op-hero-aside">
             <div className="op-hero-card op-hero-guide">
               <div className="op-hero-label">BEFORE YOU UPLOAD</div>
-              {[150, 118, 136, 96, 72].map((w, i) => (
-                <div className="op-hero-guide-row" key={i}>
+              {GUIDES.map((g) => (
+                <div className="op-hero-guide-row" key={g}>
                   <Tick />
-                  <Bar w={w} h={7} tone={2} />
+                  {g}
                 </div>
               ))}
             </div>
             <div className="op-hero-card op-hero-data">
               <div className="op-hero-data-title">Your data, your call</div>
-              <Bar w={196} h={6} tone={2} />
-              <Bar w={150} h={6} tone={2} />
+              <div className="op-hero-data-copy">Only used to give you feedback. Your adviser can&apos;t see it unless you share it.</div>
             </div>
           </div>
         )}
@@ -455,7 +456,7 @@ function Results({ s, compact }: { s: S; compact: boolean }) {
                     }}
                   />
                 </span>
-                {!compact && <span className="op-hero-note">Your figures, never invented ones.</span>}
+                {!compact && <span className="op-hero-note">Your figures, with [brackets] where only you know the number.</span>}
               </div>
             </div>
           </Collapse>

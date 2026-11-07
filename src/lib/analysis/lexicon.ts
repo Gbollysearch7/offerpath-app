@@ -1,5 +1,8 @@
 // Word lists used by the rule-based CV, job ad and cover letter checks.
 
+/** Bump when any list below changes: saved findings record which word lists they were checked against. */
+export const LEXICON_VERSION = "lexicon-2026-11-05.1";
+
 export const SECTORS = [
   "Finance and banking",
   "Consulting",

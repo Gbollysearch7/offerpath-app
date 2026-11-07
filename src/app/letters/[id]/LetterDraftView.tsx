@@ -112,8 +112,12 @@ export function LetterDraftView({ id, p }: { id: string; p: CoverLetterPayload }
             ))}
           </section>
           <section className="rounded-3xl bg-mist px-[22px] py-5">
-            <p className="m-0 text-base font-medium">Every claim has a source</p>
-            <p className="mt-1.5 mb-0 text-sm leading-[1.55] text-body">The tags under each paragraph show which CV line or part of the job ad it came from. If something isn&apos;t true, edit it or delete it.</p>
+            <p className="m-0 text-base font-medium">Where each paragraph came from</p>
+            <p className="mt-1.5 mb-0 text-sm leading-[1.55] text-body">
+              The tags under each paragraph show the CV section or part of the job ad it draws on.{" "}
+              {p.aiAssisted ? "The writing tool reported them and they aren't verified, so check each claim against your CV. " : "Each sentence is a CV fact, your own note or a marked placeholder. "}
+              If something isn&apos;t true, edit it or delete it.
+            </p>
           </section>
           <button type="button" disabled={pending} onClick={() => run(() => reviewDraft(id), (r) => r.id && router.push(`/letters/${r.id}`))} className="inline-flex min-h-12 items-center justify-center rounded-full border border-edge bg-white text-sm text-black hover:bg-paper disabled:opacity-60">
             Run a full review on this draft

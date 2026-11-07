@@ -86,7 +86,7 @@ export default async function PrivacyPage({ searchParams }: { searchParams: Prom
           <h2 id="a-h" className="m-0 text-[17px] font-medium">
             About AI scores
           </h2>
-          <p className="mt-1.5 mb-0 text-[15px] leading-relaxed text-body">Your Readiness Score is guidance, not a verdict, and it&apos;s worked out the same way for every student. If you disagree with it, talk to your careers adviser. Suggested rewrites only use facts from your own CV.</p>
+          <p className="mt-1.5 mb-0 text-[15px] leading-relaxed text-body">Your Readiness Score is guidance, not a verdict, and it&apos;s worked out the same way for every student. If you disagree with it, talk to your careers adviser: they can add a note to your report, though they can&apos;t change the score. Suggested rewrites use your CV as their source but can introduce mistakes. Check every figure, responsibility and outcome before accepting a suggestion.</p>
         </section>
 
         <section aria-labelledby="d-h" className="flex flex-wrap items-start gap-5 rounded-3xl bg-white px-[26px] py-6">

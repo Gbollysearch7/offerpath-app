@@ -462,8 +462,9 @@
     border-radius: 11px;
   }
 
+  /* Below the list's fade, so the phone never covers a role card */
   & .ss-stage[data-layout="compact"] .op-tracker-phone {
-    top: 314px;
+    top: 344px;
   }
 }
 
@@ -472,6 +473,7 @@
 }
 
 /* Mail's lock screen banner: sender, subject, one line of preview */
-.op-tracker .op-tracker-note .ss-notification__body {
+.op-tracker .op-tracker-note .ss-notification__body,
+.op-tracker .op-tracker-earlier .ss-notification__body {
   -webkit-line-clamp: 2;
 }

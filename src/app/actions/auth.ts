@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { featureFlags } from "@/lib/env";
+import { demoLoginAllowed, featureFlags } from "@/lib/env";
 import { resetDemoUser } from "@/lib/repo/demo";
 import { DEMO_COOKIE, getRepo, isDemoMode, readDemoSession, signDemoSession } from "@/lib/session";
 import { clientIp, hit, TOO_MANY } from "@/lib/rate-limit";
@@ -14,6 +14,7 @@ import type { Stage } from "@/lib/types";
 export type AuthState = { error?: string; sent?: string } | null;
 
 async function startDemo(role: "student" | "admin") {
+  if (!demoLoginAllowed()) redirect(`/sign-in?error=${encodeURIComponent("Sign-in isn't available right now.")}`);
   const store = await cookies();
   const existing = readDemoSession(store.get(DEMO_COOKIE)?.value);
   const id = existing?.role === role ? existing.id : crypto.randomUUID();
@@ -65,7 +66,11 @@ export async function signInWithEmail(_prev: AuthState, formData: FormData): Pro
 /** Test accounts at the test university. The admin one is made an admin on first sign-in. */
 const TEST_ACCOUNTS = { student: "test.student@levelup-qa.ac.uk", admin: "test.careers@levelup-qa.ac.uk" } as const;
 
-/** Testing phase only (TEST_LOGIN=true): sign straight in as a test account, without an email link. */
+/**
+ * Testing phase only: sign straight in as a test account, without an email link. Needs TEST_LOGIN=true outside a
+ * production configuration (src/lib/env.ts). This is a server action and can be called without the button, so the
+ * check here is the control; hiding the button is not.
+ */
 export async function testSignIn(formData: FormData) {
   const role = formData.get("admin") === "1" ? "admin" : "student";
   if (isDemoMode()) return startDemo(role);

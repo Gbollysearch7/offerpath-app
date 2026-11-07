@@ -12,7 +12,8 @@ import { aiJudgeBullets } from "@/lib/ai";
 import { analyseCv } from "@/lib/analysis/cv";
 import { extractText } from "@/lib/analysis/extract";
 import { AI_JUDGE_MODEL } from "@/lib/analysis/judgment";
-import { AREA_WEIGHTS, BANDS, RUBRIC_VERSION } from "@/lib/analysis/rubric";
+import { bandLabel } from "@/lib/analysis/labels";
+import { AREA_WEIGHTS, RUBRIC_VERSION } from "@/lib/analysis/rubric";
 import { parseCsv } from "@/lib/csv";
 import { memoryStore, scoreCvWith } from "@/lib/scoring-core";
 import { DEMO_CVS } from "@/lib/seed-data";
@@ -45,7 +46,6 @@ const ranks = (v: number[]) => {
   }
   return r as number[];
 };
-const band = (s: number) => BANDS.find((b) => s >= b.min)!.label;
 
 async function load(): Promise<{ name: string; text: string; adviser: number }[]> {
   if (flag("demo")) {
@@ -88,7 +88,7 @@ async function load(): Promise<{ name: string; text: string; adviser: number }[]
   const adv = results.map((r) => r.adviser);
   const mae = results.reduce((s, r) => s + Math.abs(r.ours - r.adviser), 0) / results.length;
   const bias = results.reduce((s, r) => s + (r.ours - r.adviser), 0) / results.length;
-  const bandAgree = results.filter((r) => band(r.ours) === band(r.adviser)).length / results.length;
+  const bandAgree = results.filter((r) => bandLabel(r.ours) === bandLabel(r.adviser)).length / results.length;
 
   console.log(`\nCalibration · ${results.length} CVs · ${RUBRIC_VERSION} · ${flag("ai") ? AI_JUDGE_MODEL : "rule engine"} · sector ${SECTOR}\n`);
   console.table(results.map((r) => ({ file: r.name, adviser: r.adviser, offerpath: r.ours, diff: r.ours - r.adviser })));
@@ -102,7 +102,7 @@ async function load(): Promise<{ name: string; text: string; adviser: number }[]
     const r = pearson(results.map((x) => x.areas[key]), adv);
     console.log(`  ${key.padEnd(10)} weight ${String(AREA_WEIGHTS[key as keyof typeof AREA_WEIGHTS]).padEnd(5)} correlation ${r.toFixed(2)}`);
   }
-  console.log("\nTo adjust: edit src/lib/analysis/rubric.ts (raise weights of areas that agree, lower those that don't), bump RUBRIC_VERSION, and run this again.");
+  console.log("\nTo adjust: edit src/lib/analysis/rubric.ts (raise weights of areas that agree, lower those that don't), bump RUBRIC_VERSION, and run this again. Band wording lives in labels.ts and needs no version bump.");
 })().catch((e) => {
   console.error(e instanceof Error ? e.message : e);
   process.exit(1);
